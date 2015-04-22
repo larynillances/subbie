@@ -1,0 +1,119 @@
+.table-colored-header{
+    font-size: 12px!important;
+}
+.table-colored-header > thead > tr > th{
+    /*text-transform: uppercase!important;*/
+    font-size: 11px!important;
+    background: #484848;
+    border: 1px solid #d2d2d2;
+    color: #ffffff;
+    text-align: center;
+}
+.table-colored-header > tbody > tr > td{
+    border: 1px solid #d2d2d2;
+    text-align: center;
+}
+.align-right{
+    text-align: right!important;
+}
+.align-left{
+    text-align: left!important;
+}
+.align-center{
+    text-align: center!important;
+}
+.font-bold{
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.grey-background{
+    background: #a8a8a8;
+}
+.table-invoice > thead > tr > th{
+    text-align: center;
+    font-weight: bold;
+    background: #a8a8a8;
+    border: 2px solid #000000;
+}
+.table-invoice > tbody > tr > td{
+    text-align: center;
+    border-left: 2px solid #000000;
+    padding: 3px!important;
+}
+.table-invoice > tbody > tr > td:last-child{
+    border-right: 2px solid #000000;
+}
+.border-top{
+    border-top: 2px solid #000000!important;
+}
+.border-bottom{
+    border-bottom: 2px solid #000000!important;
+}
+.total{
+    border-right: 2px solid #000000;
+}
+.clear-style{
+    border: none!important;
+    background: none!important;
+    text-align: left!important;
+}
+.no-left-border{
+    border-left: none;
+    border-right: 2px solid #000000;
+}
+form{
+    font-size: 12px!important;
+}
+.btn-flat{
+    border: none;
+    color: #ffffff;
+    background: #3c3c3c;
+    text-decoration: none;
+    padding: 5px 20px;
+}
+.btn-flat:hover{
+    text-decoration: none;
+    background: #737373;
+    color: #FFFFff;
+}
+.table-order tbody tr:last-child td{
+    border-bottom: 2px solid #000000;
+}
+.table-order tbody tr td.tbl-footer{
+    text-align: right;
+    font-weight: bold;
+}
+
+table .header-fixed {
+    position: fixed;
+    top: 40px;
+    z-index: 1020; /* 10 less than .navbar-fixed to prevent any overlap */
+    border-bottom: 1px solid #d5d5d5;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    border-radius: 0;
+    -webkit-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+    -moz-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+    box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled=false); /* IE6-9 */
+}
+.value-class{
+    color: #ff0000;
+    font-weight: bold;
+}
+.rotate{
+    /* Safari */
+    -webkit-transform: rotate(-90deg)!important;
+
+    /* Firefox */
+    -moz-transform: rotate(-90deg)!important;
+
+    /* IE */
+    -ms-transform: rotate(-90deg)!important;
+
+    /* Opera */
+    -o-transform: rotate(-90deg)!important;
+
+    /* Internet Explorer */
+    filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
