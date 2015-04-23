@@ -515,7 +515,7 @@ if(count($csv)>0){
 $uploaddir = realpath(APPPATH.'../uploads');
 
 
-$dir = $uploaddir."/tax table.xls";
+$dir = $uploaddir."/tax table 2014-2015.xls";
 if(!$dir){
     exit;
 }

@@ -1,59 +1,8 @@
-<!--<div class="row">
+<div class="row">
     <div class="col-lg-12">
-        <table id="table-scrollable" class="table table-responsive table-colored-header">
-            <thead>
-            <tr>
-                <th>Earnings</th>
-                <th>M</th>
-                <th>ME</th>
-                <th>3%</th>
-                <th>4%</th>
-                <th>8%</th>
-                <th>CEC</th>
-                <th>10.5%</th>
-                <th>CEC</th>
-                <th>17.5%</th>
-                <th>CEC</th>
-                <th>30%</th>
-                <th>CEC</th>
-                <th>33%</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php
-/*            if(count($tax)>0):
-                foreach($tax as $v):
-                    */?>
-                    <tr>
-                        <td><?php /*echo $v->earnings != '' ? '$'.number_format($v->earnings,2,'.',',') : '';*/?></td>
-                        <td><?php /*echo '$'.number_format($v->m_paye,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->me_paye,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->kiwi_saver_3,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->kiwi_saver_4,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->kiwi_saver_8,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_1,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_1_10,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_2,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_2_17,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_3,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_3_30,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_4,2,'.',',');*/?></td>
-                        <td><?php /*echo '$'.number_format($v->cec_4_33,2,'.',',');*/?></td>
-                    </tr>
-                <?php
-/*                endforeach;
-            else:
-                */?>
-                <tr>
-                    <td colspan="3" class="empty-table">No data has found.</td>
-                </tr>
-            <?php
-/*            endif;
-            */?>
-            </tbody>
-        </table>
+        <button class="btn btn-primary btn-sm import-btn" type="button"><i class="glyphicon glyphicon-import"></i> Import Tax</button>
     </div>
-</div>-->
+</div><br/>
 <div class="row">
     <div class="col-lg-12">
         <div id="grid1" class="grid"></div>
@@ -89,6 +38,13 @@
                 forceFitColumns: true,
                 rowHeight: 35
             }
+        });
+
+        $('.import-btn').live('click',function(){
+            $(this).modifiedModal({
+                url: bu + 'importTaxTable',
+                title: 'Import Tax'
+            });
         });
     })
 </script>

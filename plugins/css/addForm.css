@@ -34,7 +34,7 @@
 
 #loadingForm{
     position: absolute;
-    z-index: 999!important;
+    z-index: 99999!important;
     left:50%;
     top:50%;
 

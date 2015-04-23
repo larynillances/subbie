@@ -112,7 +112,9 @@ ob_start();
                 <div class="col-sm-12" style="text-transform: uppercase;text-align: center">
                     <h3 class="subheading">
                         <?php
-                        echo $type == 2 ? 'Wage Summary for Year ' . $year_val : 'Month of ' . $thisMonth;
+                        echo $type == 2 ? 'Wage Summary for Year ' . $year_val :
+                            ($type == 3 ? 'Wage Summary for ' . date('d F Y',strtotime($start)) .' to '. date('d F Y',strtotime($end))
+                                :'Month of ' . $thisMonth);
                         ?>
                     </h3>
                 </div>

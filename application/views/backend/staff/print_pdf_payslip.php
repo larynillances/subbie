@@ -55,7 +55,7 @@ ob_start();
                                 </th>
                             </tr>
                             <tr>
-                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Weekly Pay Slip Period End (<?php echo date('j F Y',strtotime($date));?>)</th>
+                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Weekly Pay Slip Period End (<?php echo date('j F Y',strtotime('+6 days '.$date));?>)</th>
                             </tr>
                             </thead>
                             <tbody>

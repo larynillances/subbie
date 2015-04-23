@@ -1,8 +1,6 @@
 <IfModule mod_rewrite.c>
     Options -Indexes
     RewriteEngine On
-    # RewriteBase /
-
     # force https for all URLs
     #RewriteCond %{HTTPS} =off
     #RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]

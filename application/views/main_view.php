@@ -47,6 +47,7 @@
     <script src="<?php echo base_url();?>plugins/js/bootstrap-slickgrid.js"></script>
     <script src="<?php echo base_url();?>plugins/js/select.country.js"></script>
     <script src="<?php echo base_url();?>plugins/js/main.js"></script>
+    <script src="<?php echo base_url();?>plugins/js/modified-modal.js"></script>
 </head>
 <body>
 
@@ -77,40 +78,40 @@
 </div>
 
 <!--large modal-->
-<div class="modal fade this-modal bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+<div class="modal fade this-modal bs-example-modal-lg largeModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
                 <h4 class="modal-title">Add Invoice Entry</h4>
             </div>
-            <div class="page-loader"></div>
+            <div class="page-loader lg-page-load"></div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 
 <!--default modal-->
-<div class="modal fade my-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+<div class="modal fade my-modal defaultModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
                 <h4 class="modal-title my-title">New Order</h4>
             </div>
-            <div class="load-page"></div>
+            <div class="load-page df-page-load"></div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 
 <!--small modal-->
-<div class="modal fade bs-example-modal-sm sm-modal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+<div class="modal fade bs-example-modal-sm sm-modal smallModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
                 <h4 class="modal-title sm-title">New Order</h4>
             </div>
-            <div class="sm-load-page"></div>
+            <div class="sm-load-page sm-page-load"></div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->

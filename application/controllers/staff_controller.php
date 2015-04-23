@@ -21,8 +21,6 @@ class Staff_Controller extends Subbie{
         }
         $this->getWageData($this->data['thisYear'],$this->data['thisMonth']);
 
-        //$this->getYearTotalBalance($this->data['thisYear']);
-
         //$this->displayarray($this->data['wage_data']);
         $this->data['page_load'] = 'backend/staff/wage_summary_view';
         $this->load->view('main_view',$this->data);
@@ -204,7 +202,7 @@ class Staff_Controller extends Subbie{
                 $code = $v->currency_code != 'NZD' ? $v->currency_code : 'PHP';
                 $symbols = $v->currency_code != 'NZD' ? $v->symbols : 'Php';
 
-                $rate = $this->getStaffRate($v->id);
+                $rate = $this->getStaffRate($v->id,$this_date);
                 if(count($rate) > 0){
                     foreach($rate as $val){
                         $v->rate_name = $val->rate_name;
@@ -514,11 +512,11 @@ class Staff_Controller extends Subbie{
                 if(count($this->data['staff']) > 0){
                     foreach($this->data['staff'] as $row){
                         $this->my_model->setLastId('rate_id');
-                        $rate = $this->my_model->getInfo('tbl_staff_rate',$row->id);
+                        $rate = $this->my_model->getInfo('tbl_staff_rate',$row->id,'staff_id');
                         $row->rate = $rate ? $rate : $row->rate;
 
                         $this->my_model->setLastId('start_use');
-                        $start_use = $this->my_model->getInfo('tbl_staff_rate',$row->id);
+                        $start_use = $this->my_model->getInfo('tbl_staff_rate',$row->id,'staff_id');
                         $row->start_use = $rate ? date('d-m-Y',strtotime($start_use)) : date('d-m-Y');
                     }
                 }
@@ -796,6 +794,8 @@ class Staff_Controller extends Subbie{
         $this->data['thisMonth'] = date('F');
         $this->data['month'] = $this->getMonth();
         $this->data['type'] = 1;
+        $this->data['start'] = date('d-m-Y');
+        $this->data['end'] = date('d-m-Y',strtotime('+12months'));
 
         if(isset($_POST['submit'])){
             $thisDate = $_POST['year'].'-'.$_POST['month'];
@@ -803,12 +803,16 @@ class Staff_Controller extends Subbie{
             $this->data['month_val'] = $_POST['month'];
             $this->data['year_val'] = $_POST['year'];
             $this->data['type'] = $_POST['type'];
+            $this->data['start'] = isset($_POST['start_date']) ? $_POST['start_date'] : '';
+            $this->data['end'] = isset($_POST['end_date']) ? $_POST['end_date'] : '';
         }
 
         if(isset($_GET['print'])){
             $type = $this->uri->segment(3);
             $year = $this->uri->segment(4);
             $month = $this->uri->segment(5);
+            $start = $this->uri->segment(6);
+            $end = $this->uri->segment(7);
 
             if($_GET['print'] == 1){
                 $thisDate = $year.'-'.$month;
@@ -816,6 +820,8 @@ class Staff_Controller extends Subbie{
                 $this->data['month_val'] = $month;
                 $this->data['year_val'] = $year;
                 $this->data['type'] = $type;
+                $this->data['start'] = $start;
+                $this->data['end'] = $end;
             }
         }
 
@@ -823,8 +829,10 @@ class Staff_Controller extends Subbie{
 
         if($this->data['type'] == 1){
             $date = $this->getFirstNextLastDay($this->data['year_val'],$this->data['month_val'],'tuesday');
-        }else{
+        }else if($this->data['type'] == 2){
             $date = $this->getWeekInYear($this->data['year_val']);
+        }else{
+            $date = $this->getWeekBetweenDates($this->data['start'],$this->data['end']);
         }
 
         $this->data['date'] = $date;

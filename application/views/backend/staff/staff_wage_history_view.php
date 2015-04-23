@@ -6,8 +6,9 @@ $uri2 = $this->uri->segment(2);
         <label class="col-sm-1 control-label" for="type">Type:</label>
         <div class="col-sm-2">
             <select id="type" name="type" class="form-control input-sm">
-                <option value="1">Monthly</option>
-                <option value="2">Yearly</option>
+                <option value="1" <?php echo $type == 1 ? 'selected' : ''?> >Monthly</option>
+                <option value="2" <?php echo $type == 2 ? 'selected' : ''?>>Yearly</option>
+                <option value="3" <?php echo $type == 3 ? 'selected' : ''?>>Customize</option>
             </select>
         </div>
         <label class="col-sm-1 control-label date-label">Date:</label>
@@ -15,13 +16,26 @@ $uri2 = $this->uri->segment(2);
         <div class="col-sm-2 month-dp">
             <?php echo form_dropdown('month',$month,$month_val,'class="form-control input-sm"')?>
         </div>
-        <div class="col-sm-2">
+        <div class="col-sm-2 year-dp">
             <?php echo form_dropdown('year',$year,$year_val,'class="form-control input-sm year"')?>
+        </div>
+        <div class="date-range" style="display: none;">
+            <div class="col-sm-4">
+                <div class="col-sm-5" style="white-space: nowrap;margin-top: 2px;">
+                    <span class="from-date date"><?php echo $start?></span>
+                    <input type="hidden" name="start_date" class="from-date-picker" value="<?php echo $start?>">
+                </div>
+                <label class="control-label col-sm-2">To</label>
+                <div class="col-sm-5" style="white-space: nowrap;margin-top: 2px;">
+                    <span class="to-date date"><?php echo $end;?></span>
+                    <input type="hidden" name="end_date" class="to-date-picker" value="<?php echo $end;?>">
+                </div>
+            </div>
         </div>
         <div class="col-sm-4">
             <input type="submit" name="submit" class="btn btn-primary" value="Go">
             <a href="<?php echo base_url().'staffList'?>" class="btn btn-success"><span class="glyphicon glyphicon-arrow-left"></span> Back</a>
-            <a href="<?php echo base_url().'staffWageHistory/'.$uri2.'/'.$type.'/'.$year_val.'/'.$month_val.'?print=1'?>" class="btn btn-success" target="_blank"><span class="glyphicon glyphicon-print"></span> Print</a>
+            <a href="<?php echo base_url().'staffWageHistory/'.$uri2.'/'.$type.'/'.$year_val.'/'.$month_val.'/'.$start.'/'.$end.'?print=1'?>" class="btn btn-success" target="_blank"><span class="glyphicon glyphicon-print"></span> Print</a>
         </div>
     </div>
     <div class="row">
@@ -224,25 +238,89 @@ $uri2 = $this->uri->segment(2);
 <?php
 echo form_close();
 ?>
-
+<style>
+    .date{
+        color: #ff0000;
+    }
+</style>
 <script>
     $(function(e){
-        $('#type').change(function(e){
-            var year_label = $('.year-label');
-            var date_label = $('.date-label');
-            var month_dp = $('.month-dp');
-            var subheading = $('.subheading');
-            if($(this).val() == '2'){
+        var type = $('#type');
+        var year_label = $('.year-label');
+        var date_label = $('.date-label');
+        var month_dp = $('.month-dp');
+        var year_dp = $('.year-dp');
+        var date_range = $('.date-range');
+        var subheading = $('.subheading');
+
+        type.change(function(e){
+            if($(this).val() == 2){
+                year_label.css({'display':'inline'});
+                date_label.css({'display':'none'});
+                month_dp.css({'display':'none'});
+                year_dp.css({'display':'inline'});
+                date_range.css({'display':'none'});
+                subheading.html('Wage Summary of ' + $('.year').val())
+            }
+            else if($(this).val() == 3){
+                year_label.css({'display':'none'});
+                year_dp.css({'display':'none'});
+                date_label.css({'display':'none'});
+                month_dp.css({'display':'none'});
+                date_range.css({'display':'inline'});
+                subheading.html('Wage Summary of <?php echo date('d F Y',strtotime($start)) .' to '. date('d F Y',strtotime($end))?>');
+            }
+            else{
+                year_label.css({'display':'none'});
+                date_label.css({'display':'inline'});
+                month_dp.css({'display':'inline'});
+                date_range.css({'display':'none'});
+                year_dp.css({'display':'inline'});
+            }
+        });
+        var checkSelectedType = function(){
+            if(type.val() == 2){
                 year_label.css({'display':'inline'});
                 date_label.css({'display':'none'});
                 month_dp.css({'display':'none'});
                 subheading.html('Wage Summary of ' + $('.year').val())
-            }else{
+            }else if(type.val() == 3){
                 year_label.css({'display':'none'});
-                date_label.css({'display':'inline'});
-                month_dp.css({'display':'inline'})
+                year_dp.css({'display':'none'});
+                date_label.css({'display':'none'});
+                month_dp.css({'display':'none'});
+                date_range.css({'display':'inline'});
+                subheading.html('Wage Summary of <?php echo date('d F Y',strtotime($start)) .' to '. date('d F Y',strtotime($end))?>');
+            }
+        };
+
+        checkSelectedType();
+
+        $('.from-date-picker').datepicker({
+            showOn: 'button',
+            buttonImageOnly: true,
+            dateFormat:"dd-mm-yy",
+            buttonImage: bu + 'images/calendar-add.png',
+            onSelect:function(){
+                $('.from-date').html($(this).val());
+            },
+            onClose: function( selectedDate ) {
+                $( ".to-date-picker" ).datepicker( "option", "minDate", selectedDate );
             }
         });
+        $('.to-date-picker').datepicker({
+            showOn: 'button',
+            buttonImageOnly: true,
+            dateFormat:"dd-mm-yy",
+            buttonImage: bu + 'images/calendar-add.png',
+            onSelect:function(){
+                $('.to-date').html($(this).val());
+            },
+            onClose: function( selectedDate ) {
+                $( ".from-date-picker" ).datepicker( "option", "maxDate", selectedDate );
+            }
+        });
+
         $('.fixed-table').scrollTableBody({rowsToDisplay:12});
     })
 </script>

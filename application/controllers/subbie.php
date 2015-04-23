@@ -1,5 +1,4 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-require_once(realpath(APPPATH . "/views/excel_reader.php"));
 
 /**
  * @property My_Model $my_model Optional description
@@ -322,6 +321,29 @@ class Subbie extends CI_Controller{
         return $year_week;
     }
 
+    function getWeekBetweenDates($start,$end,$day_start = 'tuesday'){
+        $start = date('Y-m-d',strtotime('-1 day '.$start));
+        $start = date('Y-m-d',strtotime('next '.$day_start.' '.$start));
+
+        $end = date('Y-m-d',strtotime('+1 day '.$end));
+        $end = date('Y-m-d',strtotime('last '.$day_start.' '.$end));
+
+        $endYearWeeksPeriod = new DatePeriod(
+            new DateTime("$start"),
+            new DateInterval('P1W'),
+            new DateTime($end."T23:59:59Z")
+        );
+
+        $year_week = array();
+        $ref = 1;
+        foreach ($endYearWeeksPeriod as $week => $day) {
+            $year_week[$ref] = $day->format('Y-m-d');
+            $ref++;
+        }
+
+        return $year_week;
+    }
+
     function getWeekInYearBetweenDates($end_year,$start_year = 2014,$start = 2){
         $endYearWeeksPeriod = new DatePeriod(
             new DateTime("$start_year-W01-$start"),
@@ -583,7 +605,8 @@ class Subbie extends CI_Controller{
                     foreach($this->data['date'] as $dv){
                         if(count($staff_list) > 0){
                             foreach($staff_list as $ev){
-                                $rate = $this->getStaffRate($ev->employee);
+                                $rate = $this->getStaffRate($ev->employee,$dv);
+
                                 if(count($rate) > 0){
                                     foreach($rate as $val){
                                         $ev->rate_name = $val->rate_name;
@@ -609,7 +632,8 @@ class Subbie extends CI_Controller{
                                 if($ev->gross > $earnings){
                                     $ev->tax = (($ev->gross - $earnings) * 0.33) + $m_paye;
                                 }else{
-                                    $tax = $this->my_model->getinfo('tbl_tax',$ev->gross,'earnings');
+                                    $whatVal = 'earnings ="'.$ev->gross.'" AND (start_date >= "'.$dv.'")';
+                                    $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
 
                                     if(count($tax)>0){
                                         foreach($tax as $tv){
@@ -699,7 +723,7 @@ class Subbie extends CI_Controller{
                             foreach($date as $dv){
                                 $monthly_hours = $this->getTotalHours($dv,$mv->staff_id,'monthly');
                                 $weekly_hours = $this->getTotalHours($dv,$mv->staff_id);
-                                $rate = $this->getStaffRate($mv->staff_id);
+                                $rate = $this->getStaffRate($mv->staff_id,$dv);
                                 if(count($rate) > 0){
                                     foreach($rate as $val){
                                         $mv->rate_name = $val->rate_name;
@@ -825,8 +849,7 @@ class Subbie extends CI_Controller{
                 if(count($date) >0){
                     foreach($date as $dv){
                         $monthly_hours = $this->getTotalHours($dv,$mv->id,'monthly');
-
-                        $rate = $this->getStaffRate($mv->id);
+                        $rate = $this->getStaffRate($mv->id,$dv);
                         if(count($rate) > 0){
                             foreach($rate as $val){
                                 $mv->rate_name = $val->rate_name;
@@ -874,8 +897,8 @@ class Subbie extends CI_Controller{
         }
     }
 
-    function getYearTotalBalance($year,$type = 'weekly'){
-        $year_week = $this->getWeekInYearBetweenDates($year);
+    function getYearTotalBalance($year,$type = 'weekly',$set_range = false,$start = '',$end = ''){
+        $year_week = $set_range ? $this->getWeekBetweenDates($start,$end) : $this->getWeekInYearBetweenDates($year);
 
         //$this->displayarray($year_week);
         $this->my_model->setJoin(array(

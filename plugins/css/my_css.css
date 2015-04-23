@@ -117,3 +117,6 @@ table .header-fixed {
     /* Internet Explorer */
     filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
 }
+.ui-datepicker-trigger{
+    width: 20px;
+}
