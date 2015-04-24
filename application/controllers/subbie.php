@@ -632,7 +632,7 @@ class Subbie extends CI_Controller{
                                 if($ev->gross > $earnings){
                                     $ev->tax = (($ev->gross - $earnings) * 0.33) + $m_paye;
                                 }else{
-                                    $whatVal = 'earnings ="'.$ev->gross.'" AND (start_date >= "'.$dv.'")';
+                                    $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$dv.'"';
                                     $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
 
                                     if(count($tax)>0){
@@ -764,7 +764,8 @@ class Subbie extends CI_Controller{
                                         if($mv->gross > $earnings){
                                             $mv->tax = (($mv->gross - $earnings) * 0.33) + $m_paye;
                                         }else{
-                                            $tax = $this->my_model->getinfo('tbl_tax',$mv->gross,'earnings');
+                                            $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'"';
+                                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                                             if(count($tax)>0){
                                                 foreach($tax as $tv){
                                                     $mv->tax = $tv->m_paye;
@@ -870,7 +871,8 @@ class Subbie extends CI_Controller{
                                 if($mv->gross > $earnings){
                                     $mv->tax = (($mv->gross - $earnings) * 0.33) + $m_paye;
                                 }else{
-                                    $tax = $this->my_model->getinfo('tbl_tax',$mv->gross,'earnings');
+                                    $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'"';
+                                    $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                                     if(count($tax)>0){
                                         foreach($tax as $tv){
                                             $mv->tax = $tv->m_paye;

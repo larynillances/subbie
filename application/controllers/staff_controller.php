@@ -230,7 +230,8 @@ class Staff_Controller extends Subbie{
                     if($v->gross > $earnings){
                         $v->tax = (($v->gross - $earnings) * 0.33) + $m_paye;
                     }else{
-                        $tax = $this->my_model->getinfo('tbl_tax',$v->gross,'earnings');
+                        $whatVal = 'earnings ="'.$v->gross.'" AND start_date <= "'.$this_date.'"';
+                        $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                         if(count($tax)>0){
                             foreach($tax as $tv){
                                 $v->tax = $tv->m_paye;
@@ -896,7 +897,8 @@ class Staff_Controller extends Subbie{
                         if($sv->gross > $earnings){
                             $sv->tax = (($sv->gross - $earnings) * 0.33) + $m_paye;
                         }else{
-                            $tax = $this->my_model->getinfo('tbl_tax',$sv->gross,'earnings');
+                            $whatVal = 'earnings ="'.$sv->gross.'" AND start_date <= "'.$dv.'"';
+                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                             $sv->tax = '';
                             if(count($tax)>0){
                                 foreach($tax as $tv){
