@@ -12,7 +12,6 @@
  * <examples>
  *
  * @property my_model                     $my_model
- * @property main_model                   $main_model
  */
 
 class my_models

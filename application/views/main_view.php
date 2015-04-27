@@ -18,6 +18,7 @@
     <link href="<?php echo base_url();?>plugins/css/slick.grid.css" rel="stylesheet">
     <link href="<?php echo base_url();?>plugins/css/example-bootstrap.css" rel="stylesheet">
     <link href="<?php echo base_url();?>plugins/font-awesome-4.1.0/css/font-awesome.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo base_url() . "plugins/css/email.validation.css"; ?>" />
     <link rel="shortcut icon" href="<?php echo base_url();?>images/subbie-small-logo.png" />
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -48,6 +49,7 @@
     <script src="<?php echo base_url();?>plugins/js/select.country.js"></script>
     <script src="<?php echo base_url();?>plugins/js/main.js"></script>
     <script src="<?php echo base_url();?>plugins/js/modified-modal.js"></script>
+    <script src="<?php echo base_url() . "plugins/js/email.validation.js"; ?>"></script>
 </head>
 <body>
 

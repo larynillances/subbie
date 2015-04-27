@@ -3,9 +3,7 @@ $header_links = array();
 switch($this->session->userdata('account_type')){
     case 1:
         $header_links = array(
-            'Log' => array(
-                'trackingLog' => 'Tracking',
-            ),
+            'trackingLog' => 'Tracking Log',
             'Admin' => array(
                 'jobQuoting' => 'Job Quoting',
                 'newJobRequestForm' => 'New Job Request',
@@ -13,7 +11,8 @@ switch($this->session->userdata('account_type')){
                 'orderBookInput' => 'New Order',
                 'invoiceCreate' => 'New Invoice Entry',
                 'taxTable' => 'Tax Table',
-                'workFlowCalendar' => 'Work Flow Calendar'
+                'workFlowCalendar' => 'Work Flow Calendar',
+                'invoiceExportEmailLog' => 'Email Log'
             ),
             'List' => array(
                 'invoiceList' => 'Invoice List',

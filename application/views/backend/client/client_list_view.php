@@ -5,13 +5,12 @@
 <table class="table table-colored-header">
     <thead>
     <tr>
-        <th style="width: 15%">Client Name</th>
+        <th style="width: 25%">Client Name</th>
         <th>Code</th>
         <th>Contact Name</th>
         <th>Phone No.</th>
         <th>Mobile No.</th>
         <th style="width: 25%;">Address</th>
-        <th>Email Address</th>
         <th></th>
     </tr>
     </thead>
@@ -27,7 +26,6 @@
             <td><?php echo $v->phone?></td>
             <td><?php echo $v->mobile?></td>
             <td style="text-align: left;"><?php echo str_replace("\n",'<br/>',$v->address)?></td>
-            <td><?php echo $v->email?></td>
             <td style="white-space: nowrap!important;vertical-align: middle;">
                 <a href="<?php echo base_url().'quotation/request/'.$v->id?>" class="requestBtn tooltip-class" data-toggle="tooltip" data-placement="top" title="Request Quote">
                     <span class="glyphicon glyphicon-file"></span>
@@ -59,16 +57,18 @@
         var url;
         $('.add-client').click(function(e){
             e.preventDefault();
-            url = bu + 'manageClient/add';
-            title.html('Add Client');
-            page.load(url);
-            $('.my-modal').modal();
+            $(this).modifiedModal({
+                url: bu + 'manageClient/add',
+                title: 'Add Client',
+                type: 'large'
+            });
         });
         $('.edit-client').click(function(e){
-            url = bu + 'manageClient/edit/' + this.id;
-            title.html('Edit Client');
-            page.load(url);
-            $('.my-modal').modal();
+            $(this).modifiedModal({
+                url: bu + 'manageClient/edit/' + this.id,
+                title: 'Edit Client',
+                type: 'large'
+            });
         });
         $('.requestBtn').click(function(e){
             var href = $(this).attr('href');

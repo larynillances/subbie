@@ -745,6 +745,10 @@ class Admin_Controller extends Subbie{
                     exit;
                 }
                 $this->data['client_data'] = $this->my_model->getinfo('tbl_client',$id);
+
+                $this->my_model->setShift();
+                $this->data['client_email'] = (Object)$this->my_model->getinfo('tbl_client_email_return',$id,'client_id');
+
                 $this->load->view('backend/client/edit_client_view',$this->data);
                 break;
             case 'delete':
@@ -763,11 +767,63 @@ class Admin_Controller extends Subbie{
             unset($_POST['submit']);
             switch($action){
                 case 'add':
-                    $_POST['date_registered'] = date('Y-m-d');
-                    $this->my_model->insert('tbl_client',$_POST,false);
+                    $client = $this->my_model->getFields('tbl_client',array('id','is_exclude','date_registered'));
+                    $client_post = array();
+                    if(count($client) > 0){
+                        foreach($client as $cv){
+                            $client_post[$cv] = $_POST[$cv];
+                        }
+                    }
+                    $client_post['date_registered'] = date('Y-m-d');
+                    $client_id = $this->my_model->insert('tbl_client',$client_post,false);
+
+
+                    //region Take-off Return Information
+
+                    $post = array(
+                        'client_id' => $client_id,
+                        'via_subbie' => isset($_POST['via_subbie']) ? 1 : 0,
+                        'via_subbie_only' => isset($_POST['via_subbie_only']) ? 1 : 0,
+                        'via_email' => isset($_POST['via_email']) ? 1 : 0,
+                        'take_off_merchant_name' => isset($_POST['take_off_merchant_name']) ? $_POST['take_off_merchant_name'] : '',
+                        'take_off_merchant_email' => isset($_POST['take_off_merchant_email']) ? $_POST['take_off_merchant_email'] : '',
+                        'take_off_merchant_cc' => isset($_POST['via_email']) ? json_encode($_POST['take_off_merchant_cc']) : '[]',
+                        'take_off_franchise_email' => isset($_POST['take_off_franchise_email']) ? $_POST['take_off_franchise_email'] : '',
+                        'via_ftp' => isset($_POST['via_ftp']) ? 1 : 0
+                    );
+                    $this->my_model->insert('tbl_client_email_return', $post, false);
+                    //endregion
                     break;
                 default:
-                    $this->my_model->update('tbl_client',$_POST,$id);
+                    $client = $this->my_model->getFields('tbl_client',array('id','is_exclude','date_registered'));
+                    $client_post = array();
+                    if(count($client) > 0){
+                        foreach($client as $cv){
+                            $client_post[$cv] = $_POST[$cv];
+                        }
+                    }
+
+                    $this->my_model->update('tbl_client',$client_post,$id);
+                    //region Take-off Return Information
+                    $is_exist = $this->my_model->getInfo('tbl_client_email_return',$id,'client_id');
+                    $post = array(
+                        'client_id' => $id,
+                        'via_subbie' => isset($_POST['via_subbie']) ? 1 : 0,
+                        'via_subbie_only' => isset($_POST['via_subbie_only']) ? 1 : 0,
+                        'via_email' => isset($_POST['via_email']) ? 1 : 0,
+                        'take_off_merchant_name' => isset($_POST['take_off_merchant_name']) ? $_POST['take_off_merchant_name'] : '',
+                        'take_off_merchant_email' => isset($_POST['take_off_merchant_email']) ? $_POST['take_off_merchant_email'] : '',
+                        'take_off_merchant_cc' => isset($_POST['via_email']) ? json_encode($_POST['take_off_merchant_cc']) : '[]',
+                        'take_off_franchise_email' => isset($_POST['take_off_franchise_email']) ? $_POST['take_off_franchise_email'] : '',
+                        'via_ftp' => isset($_POST['via_ftp']) ? 1 : 0
+                    );
+
+                    if(count($is_exist) > 0){
+                        $this->my_model->update('tbl_client_email_return', $post, $id,'client_id',false);
+                    }else{
+                        $this->my_model->insert('tbl_client_email_return', $post, false);
+                    }
+
                     break;
             }
             redirect('clientList');

@@ -60,6 +60,8 @@ echo form_close();
                                     view
                                 </a>&nbsp;
                                 <a href="<?php echo base_url().'editArchiveInvoice/'.$iv->client_id.'/'.$inv_ref[0]?>">edit</a>
+                                &nbsp;
+                                <a href="<?php echo base_url().'exportArchiveInvoice/'.$iv->client_id.'/'.$inv_ref[0]?>" class="export-btn">export</a>
                             </td>
                         </tr>
                         <?php
@@ -69,7 +71,7 @@ echo form_close();
             else:
             ?>
                 <tr>
-                    <td colspan="5">No data has found.</td>
+                    <td colspan="6">No data has found.</td>
                 </tr>
             <?php
             endif;
@@ -78,3 +80,14 @@ echo form_close();
         </table>
     </div>
 </div>
+<script>
+    $(function(e){
+       $('.export-btn').click(function(e){
+           e.preventDefault();
+           $(this).modifiedModal({
+               url: this.href,
+               title: 'Invoice <?php echo $inv_ref[0];?>'
+           });
+       });
+    });
+</script>

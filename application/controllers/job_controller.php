@@ -436,6 +436,7 @@ class Job_Controller extends Subbie{
                     'client_id' => $client_id,
                     'file_name' => $inv_ref.' '.date('d-F-y',strtotime($date)).'.pdf',
                     'type' => 'invoice',
+                    'inv_ref' => $inv_ref,
                     'date' => date('Y-m-d',strtotime($date))
                 );
 
