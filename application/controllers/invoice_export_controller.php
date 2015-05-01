@@ -1,5 +1,6 @@
 <?php
 include('subbie.php');
+include('notification_controller.php');
 
 class invoice_export_controller extends CI_Controller{
     var $data;
@@ -566,144 +567,76 @@ class invoice_export_controller extends CI_Controller{
 
         $subbie = new Subbie();
 
-        $whatId = $this->uri->segment(2);
-        if(!$whatId){
+        $client_id = $this->uri->segment(2);
+        $whatId = $this->uri->segment(3);
+        if(!$whatId && !$client_id){
             exit;
         }
 
         $this->my_model->setSelectFields(array('export_count', 'type'));
         $this->my_model->setShift();
-        $epj_upload_info = (Object)$this->my_model->getInfo('tbl_pdf_archive', $whatId, 'est_num');
+        $epj_upload_info = (Object)$this->my_model->getInfo('tbl_pdf_archive', $whatId);
         $export_count = $epj_upload_info->export_count;
 
-        $jobInfo = $this->my_model->getInfo('tbl_client', $whatId);
+        $jobInfo = $this->my_model->getInfo('tbl_pdf_archive', $whatId);
+        $dir = realpath(APPPATH.'../pdf');
         if(count($jobInfo) > 0){
-            $fId = "";
-            $fran_est_num = "";
-
-            $tblArray = array('tbl_trackinglog', 'tbl_archive');
-            foreach($tblArray as $tbl){
-                $this->my_model->setSelectFields(array('fran_est_num', 'complete_date', 'date_active_again', 'job_status'));
-                $this->my_model->setShift();
-                $thisJobInfo = (Object)$this->my_model->getInfo($tbl, $whatId, 'est_num');
-
-                if($thisJobInfo->fran_est_num){
-                    $fran_est_num = $thisJobInfo->fran_est_num;
-                    break;
-                }
-            }
 
             $subject = "Invoice for ";
             $jobName = "";
-            $merchantReference = "";
             $pdfName = "";
-            $mId = "";
-            $franchise = (Object)array();
-            foreach($jobInfo as $v){
-                $this->my_model->setSelectFields(array(
-                    "tbl_franchise.name as franchise_name",
-                    "tbl_franchise.franchise_code",
-                    "tbl_franchise.franchise_branch_manager",
-                    "tbl_franchise.franchise_branch_name",
-                    "tbl_franchise.franchise_branch_email",
-                    "tbl_franchise.phone AS franchise_phone",
-                    "tbl_franchise.fax AS franchise_fax",
-                    'tbl_franchise.group_by'
-                ));
-                $this->my_model->setShift();
-                $franchise = (Object)$this->my_model->getInfo('tbl_franchise', $v->franchise_id);
+            $invoice_ref = "";
+            $date = date('Y-m-d');
 
-                $pdfName = $v->merref . " " . $v->cusname . " " . $franchise->franchise_code . $fran_est_num . " " . $v->jobname;
-                $merchantReference = $v->merref;
-
-                $this->my_model->setSelectFields('id');
-                $this->my_model->setNormalized('id');
-                $fId = array_shift(array_values($this->my_model->getInfo('tbl_franchise', $franchise->group_by, 'group_by')));
-
-                $subject .= $v->merref . '  ' . $v->cusname . '  ';
-                $jobName = $v->jobname;
-
-                $take_off_field = $this->my_model->getFields(
-                    'tbl_client_email_return',
-                    array('id', 'client_id')
-                );
-
-                $this->my_model->setShift();
-                $this->my_model->setSelectFields($take_off_field, false);
-                $take_off_setting = (Object)$this->my_model->getInfo('tbl_client_email_return', $v->branch_id, 'branch_id');
-                $take_off_options = json_decode($take_off_setting->take_off_options)->take_off_options;
-                $take_off_setting->send_dump_code = $take_off_options->send_dump_code;
-                $take_off_setting->send_missing_sku = $take_off_options->send_missing_sku;
-                $take_off_setting->send_dump_code_to_merchant = $take_off_options->send_dump_code_to_merchant;
-                $take_off_setting->send_missing_sku_to_merchant = $take_off_options->send_missing_sku_to_merchant;
-                $take_off_setting->send_missing_sku_to_data = $take_off_options->send_missing_sku_to_data;
-
-                $take_off_setting->export_pdf = 1;
-                $take_off_setting->export_csv = 1;
-
-                $take_off_merchant_cc = json_decode($take_off_setting->take_off_merchant_cc);
-                $take_off_setting->cc_one_name = $take_off_merchant_cc->cc_one_name;
-                $take_off_setting->cc_one_email = $take_off_merchant_cc->cc_one_email;
-                $take_off_setting->cc_two_name = $take_off_merchant_cc->cc_two_name;
-                $take_off_setting->cc_two_email = $take_off_merchant_cc->cc_two_email;
-            }
+            $this->my_model->setShift();
+            $take_off_setting = (Object)$this->my_model->getInfo('tbl_client_email_return', $client_id, 'client_id');
+            $take_off_options = json_decode($take_off_setting->take_off_merchant_cc);
 
             //region Record what actions have been made
-            $itExist = count($this->my_model->getInfo('tbl_job_take_off_return', $whatId, 'est_num')) > 0;
+            $itExist = count($this->my_model->getInfo('tbl_email_export_return', $whatId ,'pdf_archive_id')) > 0;
             $post = array(
-                'est_num' => $whatId,
+                'pdf_archive_id' => $whatId,
+                'client_id' => $client_id,
                 'return_date' => date('r'),
-                'user_id' => $this->session->userdata('id'),
-                'via_eotl' => $take_off_setting->via_eotl,
-                'via_ftp' => $take_off_setting->via_ftp,
-                'is_test' => $take_off_setting->is_test,
-                'is_direct' => $take_off_setting->is_direct
+                'user_id' => $this->session->userdata('user_id'),
+                'via_subbie' => $take_off_setting->via_subbie,
+                'via_ftp' => $take_off_setting->via_ftp
             );
             if($itExist){
-                $this->my_model->update('tbl_pdf_archive', $post, $whatId, 'est_num');
+                $this->my_model->update('tbl_email_export_return', $post, $whatId, 'pdf_archive_id');
+                echo 'working';
             }
             else{
-                $this->my_model->insert('tbl_pdf_archive', $post);
+                echo 'working';
+                $id = $this->my_model->insert('tbl_email_export_return', $post);
+                echo $id;
             }
             //endregion
 
-            //if it is TEST end it
-            if($take_off_setting->is_test){
-                $title = 'Job <strong>' . $fran_est_num . '  ' . $jobName . '</strong> has been Exported using the TEST option';
-                $notification = '<strong>Job:</strong> <a href="' . base_url() . 'jobDetails/' . $whatId . '">' .
-                    $fran_est_num . '</a>  ' . $jobName .
-                    '<br />has been exported using the TEST option.';
+            $this->my_model->setShift();
+            $franchise = (Object)$this->my_model->getInfo('tbl_client', $client_id);
 
-                $n = new controller_helper();
-                $n->notificationCreateHelper($whatId, $this->session->userdata('id'), $title, $notification);
-                exit;
+            foreach($jobInfo as $jv){
+                $ref = explode(' ',$jv->file_name);
+                $pdfName =  $jv->file_name;
+                $invoice_ref = $ref[0];
+                $date = $jv->date;
             }
 
             $this->data['franchise'] = $franchise;
 
 
             if($take_off_setting->via_email){
-                $dir = "export/" . $fId . "/" . $whatId . "/";
-                $csv = $dir . "csv/" . $fran_est_num . ".csv";
-                $pdf = $dir . "pdf/" . $fran_est_num . ".pdf";
-                $report = $dir . "pdf/Dump_SKU_Report.pdf";
+                $pdf = $dir . "/invoice/" .date('Y/F/',strtotime($date)). $pdfName;
+                echo $pdf;
                 $url = array();
                 $disposition = array();
                 $file_names = array();
-                if(file_exists($pdf) && $take_off_setting->export_pdf){
+                if(file_exists($pdf)){
                     $url[] = $pdf;
-                    $file_names[] = str_replace(" ", "_", $pdfName) . ".pdf";
+                    $file_names[] = $pdfName;
                 }
-                if(file_exists($csv) && $take_off_setting->export_csv){
-                    $url[] = $csv;
-                    if($mId == 1){ //for Carters only
-                        $file_names[] = $merchantReference . ".csv";
-                    }
-                }
-                if(file_exists($report)){
-                    $url[] = $report;
-                }
-
+                DisplayArray($url);
                 $this->data['comment'] = isset($_POST['comment']) ? nl2br($_POST['comment']) : '';
                 $msg = $this->load->view('backend/invoice/export/export_send_take_off', $this->data, TRUE);
                 if(count($url) > 0 && $take_off_setting->take_off_merchant_email){
@@ -712,24 +645,24 @@ class invoice_export_controller extends CI_Controller{
                     $cc[] = $take_off_setting->take_off_franchise_email;
                     $cc_alias[] = "Franchise Admin";
 
-                    $cc_one_email = $take_off_setting->cc_one_email;
+                    $cc_one_email = $take_off_options->cc_one_email;
                     if($cc_one_email){
                         $cc[] = $cc_one_email;
-                        $cc_alias[] = $take_off_setting->cc_one_name;
+                        $cc_alias[] = $take_off_options->cc_one_name;
                     }
-                    $cc_two_email = $take_off_setting->cc_two_email;
+                    $cc_two_email = $take_off_options->cc_two_email;
                     if($cc_two_email){
                         $cc[] = $cc_two_email;
-                        $cc_alias[] = $take_off_setting->cc_two_name;
+                        $cc_alias[] = $take_off_options->cc_two_name;
                     }
 
-                    $subject .= $franchise->franchise_code . $fran_est_num . '  ' . $jobName;
+                    $subject .= $franchise->client_name . ' (' . $invoice_ref.')';
                     $sendMailSetting = array(
                         'to' => $take_off_setting->take_off_merchant_email,
                         'to_alias' => $take_off_setting->take_off_merchant_name,
                         'cc' => $cc,
                         'cc_alias' => $cc_alias,
-                        'name' => $franchise->franchise_branch_name,
+                        'name' => $franchise->client_name,
                         'from' => $take_off_setting->take_off_franchise_email,
                         'subject' => htmlspecialchars_decode($subject),
                         'url' => $url,
@@ -747,21 +680,22 @@ class invoice_export_controller extends CI_Controller{
                     //if Successful RECORD Notification
                     if($debugResult->type){
                         //region set Export Notification for SU, FA, QA and the QS
-                        $title = 'Job <strong>' . $fran_est_num . '  ' . $jobName . '</strong> has been Exported';
-                        $notification = '<strong>Job:</strong> <a href="' . base_url() . 'jobDetails/' . $whatId . '">' .
-                            $fran_est_num . '</a>  ' . $jobName .
+                        $title = 'Invoice <strong>' . $invoice_ref . '  for ' . $franchise->client_name . '</strong> has been Exported';
+                        $notification = '<strong>Invoice:</strong> <a href="' . base_url() . 'pdf/invoice/' . date('Y/F/',strtotime($date)) . $pdfName .'">' .
+                            $invoice_ref . '</a>  ' . $invoice_ref .
                             '<br />has been exported back to the Merchant' . ($export_count > 1 ? ' (again)' : '') . '.';
 
-                        $n = new controller_helper();
-                        $n->notificationCreateHelper($whatId, $this->session->userdata('id'), $title, $notification);
+                        $n = new Notification_Controller();
+                        $n->submitNotification($client_id, 1, $title, $notification);
                         //endregion
                     }
 
                     $sendMailSetting['comment'] = $this->data['comment'];
                     $post = array(
                         'date' => date('Y-m-d H:i:s'),
-                        'user_id' => $this->session->userdata('id'),
-                        'est_num' => $whatId,
+                        'user_id' => $this->session->userdata('user_id'),
+                        'inv_id' => $whatId,
+                        'client_id' => $client_id,
                         'type' => $debugResult->type,
                         'message' => json_encode($sendMailSetting),
                         'debug' => $debugResult->debug,
@@ -787,13 +721,13 @@ class invoice_export_controller extends CI_Controller{
         }
 
         $this->my_model->setLastId('export_count');
-        $export_count = $this->my_model->getInfo('tbl_pdf_archive', $whatId, 'est_num') + 1;
+        $export_count = $this->my_model->getInfo('tbl_pdf_archive', $whatId) + 1;
         $last_export_time = date('Y-m-d H:i:s');
         $post = array(
             'last_export_time' => $last_export_time,
             'export_count' => $export_count
         );
-        $this->my_model->update('tbl_pdf_archive', $post, $whatId, 'est_num');
+        $this->my_model->update('tbl_pdf_archive', $post, $whatId);
 
         echo $last_export_time;
     }
@@ -809,17 +743,21 @@ class invoice_export_controller extends CI_Controller{
         $fields[] = 'DATE_FORMAT(tbl_email_export_log.date, "%Y%m%d %H%i") as date';
         $fields[] = 'IF(tbl_email_export_log.type = 1, "Success", "Failed") as status';
         $fields[] = 'tbl_user.name as user';
+        $fields[] = 'tbl_pdf_archive.file_name';
+        $fields[] = 'tbl_client.client_name';
 
         $this->my_model->setSelectFields($fields, false);
         $this->my_model->setJoin(array(
             'table' => array(
-                'tbl_user'
+                'tbl_user','tbl_pdf_archive','tbl_client'
             ),
             'join_field' => array(
-                'id'
+                'id','id','id'
             ),
             'source_field' => array(
-                'tbl_email_export_log.user_id'
+                'tbl_email_export_log.user_id',
+                'tbl_email_export_log.inv_id',
+                'tbl_email_export_log.client_id'
             ),
             'type' => 'left'
         ));
@@ -827,11 +765,14 @@ class invoice_export_controller extends CI_Controller{
         $log = $this->my_model->getInfo('tbl_email_export_log');
         if(count($log) > 0){
             foreach($log as $v){
+                $file_name = explode(' ',$v->file_name);
                 $v->message = json_decode($v->message);
                 $v->export_setting = json_decode(($v->export_setting ? $v->export_setting : array()));
+                $v->job = $file_name[0];
                 
             }
         }
+
         $this->data['log'] = json_encode($log);
 
         $this->load->view('main_view',$this->data);

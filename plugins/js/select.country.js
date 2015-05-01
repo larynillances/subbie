@@ -51,7 +51,7 @@ jQuery.fn.cityElement = function(option){
 
     var el = '';
 
-    el += '<select name="' + options.cityName + '" class="required" ';
+    el += '<select name="' + options.cityName + '" class="required form-control input-sm" ';
     el += options.style ? 'style="' + options.style + '"' : '';
     el += '>' + "\r\n";
     for(var this_id in firstCountry){

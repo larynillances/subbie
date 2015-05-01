@@ -1209,7 +1209,7 @@ class Subbie extends CI_Controller{
             }
         }
 
-        if(is_dir($url)){
+        if(@is_dir($url)){
             if ($prints = opendir($url)) {
                 while (false !== ($file = readdir($prints))) {
                     if($file !== "." && $file !== ".."){
@@ -1222,7 +1222,7 @@ class Subbie extends CI_Controller{
                 }
             }
         }
-        if(is_file($url)){
+        if(@is_file($url)){
             $this->email->attach(
                 $url,
                 is_string($disposition) ? $disposition : 'attachment',

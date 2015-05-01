@@ -11,17 +11,19 @@ echo form_open('','class="form-horizontal" role="form"');
         <div class="form-group">
             <label class="col-sm-4 control-label">Job Name</label>
             <div class="col-sm-8">
-                <input type="text" name="job_name" class="form-control input-sm required" placeholder="Job Name">
+                <?php /*echo form_dropdown('job_id',$job,'','class="form-control input-sm job"')*/?>
+                <div class="job"></div>
+                <input type="text" name="job_name" class="form-control input-sm" placeholder="Job Name" style="margin-top: 5px;">
             </div>
         </div>
         <div class="form-group">
             <label class="col-sm-4 control-label">Price excl. GST</label>
             <div class="col-sm-4">
-                <input type="text" name="price" class="form-control input-sm required number price">
+                <input type="text" name="price" class="form-control input-sm required number price" style="width: 150px;">
             </div>
             <label class="col-sm-1 control-label">GST</label>
             <div class="col-sm-3" style="margin-top: 5px;">
-                <input type="text" name="gst" class="form-control input-sm gst" disabled>
+                <input type="text" name="gst" class="form-control input-sm gst" disabled style="width: 100px;">
             </div>
         </div>
         <div class="form-group">
@@ -79,10 +81,18 @@ echo form_close();
         }
         ?>
         $('.client').selectCountry({
-            cityName: 'client',
+            cityName: 'job_id',
             city: job,
-            style: 'width: 150px;',
+            style: 'width: 260px;',
             appendWhere: job_class
+        });
+
+        job_class.change(function(e){
+            var job_name = $('input[name=job_name]');
+            job_name.css({'display':'inline'});
+            if($(this).val() != 0){
+                job_name.css({'display':'none'});
+            }
         });
 
         $('.price').focusout(function(e){

@@ -41,7 +41,7 @@
                             <td class="userView"></td>
                         </tr>
                         <tr>
-                            <td>Job:</td>
+                            <td>Invoice:</td>
                             <td class="jobView"></td>
                         </tr>
 
@@ -55,11 +55,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Branch:</td>
-                            <td class="branchView"></td>
-                        </tr>
-                        <tr>
-                            <td>Merchant:</td>
+                            <td>Client:</td>
                             <td class="toView"></td>
                         </tr>
                         <tr style="vertical-align: top;">
@@ -70,10 +66,6 @@
                             <td>Message:</td>
                             <td class="messageView"></td>
                         </tr>
-                        <tr style="vertical-align: top;">
-                            <td>Export Setting:</td>
-                            <td class="exportSettingView" style="padding: 0"></td>
-                        </tr>
                     </table>
                 </div>
             </div>
@@ -82,17 +74,16 @@
 </table>
 
 <link rel="stylesheet" type="text/css" href="<?php echo base_url();?>plugins/css/uploadify.css" />
-<link rel="stylesheet" href="<?php echo base_url();?>plugins/css/slick.grid.css" type="text/css"/>
 
 <script language="javascript" src="<?php echo base_url();?>plugins/js/swfobject.js"></script>
 <script language="javascript" src="<?php echo base_url();?>plugins/js/jquery.uploadify-3.1.js"></script>
-<link rel="stylesheet" href="<?php echo base_url();?>plugins/css/slick.grid.css" type="text/css"/>
-<script src="<?php echo base_url();?>plugins/js/lib/jquery.event.drag-2.0.min.js"></script>
-<script src="<?php echo base_url();?>plugins/js/slick.core.js"></script>
-<script src="<?php echo base_url();?>plugins/js/slick.formatters.js"></script>
-<script src="<?php echo base_url();?>plugins/js/plugins/slick.rowselectionmodel.js"></script>
-<script src="<?php echo base_url();?>plugins/js/slick.grid.js"></script>
-<script src="<?php echo base_url();?>plugins/js/slick.dataview.js"></script>
+<link rel="stylesheet" href="<?php echo base_url();?>plugins/slick-grid/css/slick.grid.css" type="text/css"/>
+<script src="<?php echo base_url();?>plugins/slick-grid/js/jquery.event.drag-2.0.min.js"></script>
+<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.core.js"></script>
+<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.formatters.js"></script>
+<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.rowselectionmodel.js"></script>
+<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.grid.js"></script>
+<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.dataview.js"></script>
 
 <style>
     .ourTable{
@@ -122,12 +113,12 @@
     }
 
     .slick-header-column{
-        background: #000000!important;
-        padding:5px 10px!important;
-        color:#FFF!important;
-        text-align: center!important;
-        font-size: 12px!important;
-    }
+          background: #484848!important;
+          padding:1px 10px!important;
+          color:#FFF!important;
+          text-align: center!important;
+          font-size: 12px!important;
+      }
     .slick-cell{
         cursor: pointer;
     }
@@ -192,11 +183,11 @@
 <script>
     var ourGrid, dataView;
     var ourColumns = [
-        {id: "date", name: "Date", field: "date", width: 20, cssClass: "column-empid"},
-        {id: "status", name: "Status", field: "status", width: 15, cssClass: "column-empid"},
+        {id: "date", name: "Date", field: "date", width: 30, cssClass: "column-empid"},
+        {id: "status", name: "Status", field: "status", width: 30, cssClass: "column-empid"},
         {id: "user", name: "User", field: "user", width: 35, cssClass: "column-empid"},
-        {id: "job", name: "Job", field: "job", width: 80, cssClass: "column-status"},
-        {id: "branch", name: "Branch", field: "branch", width: 80, cssClass: "column-empid"}
+        {id: "job", name: "Invoice", field: "job", width: 80, cssClass: "column-status"},
+        {id: "client_name", name: "Client", field: "client_name", width: 80, cssClass: "column-empid"}
     ];
 
     var ourOptions = {
@@ -262,7 +253,7 @@
 
         var setFilterArgs = function() {
             var filterTextSplitFn = function(val) {
-                    var thisVal = $('.exact').is(':checked') ? val : val.toLowerCase();
+                    var thisVal = $('.exact').is(':checked') ? val : val;
                     return $.unique($.grep(thisVal.split(' '), function(v) { return v !== ''; }));
                 },
                 includesVal = $includes.val(),
@@ -284,16 +275,16 @@
             var isExact = $('.exact').is(':checked');
             var match = false;
             match = (
-                (filterContainsAll(isExact ? item.user : item.user.toLowerCase(), args.includes)) ||
-                (filterContainsAll(isExact ? item.job : item.job.toLowerCase(), args.includes)) ||
-                (filterContainsAll(isExact ? item.branch : item.branch.toLowerCase(), args.includes))
+                (filterContainsAll(isExact ? item.user : item.user, args.includes)) ||
+                (filterContainsAll(isExact ? item.job : item.job, args.includes)) ||
+                (filterContainsAll(isExact ? item.branch : item.branch, args.includes))
             );
             if (!match) return false;
 
             match = !(
-                (filterContainsAny(isExact ? item.user : item.user.toLowerCase(), args.excludes)) ||
-                (filterContainsAny(isExact ? item.job : item.job.toLowerCase(), args.excludes)) ||
-                (filterContainsAny(isExact ? item.branch : item.branch.toLowerCase(), args.excludes))
+                (filterContainsAny(isExact ? item.user : item.user, args.excludes)) ||
+                (filterContainsAny(isExact ? item.job : item.job, args.excludes)) ||
+                (filterContainsAny(isExact ? item.branch : item.branch, args.excludes))
             );
 
             return match;

@@ -82,9 +82,17 @@ class Admin_Controller extends Subbie{
         $fields[] = 'CONCAT(tbl_client.client_code,LPAD(tbl_registration.id, 5,"0")) as job_ref';
         $this->my_model->setSelectFields($fields);
         $job = $this->my_model->getInfo('tbl_registration');
+
+        if(count($this->data['client']) >0){
+            foreach($this->data['client'] as $ck=>$cv){
+                $this->data['job'][$ck][0] = 'Not in Tracking Log';
+            }
+        }
+
         $this->data['job'] = array();
         if(count($job) >0){
             foreach($job as $jv){
+                $this->data['job'][$jv->client_id][0] = 'Not in Tracking Log';
                 $this->data['job'][$jv->client_id][$jv->id] = $jv->job_ref.' ('.$jv->job_name.')';
             }
         }
@@ -120,32 +128,40 @@ class Admin_Controller extends Subbie{
                     break;
                 default:
                     //$_POST['closure_date'] = date('Y-m-d H:i:s',strtotime($_POST['closure_date']));
-                    $post = array(
-                        'job_name' => $_POST['job_name'],
-                        'client_id' => $_POST['client_id'],
-                        'address' => json_encode(array(
-                            'number' => '',
-                            'name' => '',
-                            'suburb' => '',
-                            'city' => '',
-                        )),
-                        'date_added' => date('Y-m-d')
-                    );
-                    $id = $this->my_model->insert('tbl_registration',$post,false);
+                    if($_POST['job_id']){
+                        unset($_POST['job_name']);
 
-                    $tracking = array(
-                        'job_id' => $id,
-                        'status_id' => 1,
-                        'date' => date('Y-m-d')
-                    );
-                    $this->my_model->insert('tbl_tracking_log',$tracking);
+                        $quote_id = $this->my_model->insert('tbl_quotation',$_POST);
 
-                    unset($_POST['job_name']);
-                    $_POST['job_id'] = $id;
+                        redirect('quoteRequested/'.$_POST['client_id'].'/'.$quote_id);
+                    }else{
+                        $post = array(
+                            'job_name' => $_POST['job_name'],
+                            'client_id' => $_POST['client_id'],
+                            'address' => json_encode(array(
+                                'number' => '',
+                                'name' => '',
+                                'suburb' => '',
+                                'city' => '',
+                            )),
+                            'date_added' => date('Y-m-d')
+                        );
+                        $id = $this->my_model->insert('tbl_registration',$post,false);
 
-                    $quote_id = $this->my_model->insert('tbl_quotation',$_POST);
+                        $tracking = array(
+                            'job_id' => $id,
+                            'status_id' => 1,
+                            'date' => date('Y-m-d')
+                        );
+                        $this->my_model->insert('tbl_tracking_log',$tracking);
 
-                    redirect('quoteRequested/'.$_POST['client_id'].'/'.$quote_id);
+                        unset($_POST['job_name']);
+                        $_POST['job_id'] = $id;
+
+                        $quote_id = $this->my_model->insert('tbl_quotation',$_POST);
+
+                        redirect('quoteRequested/'.$_POST['client_id'].'/'.$quote_id);
+                    }
                     break;
             }
 
@@ -1255,6 +1271,7 @@ class Admin_Controller extends Subbie{
                 $this->my_model->setShift();
                 $getAmount = @(Object)$this->my_model->getInfo('tbl_statement',array($file_name[0],'INVOICE'),array('reference','type'));
                 $this->data['invoice_list'][date('m/Y',strtotime($v->date))][] = (object)array(
+                    'id' => $v->id,
                     'file_name' => $v->file_name,
                     'date' => $v->date,
                     'archive_date' => $v->archive_date,

@@ -15,7 +15,10 @@ echo form_open('','class="form-horizontal" role="form"');
         <div class="form-group">
             <label class="col-sm-4 control-label">Job Name</label>
             <div class="col-sm-8">
-                <?php echo form_dropdown('job_id',$job,$v->job_id,'class="form-control required input-sm job"')?>
+                <?php /*echo form_dropdown('job_id',$job,$v->job_id,'class="form-control required input-sm job"')*/?>
+                <div class="job">
+                    <span class="defaultCity"><?php echo $v->job_id?></span>
+                </div>
             </div>
         </div>
         <div class="form-group">
@@ -89,7 +92,7 @@ echo form_close();
         $('.client').selectCountry({
             cityName: 'client',
             city: job,
-            style: 'width: 150px;',
+            style: 'width: 250px;',
             appendWhere: job_class
         });
         $('.price').focusout(function(e){

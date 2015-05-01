@@ -61,7 +61,7 @@ echo form_close();
                                 </a>&nbsp;
                                 <a href="<?php echo base_url().'editArchiveInvoice/'.$iv->client_id.'/'.$inv_ref[0]?>">edit</a>
                                 &nbsp;
-                                <a href="<?php echo base_url().'exportArchiveInvoice/'.$iv->client_id.'/'.$inv_ref[0]?>" class="export-btn">export</a>
+                                <a href="<?php echo base_url().'exportArchiveInvoice/'.$iv->client_id.'/'.$iv->id?>" class="export-btn" data-type="<?php echo $inv_ref[0];?>">export</a>
                             </td>
                         </tr>
                         <?php
@@ -86,7 +86,7 @@ echo form_close();
            e.preventDefault();
            $(this).modifiedModal({
                url: this.href,
-               title: 'Invoice <?php echo $inv_ref[0];?>'
+               title: 'Invoice ' + $(this).data('type')
            });
        });
     });
