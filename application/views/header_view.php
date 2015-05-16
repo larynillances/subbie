@@ -43,8 +43,7 @@ switch($this->session->userdata('account_type')){
                 'archiveInvoice' => 'Invoice',
                 'archiveStatement' => 'Statement',
                 'pdfSummaryArchive' => 'Summary'
-            ),
-            'logout' => 'Logout'
+            )
         );
         break;
     case 2:
@@ -61,14 +60,14 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'orderSentList' => 'Order Sent List'
             ),
-            'timeSheet' => 'DTR',
-            'logout' => 'Logout'
+            'timeSheet' => 'DTR'
         );
         break;
     case 3:
         $header_links = array(
             'trackingLog' => 'Tracking Log',
             'Admin' => array(
+                'invoiceCreate' => 'New Invoice Draft',
                 'newJobRequestForm' => 'New Job Request',
                 'quotation' => 'New Quote',
                 'orderBookInput' => 'New Order',
@@ -79,14 +78,12 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'orderSentList' => 'Order Sent List'
             ),
-            'timeSheet' => 'DTR',
-            'logout' => 'Logout'
+            'timeSheet' => 'DTR'
         );
         break;
     default:
         break;
 }
-
 ?>
 <ul class="nav navbar-nav navbar-right">
     <?php
@@ -103,7 +100,33 @@ switch($this->session->userdata('account_type')){
             }
         }
     }
+    $username = explode(' ',$user->name);
+    if($account_type != 3):
     ?>
+        <li class="dropdown">
+            <a class="dropdown-toggle msg-btn" data-toggle="dropdown" href="#"> <?php echo $count_msg > 0 ? '<span class="badge">'.$count_msg.'</span>' : ''?>
+                <i class="fa fa-envelope fa-fw"></i>  <i class="fa fa-caret-down"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-messages pull-right" style="font-size: 12px;width: 350px;">
+                <li style="background: #cfcfcf;padding: 5px;"><?php echo 'New Message: <strong class="count-msg">' . $count_msg .'</strong>';?></li>
+                <li style="overflow: auto;max-height: 300px;" class="notification-class"></li>
+            </ul>
+            <!-- /.dropdown-messages -->
+        </li>
+    <?php
+    endif;
+    ?>
+    <li class="dropdown pull-right">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+            <i class="fa fa-user fa-fw"></i> <?php echo $username[0];?> <i class="fa fa-caret-down"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-user">
+            <li>
+                <a href="<?php echo base_url() .'logout';?>"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
+            </li>
+        </ul>
+        <!-- /.dropdown-user -->
+    </li>
 </ul>
 
 <?php

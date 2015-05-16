@@ -139,7 +139,8 @@ ob_start();
                     <thead>
                     <tr>
                         <th style="width: 15%">Date</th>
-                        <th>Reference</th>
+                        <th style="width: 10%">Job Ref.</th>
+                        <th>Invoice Reference</th>
                         <th style="width: 15%">Debits</th>
                         <th style="width: 15%">Credits</th>
                         <th style="width: 15%">Balance</th>
@@ -160,6 +161,7 @@ ob_start();
                                 foreach($value as $v):
                                     echo $ref != 0 ? '<tr>' : '';
                                     ?>
+                                    <td style="white-space: nowrap!important;"><?php echo $v->job_ref;?></td>
                                     <td style="text-align: left;"><?php echo $v->type != 'opening' ? $v->type.' '.$v->reference : $v->reference;?></td>
                                     <td><?php echo $v->debits;?></td>
                                     <td><?php echo $v->credits;?></td>
@@ -180,13 +182,14 @@ ob_start();
                             <td>&nbsp;</td>
                             <td>&nbsp;</td>
                             <td>&nbsp;</td>
+                            <td>&nbsp;</td>
                             <td class="success">&nbsp;</td>
                         </tr>
                     <?php
                     endfor;
                     ?>
                     <tr>
-                        <td colspan="5" class="align-left clear-style" style="border-top: 2px solid #000000!important;">
+                        <td colspan="6" class="align-left clear-style" style="border-top: 2px solid #000000!important;">
                             <?php echo @$terms_trade;?>
                         </td>
                     </tr>

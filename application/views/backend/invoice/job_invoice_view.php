@@ -56,7 +56,16 @@
                 ?>
                 <tr>
                     <td style="vertical-align: top;"><?php echo $iv->your_ref;?></td>
-                    <td><a href="#" class="edit-btn" id="<?php echo $iv->id;?>" data-value="<?php echo $iv->job_ref;?>"><?php echo $iv->job_ref;?></a></td>
+                    <td>
+                        <?php
+                        if($account_type == 3){
+                            echo $iv->job_ref;
+                        }else{
+                            ?>
+                            <a href="#" class="edit-btn" id="<?php echo $iv->id;?>" data-value="<?php echo $iv->job_ref;?>"><?php echo $iv->job_ref;?></a>
+                            <?php
+                        }?>
+                    </td>
                     <td style="text-align: left;padding-left: 20px!important;"><?php echo $iv->job_name;?></td>
                     <td><?php echo $iv->meter;?></td>
                     <td>
@@ -137,7 +146,12 @@
     <div class="col-md-12 text-right">
         <a href="<?php echo base_url().'invoiceList'?>" class="btn btn-success back-btn-class"><span class="glyphicon glyphicon-arrow-left"></span>  Back</a>
         <!--<a href="<?php /*echo base_url().'invoiceManage/print/'.$this->uri->segment(2).'/'.$inv_code*/?>" class="btn btn-primary" <?php /*echo $checkData;*/?> target="_blank"><span class="glyphicon glyphicon-print"></span>  Print</a>-->
-        <a href="<?php echo base_url().'invoiceManage/archive/'.$this->uri->segment(2).'/'.$inv_code.'?total='.$total.'&date='.date('d-M-Y')?>" class="btn btn-primary archive-btn" <?php echo $checkData;?>><span class="glyphicon glyphicon-save"></span> Archive</a>
+        <?php
+        if($account_type != 3){
+            ?>
+            <a href="<?php echo base_url().'invoiceManage/archive/'.$this->uri->segment(2).'/'.$inv_code.'?total='.$total.'&date='.date('d-M-Y')?>" class="btn btn-primary archive-btn" <?php echo $checkData;?>><span class="glyphicon glyphicon-save"></span> Archive</a>
+        <?php
+        }?>
     </div>
 </div>
 <div class="modal fade modal-load bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">

@@ -302,11 +302,11 @@ class Job_Controller extends Subbie{
                 if(count($meter_array) >0){
                     foreach($meter_array as $key=>$meter){
                         if($v->price != '' && $meter != 0){
-                            @$v->total[] =  $v->unit_price_array[$key];
+                            $v->total[] =  $v->unit_price_array[$key];
                         }else if($meter != 0 && $v->price == ''){
-                            @$v->total[] = $v->unit_price_array[$key] * $meter;
+                            $v->total[] = $v->unit_price_array[$key] * $meter;
                         }else{
-                            @$v->total[] =  $v->unit_price_array[$key];
+                            $v->total[] =  $v->unit_price_array[$key];
                         }
                     }
                 }
@@ -507,6 +507,7 @@ class Job_Controller extends Subbie{
                 $date = $v->date ? date('d-M-y',strtotime($v->date)) : '';
                 $this->data['statement_data'][$date][] = (object)array(
                     'id' => '',
+                    'job_ref' => '',
                     'date' => $date,
                     'type' => 'opening',
                     'reference' => '<strong>Opening Balance</strong>',
@@ -529,8 +530,25 @@ class Job_Controller extends Subbie{
                 $balance -= $v->credits;
                 $date = date('d-M-y',strtotime($v->date));
 
+                $this->my_model->setJoin(array(
+                    'table' => array('tbl_client'),
+                    'join_field' => array('id'),
+                    'source_field' => array('tbl_invoice.client_id'),
+                    'type' => 'left'
+                ));
+                $this->my_model->setSelectFields(array(
+                    'IF(tbl_invoice.job_id != 0 ,
+                            CONCAT(tbl_client.client_code,LPAD(tbl_invoice.job_id, 5,"0")),
+                            CONCAT(tbl_client.client_code,LPAD(tbl_invoice.id, 5,"0"),"-I")
+                        )
+                    as job_ref'
+                ));
+                $this->my_model->setShift();
+                $invoice = (Object)$this->my_model->getInfo('tbl_invoice',array($v->reference,$v->client_id),array('inv_ref','client_id'));
+
                 $this->data['statement_data'][$date][] = (object)array(
                     'id' => $v->id,
+                    'job_ref' => $invoice->job_ref,
                     'date' => $date,
                     'type' => $v->type,
                     'reference' => $v->reference,
@@ -877,7 +895,7 @@ class Job_Controller extends Subbie{
 
         $this->my_model->setNormalized('client_name','id');
         $this->my_model->setSelectFields(array('id','client_name'));
-        $this->data['client'] = $this->my_model->getinfo('tbl_client');
+        $this->data['client'] = $this->my_model->getinfo('tbl_client',true,'is_exclude !=');
         $this->data['client'][''] = '-';
         $this->data['job_type'] = $this->my_model->getInfo('tbl_job_type');
         $this->data['option'] = $this->my_model->getInfo('tbl_drop_down');
@@ -1161,7 +1179,7 @@ class Job_Controller extends Subbie{
                         $hoursValue = (int)($minutes/60);
                         $minutesValue = $minutes - ($hoursValue * 60);
                         $hours = str_pad($hoursValue, 2, '0', STR_PAD_LEFT) . "." . str_pad($minutesValue, 2, '0', STR_PAD_LEFT);
-                        @$this->data['hours'][$dv->date][$dv->job_id] += $hours;
+                        $this->data['hours'][$dv->date][$dv->job_id] += $hours;
 
                         $rate = $this->getStaffRate($dv->staff_id,$dv->date);
                         if(count($rate) > 0){
@@ -1171,7 +1189,7 @@ class Job_Controller extends Subbie{
                             }
                         }
 
-                        @$this->data['labor'][$dv->date][$dv->job_id] = array(
+                        $this->data['labor'][$dv->date][$dv->job_id] = array(
                             'rate' => $dv->rate_cost
                         );
                         //$this->data['cost_sheet'][$dv->date][$dv->job_id][] = $hours;

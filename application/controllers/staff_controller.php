@@ -771,7 +771,7 @@ class Staff_Controller extends Subbie{
 
         $this->my_model->setLastId('team_id');
         $team_id = $this->my_model->getInfo('tbl_staff',$id);
-        @$this->data['team_id'] = $team_id;
+        $this->data['team_id'] = $team_id ? $team_id : '';
 
         if(isset($_POST['submit'])){
             unset($_POST['submit']);

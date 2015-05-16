@@ -114,7 +114,7 @@
                     ?>
                     <tr>
                         <td><?php echo $v->rate_name;?></td>
-                        <td style="text-align: center"><?php echo '$'.$v->rate_cost?></td>
+                        <td style="text-align: center"><?php echo '$'.number_format($v->rate_cost,2)?></td>
                         <td><a href="#" class="edit-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a></td>
                     </tr>
                 <?php

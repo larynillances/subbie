@@ -74,4 +74,34 @@ $(function(){
         e.preventDefault();
         window.history.back();
     });
+
+    $('.msg-link').live('click',function(e){
+        var id = this.id;
+        $.post(bu + 'updateNotification/' + id,function(e){
+            /*location.reload();*/
+        });
+    });
+    $('.msg-btn').click(function(e){
+        var notification = $('.notification-class');
+        var ele = '<img src="'+ bu + 'images/loading_(2).gif" class="loading-img" style="height: 30px;margin:0 155px;">';
+        var loading = $('.loading-img');
+        notification.html(ele);
+        notification.load(bu + 'updateNotification?is_view=true',
+            function(){
+                loading.css({
+                    'display' : 'none'
+                })
+            }
+        );
+    });
+    setInterval(function(e){
+        $.getJSON( bu + "updateNotification?is_json=true", function( data ) {
+            var msg_btn = $('.msg-btn');
+            msg_btn.html('<i class="fa fa-envelope fa-fw"></i> <i class="fa fa-caret-down"></i>');
+            if(data > 0){
+                msg_btn.prepend($('<span class="badge">'+ data +'</span>'));
+            }
+            $('.count-msg').html(data);
+        });
+    },6000);
 });

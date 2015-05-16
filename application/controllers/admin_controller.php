@@ -1000,7 +1000,7 @@ class Admin_Controller extends Subbie{
         }
         $this->my_model->setNormalized('client_name','id');
         $this->my_model->setSelectFields(array('id','client_name'));
-        $this->data['client'] = $this->my_model->getInfo('tbl_client');
+        $this->data['client'] = $this->my_model->getInfo('tbl_client',true,'is_exclude !=');
 
         $this->my_model->setNormalized('title','value');
         $this->my_model->setSelectFields(array('title','value'));
@@ -1037,8 +1037,11 @@ class Admin_Controller extends Subbie{
             unset($_POST['template_text']);
 
             $_POST['date'] = date('Y-m-d');
+            $_POST['is_new'] = $this->data['account_type'] == 3 ? 1 : 0;
+
             $this->my_model->insert('tbl_invoice',$_POST,false);
             $this->my_model->update('tbl_registration',array('is_invoice' => true),$_POST['job_id'],'id',false);
+
             redirect('jobInvoice/'.$_POST['client_id']);
         }
         $this->load->view('backend/invoice/create_invoice_view',$this->data);

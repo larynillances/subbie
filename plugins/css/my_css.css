@@ -120,3 +120,27 @@ table .header-fixed {
 .ui-datepicker-trigger{
     width: 20px;
 }
+.badge{
+    position: absolute;
+    margin: -5px 15px;
+    font-size: 11px!important;
+    background: #ff4433;
+    font-weight: normal;
+}
+.msg-link{
+    color: #000000;
+}
+.msg-link:hover{
+    color: #000000;
+    text-decoration: none;
+}
+
+.notification-class ul{
+    margin-left: -35px;
+}
+.notification-class ul li{
+    list-style: none;
+}
+.notification-class ul li:hover{
+    background: #e2e2e2;
+}

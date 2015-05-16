@@ -195,7 +195,6 @@ ob_start();
                 <td colspan="4" rowspan="4" class="align-left" style="border-bottom: 2px solid #000000;vertical-align: top;"><?php echo $terms_trade;?></td>
                 <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Sub Total</td>
                 <td>
-                    <?php echo $inv_len;?>
                     <?php echo '$ '.number_format($subtotal,2);?>
                 </td>
             </tr>

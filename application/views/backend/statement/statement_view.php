@@ -36,7 +36,8 @@
         <thead>
         <tr>
             <th style="width: 15%">Date</th>
-            <th>Reference</th>
+            <th style="width: 10%">Job Ref.</th>
+            <th>Invoice Reference</th>
             <th style="width: 15%">Debits</th>
             <th style="width: 15%">Credits</th>
             <th style="width: 15%">Balance</th>
@@ -57,12 +58,17 @@
                     foreach($value as $v):
                         echo $ref != 0 ? '<tr>' : '';
                         ?>
+                        <td><?php echo $v->job_ref;?></td>
                         <td style="text-align: left;">
                             <?php if($v->type != 'opening'){
                                 echo $v->type.' ';
-                                ?>
-                                <a href="<?php echo base_url().'editArchiveInvoice/'.$this->uri->segment(2).'/'.$v->reference;?>"><?php echo $v->reference;?></a>
-                            <?php
+                                if($v->type == 'INVOICE'){
+                                    ?>
+                                    <a href="<?php echo base_url().'editArchiveInvoice/'.$this->uri->segment(2).'/'.$v->reference;?>"><?php echo $v->reference;?></a>
+                                    <?php
+                                }else{
+                                    echo $v->reference;
+                                }
                             }else{
                                 echo $v->reference;
                             }?>
@@ -90,13 +96,14 @@
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
+                <td>&nbsp;</td>
                 <td class="success">&nbsp;</td>
             </tr>
         <?php
         endfor;
         ?>
         <tr style="border-top: 2px solid #000000!important;">
-            <td colspan="5" class="align-left clear-style">
+            <td colspan="6" class="align-left clear-style">
                 <?php echo $terms_trade;?>
             </td>
         </tr>

@@ -101,13 +101,24 @@ class Subbie extends CI_Controller{
         $this->data['page_name'] = $page_name != '' ? $page_name : 'Error 404';
 
         $this->my_model->setLastId('earnings');
-        @$this->data['earnings'] = $this->my_model->getInfo('tbl_tax');
+        $this->data['earnings'] = $this->my_model->getInfo('tbl_tax');
 
         $this->my_model->setLastId('m_paye');
-        @$this->data['m_paye'] = $this->my_model->getInfo('tbl_tax');
+        $this->data['m_paye'] = $this->my_model->getInfo('tbl_tax');
         $this->data['info_array'] = $this->my_model->getInfo('tbl_invoice_info');
 
         $this->data['account_type'] = $this->session->userdata('account_type');
+
+        $this->my_model->setShift();
+        $this->data['user'] = (Object)$this->my_model->getInfo('tbl_user',$this->session->userdata('user_id'));
+
+
+        $this->data['notification'] = $this->getInvoiceNotification();
+        $this->data['count_msg'] = count($this->data['notification']);
+
+        $this->my_model->setShift();
+        $this->data['user_data'] = (Object)$this->my_model->getInfo('tbl_user',3);
+
         if($has_return){
             return $this->data;
         }
@@ -1231,4 +1242,66 @@ class Subbie extends CI_Controller{
         }
     }
 
+    public function updateNotification(){
+        if($this->session->userdata('is_logged_in') == false){
+            redirect(''.'?p=login');
+        }
+
+        if(isset($_GET['is_view'])){
+            $this->load->view('backend/notification/notification_content_view',$this->data);
+        }else if(isset($_GET['is_json'])){
+            ini_set("memory_limit","512M");
+            set_time_limit(90000);
+            header("Content-type: application/json");
+
+            echo json_encode($this->data['count_msg']);
+        }else{
+            $id = $this->uri->segment(2);
+
+            if(!$id){
+                exit;
+            }
+
+            $post = array(
+                'is_new' => false
+            );
+            $this->my_model->update('tbl_invoice',$post,$id);
+        }
+
+    }
+
+    function getInvoiceNotification(){
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_client','tbl_registration','tbl_quotation'),
+            'join_field' => array('id','id','job_id'),
+            'source_field' => array('tbl_invoice.client_id','tbl_invoice.job_id','tbl_registration.id'),
+            'type' => 'left'
+        ));
+        $fields = $this->arrayWalk(
+            array(
+                'id','your_ref','job_id','meter','date','job_name','is_archive'
+            ),
+            'tbl_invoice.'
+        );
+        $fields[] = 'tbl_quotation.price';
+        $fields[] = 'IF(tbl_invoice.job_id != 0 ,
+                            CONCAT(tbl_client.client_code,LPAD(tbl_invoice.job_id, 5,"0")),
+                            CONCAT(tbl_client.client_code,LPAD(tbl_invoice.id, 5,"0"),"-I")
+                        )
+                    as job_ref';
+        $fields[] = 'tbl_registration.address';
+        $fields[] = 'tbl_invoice.inv_ref';
+        $fields[] = 'tbl_registration.job_name as reg_job_name';
+        $fields[] = 'tbl_client.client_code';
+        $fields[] = 'tbl_client.id as client_id';
+
+        $this->my_model->setSelectFields($fields);
+
+        $whatVal = true;
+        $whatFld = 'tbl_invoice.is_new';
+
+        $invoice = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
+
+        return $invoice;
+    }
 }
