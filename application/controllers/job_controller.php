@@ -302,11 +302,11 @@ class Job_Controller extends Subbie{
                 if(count($meter_array) >0){
                     foreach($meter_array as $key=>$meter){
                         if($v->price != '' && $meter != 0){
-                            $v->total[] =  $v->unit_price_array[$key];
+                            $v->total[] =  @$v->unit_price_array[$key];
                         }else if($meter != 0 && $v->price == ''){
-                            $v->total[] = $v->unit_price_array[$key] * $meter;
+                            $v->total[] = @$v->unit_price_array[$key] * $meter;
                         }else{
-                            $v->total[] =  $v->unit_price_array[$key];
+                            $v->total[] =  @$v->unit_price_array[$key];
                         }
                     }
                 }

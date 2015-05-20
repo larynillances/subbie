@@ -40,6 +40,7 @@ ob_start();
                 text-align: center;
                 border-left: 2px solid #000000;
                 padding: 2px;
+                font-size: 11px!important;
             }
             .table-invoice > tbody > tr > td:last-child{
                 border-right: 2px solid #000000;
@@ -143,7 +144,7 @@ ob_start();
                 foreach(@$invoice as $iv){
                     $address = (object)json_decode($iv->address);
                     $this_add = @$iv->job_id != 0 ? @$address->number.' '.@$address->name.', '.@$address->suburb.', '.@$address->city : '';
-                    @$inv_len += count($iv->unit_price_array);
+                    $inv_len += @count($iv->unit_price_array);
                     ?>
                     <tr>
                         <td style="vertical-align: top;"><?php echo $iv->your_ref;?></td>
@@ -174,7 +175,8 @@ ob_start();
                 <?php
                 }
             }
-            $maxLen = $inv_len >= 17 ? 33 : 30;
+
+            $maxLen = $inv_len >= 29 ? 40 : 30;
 
             $len = $maxLen - $inv_len;
 
@@ -195,7 +197,8 @@ ob_start();
                 <td colspan="4" rowspan="4" class="align-left" style="border-bottom: 2px solid #000000;vertical-align: top;"><?php echo $terms_trade;?></td>
                 <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Sub Total</td>
                 <td>
-                    <?php echo '$ '.number_format($subtotal,2);?>
+                    <?php
+                    echo '$ '.number_format($subtotal,2);?>
                 </td>
             </tr>
             <tr class="total">
@@ -248,5 +251,5 @@ header('Content-Disposition: inline; filename="'.$pdfName.'.pdf"');
 header('Content-Transfer-Encoding: binary');
 header('Content-Length: ' . filesize($file_to_save));
 header('Accept-Ranges: bytes');
-readfile($file_to_save);
+readfile($file_to_save);*/
 ?>
