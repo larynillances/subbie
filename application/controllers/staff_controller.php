@@ -62,7 +62,7 @@ class Staff_Controller extends Subbie{
             redirect('');
         }
 
-        $this->data['salary_type'] = $this->my_model->getinfo('tbl_salary_type',2);
+        $this->data['salary_type'] = $this->my_model->getinfo('tbl_salary_type',array(1,2));
         $this->data['salary_freq'] = $this->my_model->getinfo('tbl_salary_freq');
 
         $this->my_model->setJoin(array(
@@ -75,7 +75,8 @@ class Staff_Controller extends Subbie{
             'tbl_wage_type.id', 'tbl_salary_freq.frequency','tbl_salary_type.type as salary_type',
             'tbl_wage_type.description','tbl_wage_type.type'
         ));
-        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',2,'tbl_wage_type.type');
+        $this->my_model->setOrder('tbl_wage_type.type');
+        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',array(1,2),'tbl_wage_type.type');
 
         $this->my_model->setJoin(array(
             'table' => array('tbl_rate','tbl_wage_type','tbl_currency','tbl_tax_codes'),
@@ -166,9 +167,9 @@ class Staff_Controller extends Subbie{
             exit;
         }
         $this->my_model->setJoin(array(
-            'table' => array('tbl_rate','tbl_currency','tbl_deductions'),
-            'join_field' => array('id','id','staff_id'),
-            'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id'),
+            'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type'),
+            'join_field' => array('id','id','staff_id','id'),
+            'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type'),
             'type' => 'left'
         ));
         $this->my_model->setSelectFields(array(
@@ -185,6 +186,7 @@ class Staff_Controller extends Subbie{
             'tbl_staff.balance','tbl_staff.installment',
             'tbl_currency.currency_code','tbl_staff.account_two',
             'tbl_staff.nz_account',
+            'tbl_wage_type.type as wage_type',
             'IF(tbl_currency.symbols = "₱","Php",tbl_currency.symbols) as symbols'
         ),false);
 
@@ -196,9 +198,9 @@ class Staff_Controller extends Subbie{
 
         if(count($this->data['staff'])>0){
             foreach($this->data['staff'] as $v){
-                $v->hours = $this->getTotalHours($this_date,$v->id);
-                $v->working_hours = $this->getWorkingHours($this_date,$v->id);
-                $v->non_working_hours = $this->getWorkingHours($this_date,$v->id,2);
+                $v->hours = $v->wage_type != 1 ? $this->getTotalHours($this_date,$v->id) : 1;
+                $v->working_hours = $v->wage_type != 1 ? $this->getWorkingHours($this_date,$v->id) : 1;
+                $v->non_working_hours = $v->wage_type != 1 ? $this->getWorkingHours($this_date,$v->id,2) : 1;
                 $code = $v->currency_code != 'NZD' ? $v->currency_code : 'PHP';
                 $symbols = $v->currency_code != 'NZD' ? $v->symbols : 'Php';
 
@@ -483,7 +485,7 @@ class Staff_Controller extends Subbie{
 
         $this->my_model->setNormalized('description','id');
         $this->my_model->setSelectFields(array('id','description'));
-        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',2,'type');
+        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',array(1,2),'type');
         $this->data['wage_type'][''] = '-';
 
         $this->my_model->setNormalized('tax_code','id');
@@ -848,9 +850,9 @@ class Staff_Controller extends Subbie{
         $m_paye = $this->data['m_paye'];
 
         $this->my_model->setJoin(array(
-            'table' => array('tbl_currency','tbl_rate','tbl_deductions'),
-            'join_field' => array('id','id','staff_id'),
-            'source_field' => array('tbl_staff.currency','tbl_staff.rate','tbl_staff.id'),
+            'table' => array('tbl_currency','tbl_rate','tbl_deductions','tbl_wage_type'),
+            'join_field' => array('id','id','staff_id','id'),
+            'source_field' => array('tbl_staff.currency','tbl_staff.rate','tbl_staff.id','tbl_staff.wage_type'),
             'type' => 'left'
         ));
         $this->my_model->setSelectFields(array(
@@ -866,6 +868,7 @@ class Staff_Controller extends Subbie{
             'tbl_deductions.accommodation','tbl_deductions.transport',
             'tbl_currency.symbols',
             'tbl_staff.nz_account',
+            'tbl_wage_type.type as wage_type',
             'tbl_staff.account_two'
         ));
         $staff_history = $this->my_model->getinfo('tbl_staff',$id,'tbl_staff.id');
@@ -878,7 +881,7 @@ class Staff_Controller extends Subbie{
                 if(count($staff_history)>0){
                     foreach($staff_history as $sv){
                         $this->data['balance'][$sv->id] = $sv->balance;
-                        $sv->hours = $this->getTotalHours($dv,$sv->id);
+                        $sv->hours = $sv->wage_type != 1 ? $this->getTotalHours($dv,$sv->id) : 1;
 
                         $rate = $this->getStaffRate($sv->id,$dv);
                         if(count($rate) > 0){

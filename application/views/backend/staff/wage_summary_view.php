@@ -61,13 +61,13 @@ echo form_open('','class="form-horizontal" role="form"');
                         ?>
                     </td>
                     <?php
-                    if($val['hours'] != 0):
+                    if($val['hours'] != 0 && $this_date <= date('Y-m-d')):
                         $php_two_convert = $val['account_two']* $val['rate_value'];
                         $php_one_convert = $val['account_one']* $val['rate_value'];
                     ?>
                         <td class="column" style="text-align: center">
                             <?php
-                            echo $val['hours'];
+                            echo $val['hours'] == 1 ? 'Fixed' : $val['hours'];
                             ?>
                         </td>
                         <td class="column">

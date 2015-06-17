@@ -67,11 +67,11 @@ ob_start();
                                     Tax Number: <span><?php echo $v->tax_number;?></span>
                                 </td>
                                 <td>
-                                    Working: <span><?php echo $v->working_hours;?></span><br/>
-                                    Non-Working: <span><?php echo $v->non_working_hours?></span>
+                                    Working: <span><?php echo $v->working_hours != 1 ? $v->working_hours : 'Fixed';?></span><br/>
+                                    Non-Working: <span><?php echo $v->non_working_hours != 1 ? $v->non_working_hour : 'Fixed'?></span>
                                 </td>
                                 <td>
-                                    Hourly Rate: <span><?php echo $v->rate_cost;?></span>
+                                    <?php echo $v->wage_type != 1 ? 'Hourly Rate:' : 'Fixed Rate:'?> <span><?php echo $v->rate_cost;?></span>
                                 </td>
                             </tr>
                             <tr>

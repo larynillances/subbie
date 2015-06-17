@@ -585,9 +585,9 @@ class Subbie extends CI_Controller{
         switch($type){
             case 'weekly':
                 $this->my_model->setJoin(array(
-                    'table' => array('tbl_rate','tbl_currency','tbl_deductions'),
-                    'join_field' => array('id','id','staff_id'),
-                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id'),
+                    'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type'),
+                    'join_field' => array('id','id','staff_id','id'),
+                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type'),
                     'type' => 'left'
                 ));
                 $deductions = $this->arrayWalk(array(
@@ -606,6 +606,7 @@ class Subbie extends CI_Controller{
                 $fields[] = 'tbl_staff.id as employee';
                 $fields[] = 'tbl_currency.symbols';
                 $fields[] = 'tbl_currency.currency_code';
+                $fields[] = 'tbl_wage_type.type as wage_type';
 
                 $this->my_model->setSelectFields($fields);
                 $staff_list = $this->my_model->getinfo('tbl_staff');
@@ -635,10 +636,10 @@ class Subbie extends CI_Controller{
                                 $code = $ev->currency_code != 'NZD' ? $ev->currency_code : 'PHP';
                                 $symbols = $ev->currency_code != 'NZD' ? $ev->symbols : '₱';
 
-                                $converted_amount = $this->currencyConverter($code);
+                                $converted_amount = 1;//$this->currencyConverter($code);
 
                                 $ev->tax = 0;
-                                $hours = $this->getTotalHours($dv,$ev->employee);
+                                $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->employee) : 1;
                                 $ev->gross = $ev->rate_cost * $hours;
                                 $ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'',''):'0.00';
 
@@ -710,9 +711,9 @@ class Subbie extends CI_Controller{
                 $this->data['staff'] = $this->my_model->getinfo('tbl_staff');
 
                 $this->my_model->setJoin(array(
-                    'table' => array('tbl_rate','tbl_currency','tbl_deductions'),
-                    'join_field' => array('id','id','staff_id'),
-                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id'),
+                    'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type'),
+                    'join_field' => array('id','id','staff_id','id'),
+                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type'),
                     'type' => 'left'
                 ));
                 $this->my_model->setSelectFields(array(
@@ -725,7 +726,8 @@ class Subbie extends CI_Controller{
                     'tbl_deductions.transport',
                     'tbl_staff.balance','tbl_staff.installment',
                     'tbl_currency.currency_code','tbl_staff.account_two',
-                    'tbl_staff.nz_account'
+                    'tbl_staff.nz_account',
+                    'tbl_wage_type.type as wage_type'
                 ),false);
 
                 $staff_wage = $this->my_model->getinfo('tbl_staff');
@@ -734,8 +736,8 @@ class Subbie extends CI_Controller{
                     foreach($staff_wage as $mv){
                         if(count($date) >0){
                             foreach($date as $dv){
-                                $monthly_hours = $this->getTotalHours($dv,$mv->staff_id,'monthly');
-                                $weekly_hours = $this->getTotalHours($dv,$mv->staff_id);
+                                $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id,'monthly') : 1;
+                                $weekly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id) : 1;
                                 $rate = $this->getStaffRate($mv->staff_id,$dv);
                                 if(count($rate) > 0){
                                     foreach($rate as $val){
@@ -842,9 +844,9 @@ class Subbie extends CI_Controller{
         $m_paye = $this->data['m_paye'];
 
         $this->my_model->setJoin(array(
-            'table' => array('tbl_rate','tbl_tax_codes'),
-            'join_field' => array('id','id'),
-            'source_field' => array('tbl_staff.rate','tbl_staff.tax_code_id'),
+            'table' => array('tbl_rate','tbl_tax_codes','tbl_wage_type'),
+            'join_field' => array('id','id','id'),
+            'source_field' => array('tbl_staff.rate','tbl_staff.tax_code_id','tbl_staff.wage_type'),
             'type' => 'left'
         ));
         $this->my_model->setSelectFields(array(
@@ -854,6 +856,7 @@ class Subbie extends CI_Controller{
             'tbl_rate.rate_cost',
             'IF(tbl_tax_codes.tax_code != "" , tbl_tax_codes.tax_code, "") as tax_code',
             'tbl_staff.ird_num',
+            'tbl_wage_type.type as wage_type',
             'IF(tbl_staff.date_employed != "0000-00-00" ,DATE_FORMAT(tbl_staff.date_employed,"%d-%m-%Y"),"") as date_employed'
         ),false);
 
@@ -862,7 +865,7 @@ class Subbie extends CI_Controller{
             foreach($this->data['staff'] as $mv){
                 if(count($date) >0){
                     foreach($date as $dv){
-                        $monthly_hours = $this->getTotalHours($dv,$mv->id,'monthly');
+                        $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->id,'monthly') : 1;
                         $rate = $this->getStaffRate($mv->id,$dv);
                         if(count($rate) > 0){
                             foreach($rate as $val){
@@ -917,9 +920,9 @@ class Subbie extends CI_Controller{
 
         //$this->displayarray($year_week);
         $this->my_model->setJoin(array(
-            'table' => array('tbl_deductions'),
-            'join_field' => array('staff_id'),
-            'source_field' => array('tbl_staff.id'),
+            'table' => array('tbl_deductions','tbl_wage_type'),
+            'join_field' => array('staff_id','id'),
+            'source_field' => array('tbl_staff.id','tbl_staff.wage_type'),
             'type' => 'left'
         ));
         $deductions = $this->arrayWalk(array(
@@ -934,6 +937,7 @@ class Subbie extends CI_Controller{
 
         $fields = array_merge($deductions,$staff);
         $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';
+        $fields[] = 'tbl_wage_type.type as wage_type';
 
         $this->my_model->setSelectFields($fields);
         $staff_list = $this->my_model->getinfo('tbl_staff');
@@ -944,7 +948,7 @@ class Subbie extends CI_Controller{
             foreach($year_week as $y){
                 if(count($staff_list) > 0){
                     foreach($staff_list as $ev){
-                        $hours = $this->getTotalHours($y,$ev->id);
+                        $hours = $ev->wage_type != 1 ? $this->getTotalHours($y,$ev->id) : 1;
                         if($hours != 0){
                             $ev->balance -= $ev->installment;
                             $ev->visa_debt -= $ev->visa_deduct;
