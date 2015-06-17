@@ -28,7 +28,8 @@
                 <a href="#">view</a>
             </td>
             <td>
-                <a href="<?php echo base_url().'jobInvoice/'.$v->id;?>">view</a>
+                <!--<a href="<?php /*echo base_url().'jobInvoice/'.$v->id;*/?>">view</a>-->
+                <a href="<?php echo base_url().'invoiceList/list/'.$v->id;?>">view</a>
             </td>
             <td>
                 <a href="<?php echo base_url().'invoiceSummary/'.$v->id;?>">view</a>

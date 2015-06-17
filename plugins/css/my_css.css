@@ -141,6 +141,6 @@ table .header-fixed {
 .notification-class ul li{
     list-style: none;
 }
-.notification-class ul li:hover{
-    background: #e2e2e2;
+.notification-class ul li a:hover{
+    text-decoration: underline;
 }

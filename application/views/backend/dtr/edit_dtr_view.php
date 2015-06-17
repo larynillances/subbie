@@ -2,6 +2,7 @@
 echo form_open('','class="form-horizontal" role="form"');
 $this_day = @$days_of_week[0];
 $str_date = $thisYear . '-' . $thisMonth . '-' . date('d',strtotime($this_day));
+$div_class = count($staff) > 4 ? 'col-lg-12' : 'col-lg-7';
 ?>
 <div class="form-group">
     <label class="col-lg-1 control-label" >Date:</label>
@@ -21,7 +22,7 @@ $str_date = $thisYear . '-' . $thisMonth . '-' . date('d',strtotime($this_day));
     </div>
 </div>
 <div class="row">
-    <div class="col-lg-7">
+    <div class="<?php echo $div_class;?>">
         <table class="table table-colored-header table-responsive">
             <?php
             //$thisDay = date('j F');
@@ -40,7 +41,7 @@ $str_date = $thisYear . '-' . $thisMonth . '-' . date('d',strtotime($this_day));
             ?>
             <thead>
             <tr>
-                <th style="width: 20%;">Date</th>
+                <th style="width: 10%;">Date</th>
                 <th style="width: 80%" colspan="<?php echo count($staff)?>">Staff Name</th>
             </tr>
             </thead>

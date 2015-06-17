@@ -50,6 +50,7 @@
     <script src="<?php echo base_url();?>plugins/js/main.js"></script>
     <script src="<?php echo base_url();?>plugins/js/modified-modal.js"></script>
     <script src="<?php echo base_url() . "plugins/js/email.validation.js"; ?>"></script>
+
 </head>
 <body>
 

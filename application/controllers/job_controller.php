@@ -123,32 +123,45 @@ class Job_Controller extends Subbie{
             redirect('');
         }
 
-        $this->data['client_list'] = $this->my_model->getInfo('tbl_client',true,'is_exclude !=');
-        $this->data['invoice_data'] = array();
-        if(count($this->data['client_list']) >0){
-            foreach($this->data['client_list'] as $cv){
-                $cv->subtotal = 0;
-                $cv->total = 0;
-                $cv->gst_total = 0;
-                $invoice = $this->my_model->getInfo('tbl_invoice',array($cv->id,false),array('client_id','is_archive'));
-                if(count($invoice) >0){
-                    foreach($invoice as $iv){
-                        //$cv->total = $cv->subtotal + $cv->gst_total;
-                        $cv->meter_array = explode("\n",$iv->meter);
-                        $cv->unit_price_array = explode("\n",$iv->unit_price);
-                        if(count($cv->meter_array) >0){
-                            foreach($cv->meter_array as $key=>$meter){
-                                @$cv->subtotal +=  $meter != 0 ? $cv->unit_price_array[$key] * $meter : $cv->unit_price_array[$key];
+        $action = $this->uri->segment(2);
+        $id = $this->uri->segment(3);
+
+        if($action == 'list'){
+            if($id){
+                $this->getInvoiceData($id);
+                $this->data['page_name'] = 'Available Invoice';
+                $this->data['page_load'] = 'backend/invoice/available_invoice_view';
+            }
+        }else{
+            $this->data['client_list'] = $this->my_model->getInfo('tbl_client',true,'is_exclude !=');
+            $this->data['invoice_data'] = array();
+            if(count($this->data['client_list']) >0){
+                foreach($this->data['client_list'] as $cv){
+                    $cv->subtotal = 0;
+                    $cv->total = 0;
+                    $cv->gst_total = 0;
+                    $invoice = $this->my_model->getInfo('tbl_invoice',array($cv->id,false),array('client_id','is_archive'));
+                    if(count($invoice) >0){
+                        foreach($invoice as $iv){
+                            //$cv->total = $cv->subtotal + $cv->gst_total;
+                            $cv->meter_array = explode("\n",$iv->meter);
+                            $cv->unit_price_array = explode("\n",$iv->unit_price);
+                            if(count($cv->meter_array) >0){
+                                foreach($cv->meter_array as $key=>$meter){
+                                    @$cv->subtotal +=  $meter != 0 ? $cv->unit_price_array[$key] * $meter : $cv->unit_price_array[$key];
+                                }
                             }
+                            $cv->gst_total = $cv->subtotal * 0.15;
+                            $cv->total = $cv->subtotal + $cv->gst_total;
                         }
-                        $cv->gst_total = $cv->subtotal * 0.15;
-                        $cv->total = $cv->subtotal + $cv->gst_total;
                     }
                 }
             }
+            $this->data['page_load'] = 'backend/invoice/invoice_list_view';
         }
 
-        $this->data['page_load'] = 'backend/invoice/invoice_list_view';
+
+
         $this->load->view('main_view',$this->data);
     }
 
@@ -227,16 +240,17 @@ class Job_Controller extends Subbie{
         }
 
         $id = $this->uri->segment(2);
-        if(!$id){
+        $inv_id = $this->uri->segment(3);
+        if(!$id && !$inv_id){
             exit;
         }
 
-        $this->getInvoiceData($id);
+        $this->getInvoiceData($id,$inv_id);
         $this->data['page_load'] = 'backend/invoice/job_invoice_view';
         $this->load->view('main_view',$this->data);
     }
 
-    function getInvoiceData($id,$ref='',$archive = false){
+    function getInvoiceData($id,$inv_id = '',$ref='',$archive = false){
         $this->my_model->setJoin(array(
             'table' => array('tbl_client','tbl_registration','tbl_quotation'),
             'join_field' => array('id','id','job_id'),
@@ -264,18 +278,24 @@ class Job_Controller extends Subbie{
         $fields[] = 'tbl_invoice.inv_ref';
         $fields[] = 'tbl_registration.job_name as reg_job_name';
         $fields[] = 'tbl_client.client_code';
+        $fields[] = 'tbl_client.id as client_id';
 
         $this->my_model->setSelectFields($fields);
 
         if(!$archive){
             $whatVal = array(false,$id);
             $whatFld = array('tbl_invoice.is_archive','tbl_invoice.client_id');
+            if($inv_id){
+                $whatVal[] = $inv_id;
+                $whatFld[] = 'tbl_invoice.id';
+            }
         }else{
             $whatVal = array(true,$id,$ref);
             $whatFld = array('tbl_invoice.is_archive','tbl_invoice.client_id','tbl_invoice.inv_ref');
         }
 
         $this->data['invoice'] = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
+
         $this->data['date'] = date('Y-m-d');
         $this->data['total_row'] = 0;
         if(count($this->data['invoice']) >0){
@@ -323,7 +343,12 @@ class Job_Controller extends Subbie{
             $gen_inv_code = date('d') <= 15 ? $code.date('my').'A' : $code.date('my').'B';
 
             $this->my_model->setLastId('inv_ref');
-            @$inv_ref = $this->my_model->getInfo('tbl_invoice',array($id,true),array('client_id','is_archive'));
+
+            $whatVal = array($id,true);
+            $whatFld = array('client_id','is_archive');
+
+            @$inv_ref = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
+
             $get_count = explode('-',$inv_ref);
             @$count = $inv_ref ? (int)$get_count[1] + 1 : 1;
 
@@ -366,7 +391,7 @@ class Job_Controller extends Subbie{
                     if($this->uri->segment(6)){
                         redirect('editArchiveInvoice/'.$client_id.'/'.$this->uri->segment(5));
                     }else{
-                        redirect('jobInvoice/'.$client_id);
+                        redirect('jobInvoice/'.$client_id.'/'.$inv_id);
                     }
                 }
 
@@ -380,7 +405,7 @@ class Job_Controller extends Subbie{
                     exit;
                 }
 
-                $this->getInvoiceData($client_id,$inv_ref,true);
+                $this->getInvoiceData($client_id,'',$inv_ref,true);
                 $this->load->view('backend/invoice/print_invoice_view',$this->data);
                 break;
             default:
@@ -418,12 +443,12 @@ class Job_Controller extends Subbie{
                 }
 
                 if(isset($_GET['archive'])){
-                    $this->getInvoiceData($client_id,$inv_ref,true);
+                    $this->getInvoiceData($client_id,'',$inv_ref,true);
                 }else{
-                    $this->getInvoiceData($client_id);
+                    $uri = $this->uri->segment(5) ? $this->uri->segment(5) : '';
+                    $this->getInvoiceData($client_id,$uri);
                 }
-
-                $this->data['dir'] = 'pdf/invoice/'.date('Y',strtotime($date)).'/'.date('F',strtotime($date));
+                $this->data['dir'] = 'pdf/invoice/'.date('Y/F',strtotime($date));
                 if(!is_dir($this->data['dir'])){
                     mkdir($this->data['dir'], 0777, TRUE);
                 }
@@ -449,8 +474,8 @@ class Job_Controller extends Subbie{
                 }
 
                 $this->my_model->update('tbl_invoice',array('inv_ref' => $inv_ref,'is_archive' => true),
-                    array($client_id,true),
-                    array('client_id','is_archive !=')
+                    array($client_id,$this->uri->segment(5),true),
+                    array('client_id','id','is_archive !=')
                 );
                 //$this->displayarray($this->data['invoice']);exit;
                 $this->load->view('backend/invoice/print_invoice_view',$this->data);
@@ -471,7 +496,7 @@ class Job_Controller extends Subbie{
             exit;
         }
 
-        $this->getInvoiceData($client_id,$ref,true);
+        $this->getInvoiceData($client_id,'',$ref,true);
 
         $this->data['page_load'] = 'backend/invoice/edit_job_invoice_view';
         $this->load->view('main_view',$this->data);

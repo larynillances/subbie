@@ -148,8 +148,9 @@
         <!--<a href="<?php /*echo base_url().'invoiceManage/print/'.$this->uri->segment(2).'/'.$inv_code*/?>" class="btn btn-primary" <?php /*echo $checkData;*/?> target="_blank"><span class="glyphicon glyphicon-print"></span>  Print</a>-->
         <?php
         if($account_type != 3){
+            $uri = $this->uri->segment(3) ? '/' . $this->uri->segment(3) : '';
             ?>
-            <a href="<?php echo base_url().'invoiceManage/archive/'.$this->uri->segment(2).'/'.$inv_code.'?total='.$total.'&date='.date('d-M-Y')?>" class="btn btn-primary archive-btn" <?php echo $checkData;?>><span class="glyphicon glyphicon-save"></span> Archive</a>
+            <a href="<?php echo base_url().'invoiceManage/archive/'.$this->uri->segment(2).'/'.$inv_code .$uri .'?total='.$total.'&date='.date('d-M-Y')?>" class="btn btn-primary archive-btn" <?php echo $checkData;?>><span class="glyphicon glyphicon-save"></span> Archive</a>
         <?php
         }?>
     </div>

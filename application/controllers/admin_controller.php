@@ -1039,10 +1039,10 @@ class Admin_Controller extends Subbie{
             $_POST['date'] = date('Y-m-d');
             $_POST['is_new'] = $this->data['account_type'] == 3 ? 1 : 0;
 
-            $this->my_model->insert('tbl_invoice',$_POST,false);
+            $id = $this->my_model->insert('tbl_invoice',$_POST,false);
             $this->my_model->update('tbl_registration',array('is_invoice' => true),$_POST['job_id'],'id',false);
 
-            redirect('jobInvoice/'.$_POST['client_id']);
+            redirect('jobInvoice/'.$_POST['client_id'].'/'.$id);
         }
         $this->load->view('backend/invoice/create_invoice_view',$this->data);
     }

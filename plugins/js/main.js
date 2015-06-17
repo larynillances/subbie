@@ -81,6 +81,13 @@ $(function(){
             /*location.reload();*/
         });
     });
+
+    $('.msg-open').live('click',function(e){
+        var id = this.id;
+        $.post(bu + 'updateNotification/' + id + '?open=1',function(e){
+            /*location.reload();*/
+        });
+    });
     $('.msg-btn').click(function(e){
         var notification = $('.notification-class');
         var ele = '<img src="'+ bu + 'images/loading_(2).gif" class="loading-img" style="height: 30px;margin:0 155px;">';

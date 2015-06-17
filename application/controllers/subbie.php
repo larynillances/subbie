@@ -1256,16 +1256,29 @@ class Subbie extends CI_Controller{
 
             echo json_encode($this->data['count_msg']);
         }else{
-            $id = $this->uri->segment(2);
+            if(isset($_GET['open'])){
+                $id = $this->uri->segment(2);
 
-            if(!$id){
-                exit;
+                if(!$id){
+                    exit;
+                }
+
+                $post = array(
+                    'is_open' => true
+                );
+                $this->my_model->update('tbl_invoice',$post,$id);
+            }else{
+                $id = $this->uri->segment(2);
+
+                if(!$id){
+                    exit;
+                }
+
+                $post = array(
+                    'is_new' => false
+                );
+                $this->my_model->update('tbl_invoice',$post,$id);
             }
-
-            $post = array(
-                'is_new' => false
-            );
-            $this->my_model->update('tbl_invoice',$post,$id);
         }
 
     }
@@ -1279,7 +1292,7 @@ class Subbie extends CI_Controller{
         ));
         $fields = $this->arrayWalk(
             array(
-                'id','your_ref','job_id','meter','date','job_name','is_archive'
+                'id','your_ref','job_id','meter','date','job_name','is_archive','is_open'
             ),
             'tbl_invoice.'
         );
