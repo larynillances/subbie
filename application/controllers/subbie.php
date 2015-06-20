@@ -101,10 +101,10 @@ class Subbie extends CI_Controller{
         $this->data['page_name'] = $page_name != '' ? $page_name : 'Error 404';
 
         $this->my_model->setLastId('earnings');
-        $this->data['earnings'] = $this->my_model->getInfo('tbl_tax');
+        $this->data['earnings'] = $this->my_model->getInfo('tbl_tax',2,'wage_type_id');
 
         $this->my_model->setLastId('m_paye');
-        $this->data['m_paye'] = $this->my_model->getInfo('tbl_tax');
+        $this->data['m_paye'] = $this->my_model->getInfo('tbl_tax',2,'wage_type_id');
         $this->data['info_array'] = $this->my_model->getInfo('tbl_invoice_info');
 
         $this->data['account_type'] = $this->session->userdata('account_type');
@@ -462,7 +462,7 @@ class Subbie extends CI_Controller{
         return mktime(0, 0, 0, $month, $startday + $offset, $year);
     }
 
-    function getWeeks($date, $rollover)
+    function getWeeks($date, $rollover = 'tuesday')
     {
         $cut = substr($date, 0, 8);
         $daylen = 86400;
@@ -485,6 +485,14 @@ class Subbie extends CI_Controller{
         }
 
         return $weeks;
+    }
+
+    function getWeekNumberOfDateInYear($date){
+        $date = date('Y-m-d',strtotime($date));
+        $_date = new DateTime($date);
+        $week = $_date->format("W");
+
+        return $week;
     }
 
     function getYear($cutoff = 2010){
@@ -620,11 +628,12 @@ class Subbie extends CI_Controller{
                         if(count($staff_list) > 0){
                             foreach($staff_list as $ev){
                                 $rate = $this->getStaffRate($ev->employee,$dv);
-
+                                $ev->start_use = '';
                                 if(count($rate) > 0){
                                     foreach($rate as $val){
                                         $ev->rate_name = $val->rate_name;
                                         $ev->rate_cost = $val->rate;
+                                        $ev->start_use = $val->start_use;
                                     }
                                 }
 
@@ -643,15 +652,24 @@ class Subbie extends CI_Controller{
                                 $ev->gross = $ev->rate_cost * $hours;
                                 $ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'',''):'0.00';
 
-                                if($ev->gross > $earnings){
-                                    $ev->tax = (($ev->gross - $earnings) * 0.33) + $m_paye;
-                                }else{
-                                    $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$dv.'"';
+                                if($ev->wage_type == 1){
+                                    $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$ev->wage_type.'"';
                                     $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
-
                                     if(count($tax)>0){
                                         foreach($tax as $tv){
                                             $ev->tax = $tv->m_paye;
+                                        }
+                                    }
+                                }else{
+                                    if($ev->gross > $earnings){
+                                        $ev->tax = (($ev->gross - $earnings) * 0.33) + $m_paye;
+                                    }else{
+                                        $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$ev->wage_type.'"';
+                                        $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                                        if(count($tax)>0){
+                                            foreach($tax as $tv){
+                                                $ev->tax = $tv->m_paye;
+                                            }
                                         }
                                     }
                                 }
@@ -680,7 +698,7 @@ class Subbie extends CI_Controller{
                                     'tax_number' => $ev->tax_number,
                                     'gross' => '$'.$ev->gross,
                                     'rate_cost' => $ev->rate_cost,
-                                    'hours' => $hours != '' ? $hours : 0,
+                                    'hours' => $ev->wage_type != 1 ? $hours : 40,
                                     'tax' => $ev->tax != 0 ? '$'.$ev->tax : '',
                                     'flight' => $ev->flight_deduct,
                                     'visa' => $ev->visa_deduct,
@@ -697,9 +715,14 @@ class Subbie extends CI_Controller{
                                     'account_one' => $ev->flight_deduct ? $ev->account_one : 0,
                                     'nz_account' => $ev->nz_account,
                                     'rate_value' => $converted_amount,
+                                    'week' => $this->getWeeks($dv),
+                                    'start_use' => $ev->start_use,
+                                    'wage_type' => $ev->wage_type,
                                     'symbols' => $symbols,
                                     'installment' => $ev->installment
                                 );
+                                $this->data['last_week'] = $this->getWeeks(date('Y-m-t',strtotime('-1 week '.$dv)));
+                                $this->data['start_week'] = $this->getWeekNumberOfDateInYear($ev->start_use);
                             }
                         }
                     }
@@ -739,10 +762,12 @@ class Subbie extends CI_Controller{
                                 $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id,'monthly') : 1;
                                 $weekly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id) : 1;
                                 $rate = $this->getStaffRate($mv->staff_id,$dv);
+                                $mv->start_use = '';
                                 if(count($rate) > 0){
                                     foreach($rate as $val){
                                         $mv->rate_name = $val->rate_name;
                                         $mv->rate_cost = $val->rate;
+                                        $mv->start_use = $val->start_use;
                                     }
                                 }
 
@@ -769,23 +794,35 @@ class Subbie extends CI_Controller{
                                     $code = $mv->currency_code != 'NZD' ? $mv->currency_code : 'PHP';
                                     $symbols = $mv->currency_code != 'NZD' ? $mv->symbols : '₱';
 
-                                    $converted_amount = $this->currencyConverter($code);
+                                    $converted_amount = 1;//$this->currencyConverter($code);
                                     if(!$mv->gross){
                                         $mv->tax = 0;
                                     }else{
                                         $mv->tax = 0;
                                         $mv->m_paye = 0;
                                         $mv->me_paye = 0;
-                                        if($mv->gross > $earnings){
-                                            $mv->tax = (($mv->gross - $earnings) * 0.33) + $m_paye;
-                                        }else{
-                                            $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'"';
+                                        if($mv->wage_type == 1){
+                                            $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$mv->wage_type.'"';
                                             $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                                             if(count($tax)>0){
                                                 foreach($tax as $tv){
                                                     $mv->tax = $tv->m_paye;
                                                     $mv->m_paye = $tv->m_paye;
                                                     $mv->me_paye = $tv->me_paye;
+                                                }
+                                            }
+                                        }else{
+                                            if($mv->gross > $earnings){
+                                                $mv->tax = (($mv->gross - $earnings) * 0.33) + $m_paye;
+                                            }else{
+                                                $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$mv->wage_type.'"';
+                                                $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                                                if(count($tax)>0){
+                                                    foreach($tax as $tv){
+                                                        $mv->tax = $tv->m_paye;
+                                                        $mv->m_paye = $tv->m_paye;
+                                                        $mv->me_paye = $tv->me_paye;
+                                                    }
                                                 }
                                             }
                                         }
@@ -814,7 +851,7 @@ class Subbie extends CI_Controller{
                                         'account_two' => $mv->total_account_two,
                                         'nz_account' => $mv->total_nz_account,
                                         'tax' => $mv->tax,
-                                        'hours' => $mv->hours,
+                                        'hours' => $mv->wage_type != 1 ? $mv->hours : 40,
                                         'gross' => $mv->gross,
                                         'recruit' => $mv->recruit,
                                         'admin' => $mv->admin,
@@ -1003,6 +1040,7 @@ class Subbie extends CI_Controller{
 
         return $rate;
     }
+
 
     function displayarray($ar, $color = "F00"){
         echo '<pre style="font-size:12px;z-index:9999;color:#'.$color.'">';

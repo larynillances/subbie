@@ -51,112 +51,233 @@ echo form_open('','class="form-horizontal" role="form"');
             $ref = 0;
             if(count($this_data) >0):
                 foreach($this_data as $val):
+                    $date = new DateTime($this_date);
+                    $week = $date->format("W");
+                    $modulus = $week ? $week % 2 : 0;
+                    $is_not_even = $start_week % 2;
+                    $condition = $is_not_even ? !$modulus : $modulus;
+
+                    /*$week = @$val['week'] != '' ? @$val['week'] : $last_week;
+                    $modulus = @$val['week'] % 2;*/
                     echo $ref != 0 ? '<tr>' : '';
                         ?>
                     <td class="column">
                         <?php
                         $tooltip = 'class="tooltip-class" data-toggle="tooltip" data-placement="top" title="Tax No.: '.$val['tax_number'].'"';
-                        $name = $val['hours'] != 0 ? '<a href="'.base_url().'printPaySlip/'.$val['id'].'/'.$this_date.'" target="_blank">'.$val['name'].'</a>' : $val['name'];
+                        $url = '<a href="'.base_url().'printPaySlip/'.$val['id'].'/'.$this_date.'" target="_blank">'.$val['name'].'</a>';
+                        if($val['wage_type'] == 1){
+                            $name = $val['hours'] != 0 && (@$val['start_use'] && $this_date <= date('Y-m-d')) && $condition ? $url : $val['name'];
+                        }else{
+                            $name = $val['hours'] != 0 && @$val['start_use'] ? $url : $val['name'];
+                        }
                         echo $val['name'] != '' ? $name.'<br/><strong '.$tooltip.'>Tax: ######</strong>' :'';
                         ?>
                     </td>
                     <?php
-                    if($val['hours'] != 0 && $this_date <= date('Y-m-d')):
-                        $php_two_convert = $val['account_two']* $val['rate_value'];
-                        $php_one_convert = $val['account_one']* $val['rate_value'];
-                    ?>
-                        <td class="column" style="text-align: center">
+                    if($val['wage_type'] != 1):
+                        if($val['hours'] != 0 && @$val['start_use']):
+                            $php_two_convert = $val['account_two']* $val['rate_value'];
+                            $php_one_convert = $val['account_one']* $val['rate_value'];
+                        ?>
+                            <td class="column" style="text-align: center">
+                                <?php
+                                echo $val['hours'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['gross'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['tax'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
+                                $flight_debt =  @$total_bal[$v][$val['id']]['flight_debt'];
+                                echo '<strong class="value-class">';
+                                echo $flight_debt != 0 ? '$'.$flight_debt : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['visa'] != '' ? '$'.$val['visa'].'<br/>' : '';
+                                $visa_debt =  @$total_bal[$v][$val['id']]['visa_debt'];
+                                echo '<strong class="value-class">';
+                                echo $visa_debt != 0 ? '$'.$visa_debt : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['accommodation'];
+                                ?>
+                            </td>
+                            <td class="column"><?php echo $val['transport'];?></td>
+                            <td class="column"><?php echo $val['recruit'];?></td>
+                            <td class="column"><?php echo $val['admin'];?></td>
+                            <td class="column">
+                                <?php
+                                $nett = floatval(str_replace('$','',$val['nett']));
+                                echo $nett > 0 ? $val['nett'] : '<strong class="value-class">'.$val['nett'].'</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
+                                echo $thisBalance > 0 ? ($val['deduction'] ? $val['deduction'].'<br/>' : '') : '';
+                                echo '<strong class="value-class">';
+                                echo $thisBalance != 0 ? '$'.$thisBalance : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                $distribution = floatval(str_replace('$','',$val['distribution']));
+                                echo $distribution > 0 ? '$'.$val['distribution'] : '<strong class="value-class">$'.$val['distribution'].'</strong>';
+                                ?>
+                            </td>
+                            <td class="column" style="text-transform: uppercase">
+                                <?php
+                                if($val['account_one'] != ''){
+                                    $account_one = $val['account_one'] != '' ?
+                                        ($val['account_one'] > 0 ? '$'.number_format($val['account_one'],2).'<br/>' : '<strong class="value-class">$'.$val['account_one'].'</strong><br/>')
+                                        : '$0.00'.'<br/>';
+                                    echo '<strong>'.$account_one;
+                                    echo '<span class="value-class">';
+                                    echo $php_one_convert > 0 ? $val['symbols'].number_format($php_one_convert,2) : $val['symbols'].'0.00';
+                                    echo '</span></strong>';
+                                }
+                                ?>
+                            </td>
+                            <td class="column" style="text-transform: uppercase">
+                                <?php
+                                if($val['account_two'] != ''){
+                                    $account_two = $val['account_two'] != '' ? '$'.number_format($val['account_two'],2).'<br/>' : '$0.00'.'<br/>';
+                                    echo '<strong>'.$account_two;
+                                    echo '<span class="value-class">';
+                                    echo $php_two_convert > 0 ? $val['symbols'].number_format($php_two_convert,2) : $val['symbols'].'0.00';
+                                    echo '</span></strong>';
+                                }
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                $nz_account = $val['nz_account'] != '' ? '$'.$val['nz_account'] : '';
+                                echo '<strong>'. $nz_account .'</strong><br/>';
+                                ?>
+                            </td>
                             <?php
-                            echo $val['hours'] == 1 ? 'Fixed' : $val['hours'];
+                            else:
+                                for($i=0;$i<=14;$i++):
+                                    ?>
+                                    <td>&nbsp;</td>
+                                <?php
+                                endfor;
+                            endif;
+                    else:
+                        if($val['hours'] != 0
+                            && (@$val['start_use'] && $this_date <= date('Y-m-d'))
+                            && $condition):
+                            $php_two_convert = $val['account_two']* $val['rate_value'];
+                            $php_one_convert = $val['account_one']* $val['rate_value'];
                             ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            echo $val['gross'];
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            echo $val['tax'];
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
-                            $flight_debt =  @$total_bal[$v][$val['id']]['flight_debt'];
-                            echo '<strong class="value-class">';
-                            echo $flight_debt != 0 ? '$'.$flight_debt : '';
-                            echo '</strong>';
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            echo $val['visa'] != '' ? '$'.$val['visa'].'<br/>' : '';
-                            $visa_debt =  @$total_bal[$v][$val['id']]['visa_debt'];
-                            echo '<strong class="value-class">';
-                            echo $visa_debt != 0 ? '$'.$visa_debt : '';
-                            echo '</strong>';
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            echo $val['accommodation'];
-                            ?>
-                        </td>
-                        <td class="column"><?php echo $val['transport'];?></td>
-                        <td class="column"><?php echo $val['recruit'];?></td>
-                        <td class="column"><?php echo $val['admin'];?></td>
-                        <td class="column">
-                            <?php
-                            $nett = floatval(str_replace('$','',$val['nett']));
-                            echo $nett > 0 ? $val['nett'] : '<strong class="value-class">'.$val['nett'].'</strong>';
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                            echo $thisBalance > 0 ? ($val['deduction'] ? $val['deduction'].'<br/>' : '') : '';
-                            echo '<strong class="value-class">';
-                            echo $thisBalance != 0 ? '$'.$thisBalance : '';
-                            echo '</strong>';
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            $distribution = floatval(str_replace('$','',$val['distribution']));
-                            echo $distribution > 0 ? '$'.$val['distribution'] : '<strong class="value-class">$'.$val['distribution'].'</strong>';
-                            ?>
-                        </td>
-                        <td class="column" style="text-transform: uppercase">
-                            <?php
-                            if($val['account_one'] != ''){
-                                $account_one = $val['account_one'] != '' ?
-                                    ($val['account_one'] > 0 ? '$'.number_format($val['account_one'],2).'<br/>' : '<strong class="value-class">$'.$val['account_one'].'</strong><br/>')
-                                    : '$0.00'.'<br/>';
-                                echo '<strong>'.$account_one;
-                                echo '<span class="value-class">';
-                                echo $php_one_convert > 0 ? $val['symbols'].number_format($php_one_convert,2) : $val['symbols'].'0.00';
-                                echo '</span></strong>';
-                            }
-                            ?>
-                        </td>
-                        <td class="column" style="text-transform: uppercase">
-                            <?php
-                            if($val['account_two'] != ''){
-                                $account_two = $val['account_two'] != '' ? '$'.number_format($val['account_two'],2).'<br/>' : '$0.00'.'<br/>';
-                                echo '<strong>'.$account_two;
-                                echo '<span class="value-class">';
-                                echo $php_two_convert > 0 ? $val['symbols'].number_format($php_two_convert,2) : $val['symbols'].'0.00';
-                                echo '</span></strong>';
-                            }
-                            ?>
-                        </td>
-                        <td class="column">
-                            <?php
-                            $nz_account = $val['nz_account'] != '' ? '$'.$val['nz_account'] : '';
-                            echo '<strong>'. $nz_account .'</strong><br/>';
-                            ?>
-                        </td>
+                            <td class="column" style="text-align: center">
+                                <?php
+                                echo $val['hours'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['gross'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['tax'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
+                                $flight_debt =  @$total_bal[$v][$val['id']]['flight_debt'];
+                                echo '<strong class="value-class">';
+                                echo $flight_debt != 0 ? '$'.$flight_debt : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['visa'] != '' ? '$'.$val['visa'].'<br/>' : '';
+                                $visa_debt =  @$total_bal[$v][$val['id']]['visa_debt'];
+                                echo '<strong class="value-class">';
+                                echo $visa_debt != 0 ? '$'.$visa_debt : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo $val['accommodation'];
+                                ?>
+                            </td>
+                            <td class="column"><?php echo $val['transport'];?></td>
+                            <td class="column"><?php echo $val['recruit'];?></td>
+                            <td class="column"><?php echo $val['admin'];?></td>
+                            <td class="column">
+                                <?php
+                                $nett = floatval(str_replace('$','',$val['nett']));
+                                echo $nett > 0 ? $val['nett'] : '<strong class="value-class">'.$val['nett'].'</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
+                                echo $thisBalance > 0 ? ($val['deduction'] ? $val['deduction'].'<br/>' : '') : '';
+                                echo '<strong class="value-class">';
+                                echo $thisBalance != 0 ? '$'.$thisBalance : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                $distribution = floatval(str_replace('$','',$val['distribution']));
+                                echo $distribution > 0 ? '$'.$val['distribution'] : '<strong class="value-class">$'.$val['distribution'].'</strong>';
+                                ?>
+                            </td>
+                            <td class="column" style="text-transform: uppercase">
+                                <?php
+                                if($val['account_one'] != ''){
+                                    $account_one = $val['account_one'] != '' ?
+                                        ($val['account_one'] > 0 ? '$'.number_format($val['account_one'],2).'<br/>' : '<strong class="value-class">$'.$val['account_one'].'</strong><br/>')
+                                        : '$0.00'.'<br/>';
+                                    echo '<strong>'.$account_one;
+                                    echo '<span class="value-class">';
+                                    echo $php_one_convert > 0 ? $val['symbols'].number_format($php_one_convert,2) : $val['symbols'].'0.00';
+                                    echo '</span></strong>';
+                                }
+                                ?>
+                            </td>
+                            <td class="column" style="text-transform: uppercase">
+                                <?php
+                                if($val['account_two'] != ''){
+                                    $account_two = $val['account_two'] != '' ? '$'.number_format($val['account_two'],2).'<br/>' : '$0.00'.'<br/>';
+                                    echo '<strong>'.$account_two;
+                                    echo '<span class="value-class">';
+                                    echo $php_two_convert > 0 ? $val['symbols'].number_format($php_two_convert,2) : $val['symbols'].'0.00';
+                                    echo '</span></strong>';
+                                }
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                $nz_account = $val['nz_account'] != '' ? '$'.$val['nz_account'] : '';
+                                echo '<strong>'. $nz_account .'</strong><br/>';
+                                ?>
+                            </td>
                         <?php
                         else:
                             for($i=0;$i<=14;$i++):
@@ -165,6 +286,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             <?php
                             endfor;
                         endif;
+                    endif;
                     $ref++;
                     echo $ref != 0 ? '</tr>' : '';
                 endforeach;

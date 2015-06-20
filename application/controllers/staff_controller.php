@@ -186,6 +186,7 @@ class Staff_Controller extends Subbie{
             'tbl_staff.balance','tbl_staff.installment',
             'tbl_currency.currency_code','tbl_staff.account_two',
             'tbl_staff.nz_account',
+            'tbl_staff.position',
             'tbl_wage_type.type as wage_type',
             'IF(tbl_currency.symbols = "₱","Php",tbl_currency.symbols) as symbols'
         ),false);
@@ -229,18 +230,30 @@ class Staff_Controller extends Subbie{
                     $v->tax = 0;
                 }else{
                     $v->tax = 0;
-                    if($v->gross > $earnings){
-                        $v->tax = (($v->gross - $earnings) * 0.33) + $m_paye;
-                    }else{
-                        $whatVal = 'earnings ="'.$v->gross.'" AND start_date <= "'.$this_date.'"';
+                    if($v->wage_type == 1){
+                        $whatVal = 'earnings ="'.$v->gross.'" AND start_date <= "'.$this_date.'" AND wage_type_id = "'.$v->wage_type.'"';
                         $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                         if(count($tax)>0){
                             foreach($tax as $tv){
                                 $v->tax = $tv->m_paye;
                             }
                         }
+                    }else{
+                        if($v->gross > $earnings){
+                            $v->tax = (($v->gross - $earnings) * 0.33) + $m_paye;
+                        }else{
+                            echo $v->gross;
+                            $whatVal = 'earnings ="'.$v->gross.'" AND start_date <= "'.$this_date.'" AND wage_type_id = "'.$v->wage_type.'"';
+                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            if(count($tax)>0){
+                                foreach($tax as $tv){
+                                    $v->tax = $tv->m_paye;
+                                }
+                            }
+                        }
                     }
                 }
+
 
                 @$v->tax_total += $v->tax;
                 @$v->total_install += $v->installment;
@@ -569,9 +582,14 @@ class Staff_Controller extends Subbie{
                     @$rate_type = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
 
                     $post_rate = array('end_use' => date('Y-m-d',strtotime('-1 day '.$_POST['start_use'])));
-                    $this->my_model->update('tbl_staff_rate',$post_rate,array($rate,$rate_type),array('id','rate_id'));
-
-                    $this->my_model->insert('tbl_staff_rate',$post);
+                    $has_rate = $this->my_model->getInfo('tbl_staff_rate',array($rate,$rate_type),array('id','rate_id'));
+                    if(count($has_rate) > 0){
+                      foreach($has_rate as $value){
+                          $this->my_model->update('tbl_staff_rate',$post_rate,$value->id);
+                      }
+                    }else{
+                        $this->my_model->insert('tbl_staff_rate',$post);
+                    }
 
                     unset($_POST['rate']);
                     unset($_POST['start_use']);
@@ -876,6 +894,7 @@ class Staff_Controller extends Subbie{
         $this->getYearTotalBalance($this->data['year_val']);
 
         $this->data['balance'] = array();
+        $this->data['start_week'] = '';
         if(count($this->data['date']) >0){
             foreach($this->data['date'] as $dv){
                 if(count($staff_history)>0){
@@ -884,10 +903,12 @@ class Staff_Controller extends Subbie{
                         $sv->hours = $sv->wage_type != 1 ? $this->getTotalHours($dv,$sv->id) : 1;
 
                         $rate = $this->getStaffRate($sv->id,$dv);
+                        $sv->start_use = '';
                         if(count($rate) > 0){
                             foreach($rate as $val){
                                 $sv->rate_name = $val->rate_name;
                                 $sv->rate_cost = $val->rate;
+                                $sv->start_use = $val->start_use;
                             }
                         }
 
@@ -896,23 +917,32 @@ class Staff_Controller extends Subbie{
 
                         $sv->recruit = $sv->visa_debt != '' || $sv->visa_debt != 0? $sv->gross * 0.03 : '';
                         $sv->admin = $sv->visa_debt != '' || $sv->visa_debt != 0 ? $sv->gross * 0.01 : '';
-
-                        if($sv->gross > $earnings){
-                            $sv->tax = (($sv->gross - $earnings) * 0.33) + $m_paye;
-                        }else{
-                            $whatVal = 'earnings ="'.$sv->gross.'" AND start_date <= "'.$dv.'"';
+                        $sv->tax = 0;
+                        if($sv->wage_type == 1){
+                            $whatVal = 'earnings ="'.$sv->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$sv->wage_type.'"';
                             $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                            $sv->tax = '';
                             if(count($tax)>0){
                                 foreach($tax as $tv){
                                     $sv->tax = $tv->m_paye;
+                                }
+                            }
+                        }else{
+                            if($sv->gross > $earnings){
+                                $sv->tax = (($sv->gross - $earnings) * 0.33) + $m_paye;
+                            }else{
+                                $whatVal = 'earnings ="'.$sv->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$sv->wage_type.'"';
+                                $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                                if(count($tax)>0){
+                                    foreach($tax as $tv){
+                                        $sv->tax = $tv->m_paye;
+                                    }
                                 }
                             }
                         }
 
                         $sv->nett = $sv->gross - ($sv->tax + $sv->flight_deduct + $sv->visa_deduct + $sv->accommodation + $sv->transport + $sv->recruit + $sv->admin);
                         $this->data['staff'][$dv] = array(
-                            'hours' => $sv->hours,
+                            'hours' => $sv->wage_type != 1 ? $sv->hours : 40,
                             'flight' => $sv->flight_deduct != '' ? '$'.number_format($sv->flight_deduct,2,'.','') : '',
                             'visa' => $sv->visa_deduct != '' ? '$'.number_format($sv->visa_deduct,2,'.','') : '',
                             'accommodation' => $sv->accommodation != '' ? '$'.number_format($sv->accommodation,2,'.','') : '',
@@ -926,8 +956,11 @@ class Staff_Controller extends Subbie{
                             'admin' => $sv->admin != 0 ? '$'.number_format($sv->admin,2,'.','') : '',
                             'nett' => $sv->nett != 0 ? '$'.number_format($sv->nett,2,'.','') : '',
                             'staff_id' => $sv->id,
+                            'start_use' => $sv->start_use,
+                            'wage_type' => $sv->wage_type,
                             'tax' => $sv->tax != 0 ? '$'.$sv->tax : ''
                         );
+                        $this->data['start_week'] = $this->getWeekNumberOfDateInYear($sv->start_use);
                     }
                 }
             }

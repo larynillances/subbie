@@ -43,19 +43,26 @@ ob_start();
         <div id="content">
             <div class="content">
                 <?php
+                $name = '';
                 if(count($staff)>0):
                     foreach($staff as $v):
+                        $name = $v->name;
                         $date = $this->uri->segment(3);
                         ?>
                         <table class="print-table">
                             <thead>
                             <tr>
                                 <th colspan="4" style="text-transform: uppercase;">
-                                    <?php echo $v->company?>
+                                    SUBBIE SOLUTIONS LTD.
                                 </th>
                             </tr>
                             <tr>
-                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Weekly Pay Slip Period End (<?php echo date('j F Y',strtotime('+6 days '.$date));?>)</th>
+                                <th colspan="4" style="text-transform: uppercase;">
+                                    <?php echo 'PROJECT: '.$v->company?>
+                                </th>
+                            </tr>
+                            <tr>
+                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Pay Advice Slip for the Pay Period Ended: <?php echo date('j F Y',strtotime('+5 days '.$date));?></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -67,8 +74,8 @@ ob_start();
                                     Tax Number: <span><?php echo $v->tax_number;?></span>
                                 </td>
                                 <td>
-                                    Working: <span><?php echo $v->working_hours != 1 ? $v->working_hours : 'Fixed';?></span><br/>
-                                    Non-Working: <span><?php echo $v->non_working_hours != 1 ? $v->non_working_hour : 'Fixed'?></span>
+                                    Working: <span><?php echo $v->wage_type != 1 ? $v->working_hours : 40;?></span><br/>
+                                    Non-Working: <span><?php echo @$v->non_working_hour ? @$v->non_working_hour : '00.0'?></span>
                                 </td>
                                 <td>
                                     <?php echo $v->wage_type != 1 ? 'Hourly Rate:' : 'Fixed Rate:'?> <span><?php echo $v->rate_cost;?></span>
@@ -77,14 +84,37 @@ ob_start();
                             <tr>
                                 <td class="bold-text" style="text-align: center" rowspan="2">Income <span></span></td>
                                 <td class="bold-text" style="text-align: center" rowspan="2">Deductions</td>
-                                <td class="bold-text" style="text-align: center" colspan="2">Loans</td>
+                                <?php
+                                if($v->nz_account != ''){
+                                    ?>
+                                    <td class="bold-text" style="text-align: center" colspan="2">Loans</td>
+                                    <?php
+                                }else{
+                                    ?>
+                                    <td class="bold-text" colspan="2">Position: <?php echo $v->position;?></td>
+                                    <?php
+                                }
+                                ?>
                             </tr>
-                            <tr>
-                                <td class="bold-text" style="text-align: center">Start Bal</td>
-                                <td class="bold-text" style="text-align: center">Bal Outs</td>
-                            </tr>
+                            <?php
+                            if($v->nz_account != ''){
+                                ?>
+                                <tr>
+                                    <td class="bold-text" style="text-align: center">Start Bal</td>
+                                    <td class="bold-text" style="text-align: center">Bal Outs</td>
+                                </tr>
+                            <?php
+                            }else{
+                                ?>
+                                <tr>
+                                    <td class="bold-text" style="text-align: center">This Pay</td>
+                                    <td class="bold-text" style="text-align: center">Year to date</td>
+                                </tr>
+                                <?php
+                            }
+                            ?>
                             <tr style="vertical-align: top">
-                                <td >Wage Gross: <span><?php echo $v->gross ? '$'.$v->gross : '';?></span></td>
+                                <td >Wage Gross: <span><?php echo $v->gross ? '$ '.number_format($v->gross,2) : '';?></span></td>
                                 <td class="deduction-column">
                                     <table class="deduction-table">
                                         <tr>
@@ -92,46 +122,95 @@ ob_start();
                                             <th style="text-align: left">Deduction</th>
                                             <th>Amount</th>
                                         </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>Tax</td>
-                                            <td><?php echo $v->tax;?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><?php echo @$total_bal[$date][$v->id]['flight_debt'] ? '$'.@$total_bal[$date][$v->id]['flight_debt'] : '&nbsp;';?></td>
-                                            <td>Flight</td>
-                                            <td><?php echo $v->total_flight;?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><?php echo @$total_bal[$date][$v->id]['visa_debt'] ? '$'.@$total_bal[$date][$v->id]['visa_debt'] : '&nbsp;';?></td>
-                                            <td>Visa</td>
-                                            <td><?php echo $v->total_visa;?></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>Accom</td>
-                                            <td><?php echo $v->total_accom != '' ? number_format($v->total_accom,2,'.',',') : '&nbsp;';?></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>Transport</td>
-                                            <td><?php echo $v->total_trans;?></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>Recruit</td>
-                                            <td><?php echo $v->recruit;?></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>Admin</td>
-                                            <td><?php echo $v->admin;?></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>Loans</td>
-                                            <td><?php echo $v->total_install;?></td>
-                                        </tr>
+                                        <?php
+                                        if($v->nz_account != ''){
+                                            ?>
+                                            <tr>
+                                                <td></td>
+                                                <td>Tax</td>
+                                                <td><?php echo $v->tax;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo @$total_bal[$date][$v->id]['flight_debt'] ? '$'.@$total_bal[$date][$v->id]['flight_debt'] : '&nbsp;';?></td>
+                                                <td>Flight</td>
+                                                <td><?php echo $v->total_flight;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo @$total_bal[$date][$v->id]['visa_debt'] ? '$'.@$total_bal[$date][$v->id]['visa_debt'] : '&nbsp;';?></td>
+                                                <td>Visa</td>
+                                                <td><?php echo $v->total_visa;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td>Accom</td>
+                                                <td><?php echo $v->total_accom != '' ? number_format($v->total_accom,2,'.',',') : '&nbsp;';?></td>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td>Transport</td>
+                                                <td><?php echo $v->total_trans;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td>Recruit</td>
+                                                <td><?php echo $v->recruit;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td>Admin</td>
+                                                <td><?php echo $v->admin;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td>Loans</td>
+                                                <td><?php echo $v->total_install;?></td>
+                                            </tr>
+                                            <?php
+                                        }else{
+                                            ?>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>Tax</td>
+                                                <td><?php echo $v->tax;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>Transport</td>
+                                                <td><?php echo $v->total_trans;?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <?php
+                                        }
+                                        ?>
                                         <tr>
                                             <td></td>
                                             <td><strong>Total</strong></td>
@@ -145,7 +224,7 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td>&nbsp;</td>
+                                            <td><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></td>
                                         </tr>
                                         <tr>
                                             <td>&nbsp;</td>
@@ -166,8 +245,23 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td style="text-align: center"><?php echo $v->star_balance;?></td>
+                                            <td>&nbsp;</td>
                                         </tr>
+                                        <?php
+                                        if($v->nz_account != ''){
+                                            ?>
+                                            <tr>
+                                                <td style="text-align: center"><?php echo $v->star_balance;?></td>
+                                            </tr>
+                                        <?php
+                                        }else{
+                                            ?>
+                                            <tr>
+                                                <td style="border-top: 1px solid #000000;"><strong><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></strong></td>
+                                            </tr>
+                                        <?php
+                                        }
+                                        ?>
                                     </table>
                                 </td>
                                 <td style="text-align: center">
@@ -176,7 +270,7 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td>&nbsp;</td>
+                                            <td><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></td>
                                         </tr>
                                         <tr>
                                             <td>&nbsp;</td>
@@ -197,16 +291,31 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td style="text-align: center">
-                                                <?php
-                                                echo @$total_bal[$date][$v->id]['balance'] != 0 ? number_format(@$total_bal[$date][$v->id]['balance'],2,'.',',') : '&nbsp;';?>
-                                            </td>
+                                            <td>&nbsp;</td>
                                         </tr>
+                                        <?php
+                                        if($v->nz_account != ''){
+                                            ?>
+                                            <tr>
+                                                <td style="text-align: center">
+                                                    <?php
+                                                    echo @$total_bal[$date][$v->id]['balance'] != 0 ? number_format(@$total_bal[$date][$v->id]['balance'],2,'.',',') : '&nbsp;';?>
+                                                </td>
+                                            </tr>
+                                            <?php
+                                        }else{
+                                            ?>
+                                            <tr>
+                                                <td style="border-top: 1px solid #000000;"><strong><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></strong></td>
+                                            </tr>
+                                            <?php
+                                        }
+                                        ?>
                                     </table>
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="4" style="text-align: left;">Subtotal/NETT Pay: <span><?php echo $v->distribution ? '$ '.$v->distribution : '';?></span></td>
+                                <td colspan="4" style="text-align: left;">Subtotal/NETT Pay: <span><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></span></td>
                             </tr>
                             <tr>
                                 <td style="text-align: center;">
@@ -224,7 +333,7 @@ ob_start();
                             </tr>
                             <tr>
                                 <td style="text-align: center;">
-                                    <strong><?php echo $v->distribution ? '$ '.$v->distribution : '';?></strong>
+                                    <strong><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></strong>
                                 </td>
                                 <td style="text-align: center">
                                     <span><?php echo $v->flight ? $v->account_one : '&nbsp;';?></span><br/>
@@ -264,8 +373,8 @@ $pdf = $domPdf->output();
 
 // You can now write $pdf to disk, store it in a database or stream it
 // to the client.
-$pdfName = $this->uri->segment(2).'_'.date('d-F-y',strtotime($date));
-@ $domPdf->stream($pdfName.".pdf", array("Attachment" => 0));
+$pdfName = 'Pay Slip for '.date('d-F-y',strtotime($date)) .' ('.$name.')';
+@ $domPdf->stream($pdfName.".pdf", array("Attachment" => 1));
 
 $file_to_save = $dir.'/'.$pdfName.'.pdf';
 //save the pdf file on the server

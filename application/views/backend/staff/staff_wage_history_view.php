@@ -88,130 +88,261 @@ $uri2 = $this->uri->segment(2);
         <?php
         $total = array();
         $ref = 0;
+        $count = 1;
+        $color = array(
+            '1' => '#91C690',
+            '2' => '#91C690',
+            '3' => '#DC7864',
+            '4' => '#DC7864',
+            '5' => '#DCD195',
+            '6' => '#DCD195',
+        );
         if(count($date) >0):
             foreach($date as $v):
+
+                $date = new DateTime($v);
+                $week = $date->format("W");
+                $modulus = $week ? $week % 2 : 0;
+                $is_not_even = $start_week % 2;
+                $condition = $is_not_even ? !$modulus : $modulus;
                 ?>
-                <tr>
+                <tr <?php /*echo 'style="background:'.$color[$week].'!important;"'*/?> >
                     <td style="vertical-align: middle;"><?php echo date('d-M-Y',strtotime('+6 days '.$v));?></td>
                     <?php
                     $data = @$staff[$v];
                     $thisBalance =  @$total_bal[$v][$data['staff_id']]['balance'];
                     $thisFlight =  @$total_bal[$v][$data['staff_id']]['flight_debt'];
                     $thisVisa =  @$total_bal[$v][$data['staff_id']]['visa_debt'];
-                    if($data['hours'] != 0):
-                        $installment = floatval(str_replace('$','',$data['installment']));
-                        $installment = $thisBalance > 0 ? ($thisBalance <= $installment ? $thisBalance : $data['installment']) : 0;
+                    if($data['wage_type'] != 1):
+                        if($data['hours'] != 0 && @$data['start_use']):
+                            $installment = floatval(str_replace('$','',$data['installment']));
+                            $installment = $thisBalance > 0 ? ($thisBalance <= $installment ? $thisBalance : $data['installment']) : 0;
 
-                        $flight = floatval(str_replace('$','',$data['flight']));
-                        $flight = $thisFlight > 0 ? ($thisFlight <= $flight ? $thisFlight : $data['flight']) : 0;
+                            $flight = floatval(str_replace('$','',$data['flight']));
+                            $flight = $thisFlight > 0 ? ($thisFlight <= $flight ? $thisFlight : $data['flight']) : 0;
 
-                        $visa = floatval(str_replace('$','',$data['visa']));
-                        $visa = $thisVisa > 0 ? ($thisVisa <= $visa ? $thisVisa : $data['visa']): 0;
+                            $visa = floatval(str_replace('$','',$data['visa']));
+                            $visa = $thisVisa > 0 ? ($thisVisa <= $visa ? $thisVisa : $data['visa']): 0;
 
-                        $_visa = $thisVisa > 0 ? 0 : $data['visa'];
-                        $_flight = $thisFlight > 0 ? 0 : $data['flight'];
+                            $_visa = $thisVisa > 0 ? 0 : $data['visa'];
+                            $_flight = $thisFlight > 0 ? 0 : $data['flight'];
 
-                        $nett = floatval(str_replace('$','',$data['nett']));
-                        $nett = $nett + floatval(str_replace('$','',$_visa)) + floatval(str_replace('$','',$_flight));
-                        $recruit = $visa > 0 || $visa != '' ? $data['recruit'] : 0;
-                        $admin = $visa > 0 || $visa != '' ? $data['admin'] : 0;
+                            $nett = floatval(str_replace('$','',$data['nett']));
+                            $nett = $nett + floatval(str_replace('$','',$_visa)) + floatval(str_replace('$','',$_flight));
+                            $recruit = $visa > 0 || $visa != '' ? $data['recruit'] : 0;
+                            $admin = $visa > 0 || $visa != '' ? $data['admin'] : 0;
 
-                        $distribution = $nett - floatval(str_replace('$','',$installment));
-                        $account_two = floatval(str_replace('$','',$data['account_two']));
-                        $nz_account = floatval(str_replace('$','',$data['nz_account']));
-                        $account_one = $distribution - ($account_two + $nz_account);
+                            $distribution = $nett - floatval(str_replace('$','',$installment));
+                            $account_two = floatval(str_replace('$','',$data['account_two']));
+                            $nz_account = floatval(str_replace('$','',$data['nz_account']));
+                            $account_one = $distribution - ($account_two + $nz_account);
 
-                        $positive_nett = $nett > 0 ? floatval($nett) : 0;
-                        $positive_php_one = $account_one > 0 ? floatval($account_one) : 0;
-                        $positive_distribution = $distribution > 0 ? floatval($distribution) : 0;
+                            $positive_nett = $nett > 0 ? floatval($nett) : 0;
+                            $positive_php_one = $account_one > 0 ? floatval($account_one) : 0;
+                            $positive_distribution = $distribution > 0 ? floatval($distribution) : 0;
 
-                        @$total['hours'] += $data['hours'];
-                        @$total['gross'] += floatval(str_replace('$','',$data['gross']));
-                        @$total['tax'] += floatval(str_replace('$','',$data['tax']));
-                        @$total['flight'] += floatval(str_replace('$','',$flight));
-                        @$total['visa'] += floatval(str_replace('$','',$visa));
-                        @$total['accommodation'] += floatval(str_replace('$','',$data['accommodation']));
-                        @$total['transport'] += floatval(str_replace('$','',$data['transport']));
-                        @$total['recruit'] += floatval(str_replace('$','',$recruit));
-                        @$total['admin'] += floatval(str_replace('$','',$admin));
-                        @$total['nett'] += $positive_nett;
-                        @$total['installment'] += floatval(str_replace('$','',$installment));
-                        @$total['distribution'] += $positive_distribution;
-                        @$total['account_one'] += $data['staff_id'] != 4 ? $positive_php_one : 0;
-                        @$total['account_two'] += floatval(str_replace('$','',$data['account_two']));
-                        @$total['nz_account'] += $data['staff_id'] != 4 ? floatval(str_replace('$','',$data['nz_account'])) : $positive_php_one;
+                            @$total['hours'] += $data['hours'];
+                            @$total['gross'] += floatval(str_replace('$','',$data['gross']));
+                            @$total['tax'] += floatval(str_replace('$','',$data['tax']));
+                            @$total['flight'] += floatval(str_replace('$','',$flight));
+                            @$total['visa'] += floatval(str_replace('$','',$visa));
+                            @$total['accommodation'] += floatval(str_replace('$','',$data['accommodation']));
+                            @$total['transport'] += floatval(str_replace('$','',$data['transport']));
+                            @$total['recruit'] += floatval(str_replace('$','',$recruit));
+                            @$total['admin'] += floatval(str_replace('$','',$admin));
+                            @$total['nett'] += $positive_nett;
+                            @$total['installment'] += floatval(str_replace('$','',$installment));
+                            @$total['distribution'] += $positive_distribution;
+                            @$total['account_one'] += in_array($data['staff_id'],array(1,2,3)) ? $positive_php_one : 0;
+                            @$total['account_two'] += floatval(str_replace('$','',$data['account_two']));
+                            @$total['nz_account'] += !in_array($data['staff_id'],array(1,2,3)) ? floatval(str_replace('$','',$data['nz_account'])) : $positive_php_one;
 
-                        ?>
-                        <td style="vertical-align: middle;"><?php echo $data['hours']?></td>
-                        <td style="vertical-align: middle;"><?php echo $data['gross']?></td>
-                        <td style="vertical-align: middle;"><?php echo $data['tax']?></td>
-                        <td>
-                            <?php
-                            echo $flight != '' ? $flight.'<br/>' : '';
-                            echo '<strong class="value-class">';
-                            echo $thisFlight != 0 ? '$'.$thisFlight : '';
-                            echo '</strong>';
                             ?>
-                        </td>
-                        <td>
-                            <?php
-                            echo $visa != '' ? $visa.'<br/>' : '';
-                            echo '<strong class="value-class">';
-                            echo $thisVisa != 0 ? '$'.$thisVisa : '';
-                            echo '</strong>';
-                            ?>
-                        </td>
-                        <td style="vertical-align: middle;"><?php echo $data['accommodation']?></td>
-                        <td style="vertical-align: middle;"><?php echo $data['transport']?></td>
-                        <td style="vertical-align: middle;"><?php echo $data['recruit']?></td>
-                        <td style="vertical-align: middle;"><?php echo $data['admin']?></td>
-                        <td style="vertical-align: middle;">
-                            <?php
-                            echo $nett > 0 ? '$'.$nett
-                                : '<strong class="value-class">$'.$nett.'</strong>';
-                            ?>
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <?php
-                            echo $installment != '' ? '$'.number_format($installment,2,'.',',') : '';
-                            echo '<br/>';
-                            echo '<strong class="value-class">';
-                            echo $thisBalance != 0 ? '$'.number_format($thisBalance,2,'.',',') : '';
-                            echo '</strong>';
-                            //echo '$'.$thisBalance;
-                            ?>
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <?php
-                            echo $distribution > 0 ? '$'.$distribution
-                                : '<strong class="value-class">$'.$distribution.'</strong>';
-                            ?>
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <?php
-                            if($data['staff_id'] != 4)
-                            echo $account_one > 0 ? '$'.$account_one
-                                : '<strong class="value-class">$'.$account_one.'</strong>';
-                            ?>
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <?php echo $data['account_two'];?>
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <?php
-                            echo $data['staff_id'] != 4 ? $data['nz_account'] : $account_one;
-                            ?>
-                        </td>
+                            <td style="vertical-align: middle;"><?php echo $data['hours']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['gross']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['tax']?></td>
+                            <td>
+                                <?php
+                                echo $flight != '' ? $flight.'<br/>' : '';
+                                echo '<strong class="value-class">';
+                                echo $thisFlight != 0 ? '$'.$thisFlight : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td>
+                                <?php
+                                echo $visa != '' ? $visa.'<br/>' : '';
+                                echo '<strong class="value-class">';
+                                echo $thisVisa != 0 ? '$'.$thisVisa : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;"><?php echo $data['accommodation']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['transport']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['recruit']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['admin']?></td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo $nett > 0 ? '$'.$nett
+                                    : '<strong class="value-class">$'.$nett.'</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo $installment != '' ? '$'.number_format($installment,2,'.',',') : '';
+                                echo '<br/>';
+                                echo '<strong class="value-class">';
+                                echo $thisBalance != 0 ? '$'.number_format($thisBalance,2,'.',',') : '';
+                                echo '</strong>';
+                                //echo '$'.$thisBalance;
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo $distribution > 0 ? '$'.$distribution
+                                    : '<strong class="value-class">$'.$distribution.'</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                if(in_array($data['staff_id'],array(1,2,3)))
+                                    echo $account_one > 0 ? '$'.$account_one
+                                        : '<strong class="value-class">$'.$account_one.'</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php echo $data['account_two'];?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo !in_array($data['staff_id'],array(1,2,3)) ? $data['nz_account'] : $account_one;
+                                ?>
+                            </td>
                         <?php
+                        else:
+                            for($i=1;$i<=15;$i++):
+                                echo '<td class="grey-background">&nbsp;</td>';
+                            endfor;
+                        endif;
                     else:
-                        for($i=1;$i<=15;$i++):
-                            echo '<td class="grey-background">&nbsp;</td>';
-                        endfor;
+                        if($data['hours'] != 0
+                            && $condition
+                            && (@$data['start_use'] && $v <= date('Y-m-d'))):
+                            $installment = floatval(str_replace('$','',$data['installment']));
+                            $installment = $thisBalance > 0 ? ($thisBalance <= $installment ? $thisBalance : $data['installment']) : 0;
+
+                            $flight = floatval(str_replace('$','',$data['flight']));
+                            $flight = $thisFlight > 0 ? ($thisFlight <= $flight ? $thisFlight : $data['flight']) : 0;
+
+                            $visa = floatval(str_replace('$','',$data['visa']));
+                            $visa = $thisVisa > 0 ? ($thisVisa <= $visa ? $thisVisa : $data['visa']): 0;
+
+                            $_visa = $thisVisa > 0 ? 0 : $data['visa'];
+                            $_flight = $thisFlight > 0 ? 0 : $data['flight'];
+
+                            $nett = floatval(str_replace('$','',$data['nett']));
+                            $nett = $nett + floatval(str_replace('$','',$_visa)) + floatval(str_replace('$','',$_flight));
+                            $recruit = $visa > 0 || $visa != '' ? $data['recruit'] : 0;
+                            $admin = $visa > 0 || $visa != '' ? $data['admin'] : 0;
+
+                            $distribution = $nett - floatval(str_replace('$','',$installment));
+                            $account_two = floatval(str_replace('$','',$data['account_two']));
+                            $nz_account = floatval(str_replace('$','',$data['nz_account']));
+                            $account_one = $distribution - ($account_two + $nz_account);
+
+                            $positive_nett = $nett > 0 ? floatval($nett) : 0;
+                            $positive_php_one = $account_one > 0 ? floatval($account_one) : 0;
+                            $positive_distribution = $distribution > 0 ? floatval($distribution) : 0;
+
+                            @$total['hours'] += $data['hours'];
+                            @$total['gross'] += floatval(str_replace('$','',$data['gross']));
+                            @$total['tax'] += floatval(str_replace('$','',$data['tax']));
+                            @$total['flight'] += floatval(str_replace('$','',$flight));
+                            @$total['visa'] += floatval(str_replace('$','',$visa));
+                            @$total['accommodation'] += floatval(str_replace('$','',$data['accommodation']));
+                            @$total['transport'] += floatval(str_replace('$','',$data['transport']));
+                            @$total['recruit'] += floatval(str_replace('$','',$recruit));
+                            @$total['admin'] += floatval(str_replace('$','',$admin));
+                            @$total['nett'] += $positive_nett;
+                            @$total['installment'] += floatval(str_replace('$','',$installment));
+                            @$total['distribution'] += $positive_distribution;
+                            @$total['account_one'] += in_array($data['staff_id'],array(1,2,3)) ? $positive_php_one : 0;
+                            @$total['account_two'] += floatval(str_replace('$','',$data['account_two']));
+                            @$total['nz_account'] += !in_array($data['staff_id'],array(1,2,3)) ? floatval(str_replace('$','',$data['nz_account'])) : $positive_php_one;
+
+                            ?>
+                            <td style="vertical-align: middle;"><?php echo $data['hours']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['gross']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['tax']?></td>
+                            <td>
+                                <?php
+                                echo $flight != '' ? $flight.'<br/>' : '';
+                                echo '<strong class="value-class">';
+                                echo $thisFlight != 0 ? '$'.$thisFlight : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td>
+                                <?php
+                                echo $visa != '' ? $visa.'<br/>' : '';
+                                echo '<strong class="value-class">';
+                                echo $thisVisa != 0 ? '$'.$thisVisa : '';
+                                echo '</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;"><?php echo $data['accommodation']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['transport']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['recruit']?></td>
+                            <td style="vertical-align: middle;"><?php echo $data['admin']?></td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo $nett > 0 ? '$'.$nett
+                                    : '<strong class="value-class">$'.$nett.'</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo $installment != '' ? '$'.number_format($installment,2,'.',',') : '';
+                                echo '<br/>';
+                                echo '<strong class="value-class">';
+                                echo $thisBalance != 0 ? '$'.number_format($thisBalance,2,'.',',') : '';
+                                echo '</strong>';
+                                //echo '$'.$thisBalance;
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo $distribution > 0 ? '$'.$distribution
+                                    : '<strong class="value-class">$'.$distribution.'</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                if(in_array($data['staff_id'],array(1,2,3)))
+                                    echo $account_one > 0 ? '$'.$account_one
+                                        : '<strong class="value-class">$'.$account_one.'</strong>';
+                                ?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php echo $data['account_two'];?>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <?php
+                                echo !in_array($data['staff_id'],array(1,2,3)) ? $data['nz_account'] : $account_one;
+                                ?>
+                            </td>
+                        <?php
+                        else:
+                            for($i=1;$i<=15;$i++):
+                                echo '<td class="grey-background">&nbsp;</td>';
+                            endfor;
+                        endif;
                     endif;
                     ?>
                 </tr>
                 <?php
                 $ref++;
+                $count++;
             endforeach;
         endif;
         ?>

@@ -12,7 +12,9 @@ Class Tax_Controller extends Subbie{
         error_reporting(E_ALL ^ E_NOTICE);
 
         $action = $this->uri->segment(2);
-
+        $this->my_model->setNormalized('type','id');
+        $this->my_model->setSelectFields(array('id','type'));
+        $this->data['wage_type'] = $this->my_model->getInfo('tbl_salary_type',array(1,2));
         if($action && $action == 'upload'){
             $uploadDir = realpath(APPPATH . '../uploads/tax');
             $file_name = 'tax table 2015-2016.xls';
@@ -63,6 +65,7 @@ Class Tax_Controller extends Subbie{
                                 $temp[$fields[$ref]] = $val;
                                 $temp[$fields[16]] = $_POST['start_date'] ? date('Y-m-d',strtotime($_POST['start_date'])) : '';
                                 $temp[$fields[17]] = $_POST['end_date'] ? date('Y-m-d',strtotime($_POST['end_date'])) : '';
+                                $temp[$fields[18]] = $_POST['wage_type'];
                                 $ref++;
                             }
 
@@ -71,7 +74,8 @@ Class Tax_Controller extends Subbie{
                                 $temp['start_date'],
                                 $temp['end_date'],
                                 $temp['m_paye'],
-                                $temp['me_paye']
+                                $temp['me_paye'],
+                                $temp['wage_type_id']
                             );
                             $whatFld = array(
                                 'earnings','start_date','end_date','m_paye','me_paye'

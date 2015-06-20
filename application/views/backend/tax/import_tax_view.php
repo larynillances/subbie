@@ -4,6 +4,12 @@
 <div class="form-horizontal">
 <div class="modal-body">
     <div class="form-group">
+        <label class="control-label col-sm-3 text-left">Wage Type:</label>
+        <div class="col-sm-4">
+            <?php echo form_dropdown('wage_type',$wage_type,'','class="form-control input-sm wage_type"');?>
+        </div>
+    </div>
+    <div class="form-group">
         <div class="col-sm-4">
             <div class='input-group date-picker' id='datetimepicker1' data-date-format="DD-MM-YYYY">
                 <input type='text' id="start_date" name="start_date" class="form-control input-sm" value="<?php echo date('01-04-Y')?>" placeholder="Start Date" disabled/>
@@ -52,7 +58,8 @@
             'buttonText': 'Browse...',
             'formData' : {
                 start_date: $('#start_date').val(),
-                end_date: $('#end_date').val()
+                end_date: $('#end_date').val(),
+                wage_type: $('.wage_type').val()
             },
             'multi'    : false,
             'queueSizeLimit' : 1,

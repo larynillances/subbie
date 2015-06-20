@@ -24,6 +24,12 @@ echo form_open('','class="form-horizontal" role="form"');
                 </div>
             </div>
             <div class="form-group">
+                <label class="col-sm-4 control-label">Position:</label>
+                <div class="col-sm-8">
+                    <input type="text" name="position" class="form-control input-sm required">
+                </div>
+            </div>
+            <div class="form-group">
                 <label class="col-sm-4 control-label">IRD Number:</label>
                 <div class="col-sm-8">
                     <input type="text" name="ird_num" class="form-control input-sm required" value="<?php echo $v->ird_num;?>">
