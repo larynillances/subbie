@@ -104,12 +104,20 @@ switch($this->session->userdata('account_type')){
     if($account_type != 3):
     ?>
         <li class="dropdown">
-            <a class="dropdown-toggle msg-btn" data-toggle="dropdown" href="#"> <?php echo $count_msg > 0 ? '<span class="badge">'.$count_msg.'</span>' : ''?>
+            <a class="dropdown-toggle msg-btn" data-toggle="dropdown" aria-labelledby="dLabel" href="#">
+                <?php echo $count_msg > 0 ? '<span class="badge">'.$count_msg.'</span>' : ''?>
                 <i class="fa fa-envelope fa-fw"></i>  <i class="fa fa-caret-down"></i>
             </a>
             <ul class="dropdown-menu dropdown-messages pull-right" style="font-size: 12px;width: 350px;">
-                <li style="background: #cfcfcf;padding: 5px;"><?php echo 'New Message: <strong class="count-msg">' . $count_msg .'</strong>';?></li>
-                <li style="overflow: auto;max-height: 300px;" class="notification-class"></li>
+                <li style="background: #cfcfcf;padding: 5px;">
+                    <table style="width: 100%">
+                        <tr>
+                            <td><?php echo 'New Message: <strong class="count-msg">' . $count_msg .'</strong>';?></td>
+                            <td><?php echo form_dropdown('filter_msg',$notification_dp,'','class="form-control input-sm filter_msg"');?></td>
+                        </tr>
+                    </table>
+                </li>
+                <li style="overflow: auto;max-height: 300px;padding: 5px;" class="notification-class"></li>
             </ul>
             <!-- /.dropdown-messages -->
         </li>

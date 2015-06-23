@@ -1238,19 +1238,31 @@ class Admin_Controller extends Subbie{
         $this->data['month'] = $this->getMonth();
         $this->data['whatYear'] = date('Y');
         $this->data['whatMonth'] = date('m');
+        $this->data['client_key'] = '';
+
+        $this->my_model->setNormalized('client_name','id');
+        $this->my_model->setSelectFields(array('id','client_name'));
+        $this->data['client'] = $this->my_model->getInfo('tbl_client',true,'is_exclude !=');
+        $this->data['client'][''] = 'Select All';
+
+        ksort($this->data['client']);
 
         $date = $this->data['whatYear'].'-'.$this->data['whatMonth'];
-        $whatVal = '(tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%")';
+        $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
 
         if(isset($_POST['submit'])){
             $this->data['whatYear'] = $_POST['year'];
             $this->data['whatMonth'] = $_POST['month'];
+            $this->data['client_key'] = $_POST['client'];
 
             $date = $_POST['year'].'-'.$_POST['month'];
             if($_POST['type'] == 1){
-                $whatVal = '(tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$_POST['year'].'%")';
+                $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$_POST['year'].'%"';
             }else{
-                $whatVal = '(tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%")';
+                $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
+            }
+            if($_POST['client'] != ''){
+                $whatVal .= ' AND tbl_pdf_archive.client_id ="'.$_POST['client'].'"';
             }
         }
 
@@ -1279,6 +1291,7 @@ class Admin_Controller extends Subbie{
                     'date' => $v->date,
                     'archive_date' => $v->archive_date,
                     'amount' => @number_format(@$getAmount->debits,2),
+                    'original_amount' => @$getAmount->debits,
                     'client_name' => $v->client_name,
                     'client_code' => $v->client_code,
                     'client_id' => $v->client_id

@@ -41,7 +41,7 @@ if(count($notification) > 0){
                         </span>
             </div>
             <div>
-                <a href="<?php echo base_url().$url?>" class="msg-open" id="<?php echo $nv->id;?>" style="color: #1e90ff;">
+                <a href="<?php echo base_url().$url?>#" class="msg-open" id="<?php echo $nv->id;?>" style="color: #1e90ff;">
                     <?php echo $link?>
                 </a>
                 <?php echo ' '.$str?>
@@ -60,5 +60,46 @@ if(count($notification) > 0){
 <script>
     $(function(){
         $('.tooltip-class').tooltip();
+        $('.filter_msg').change(function(e){
+            e.stopPropagation();
+            var notification = $('.notification-class');
+            var ele = '<img src="'+ bu + 'images/loading_(2).gif" class="loading-img" style="height: 30px;margin:0 155px;">';
+            var loading = $('.loading-img');
+            notification.html(ele);
+            notification.load(bu + 'updateNotification/'+ $(this).val() +'?is_view=true',
+                function(){
+                    loading.css({
+                        'display' : 'none'
+                    })
+                }
+            );
+        });
+
+        $('.msg-open').click(function(e){
+            var id = this.id;
+            $.post(bu + 'updateNotification/' + id + '?open=1',function(e){
+                console.log(e);
+            });
+        });
+
+        $('.msg-link').click(function(e){
+            var id = this.id;
+            $.post(bu + 'updateNotification/' + id,function(data){
+                /*location.reload();*/
+                var notification = $('.notification-class');
+                var ele = '<img src="'+ bu + 'images/loading_(2).gif" class="loading-img" style="height: 30px;margin:0 155px;">';
+                var loading = $('.loading-img');
+                if(data){
+                    notification.html(ele);
+                    notification.load(bu + 'updateNotification/'+ $('.filter_msg').val() +'?is_view=true',
+                        function(){
+                            loading.css({
+                                'display' : 'none'
+                            })
+                        }
+                    );
+                }
+            });
+        });
     })
 </script>

@@ -116,6 +116,11 @@ class Subbie extends CI_Controller{
         $this->data['notification'] = $this->getInvoiceNotification();
         $this->data['count_msg'] = count($this->data['notification']);
 
+        $this->data['notification_dp'] = array(
+            '1' => 'New',
+            '2' => 'Open'
+        );
+
         $this->my_model->setShift();
         $this->data['user_data'] = (Object)$this->my_model->getInfo('tbl_user',3);
 
@@ -1041,7 +1046,6 @@ class Subbie extends CI_Controller{
         return $rate;
     }
 
-
     function displayarray($ar, $color = "F00"){
         echo '<pre style="font-size:12px;z-index:9999;color:#'.$color.'">';
         print_r($ar);
@@ -1290,12 +1294,16 @@ class Subbie extends CI_Controller{
         }
 
         if(isset($_GET['is_view'])){
+            $type = $this->uri->segment(2) ? $this->uri->segment(2) : '';
+
+            $this->data['notification'] = $this->getInvoiceNotification($type);
+            $this->data['count_msg'] = count($this->data['notification']);
+
             $this->load->view('backend/notification/notification_content_view',$this->data);
         }else if(isset($_GET['is_json'])){
             ini_set("memory_limit","512M");
             set_time_limit(90000);
             header("Content-type: application/json");
-
             echo json_encode($this->data['count_msg']);
         }else{
             if(isset($_GET['open'])){
@@ -1309,6 +1317,8 @@ class Subbie extends CI_Controller{
                     'is_open' => true
                 );
                 $this->my_model->update('tbl_invoice',$post,$id);
+
+                echo $id;
             }else{
                 $id = $this->uri->segment(2);
 
@@ -1320,12 +1330,14 @@ class Subbie extends CI_Controller{
                     'is_new' => false
                 );
                 $this->my_model->update('tbl_invoice',$post,$id);
+
+                echo $id;
             }
         }
 
     }
 
-    function getInvoiceNotification(){
+    function getInvoiceNotification($type = ''){
         $this->my_model->setJoin(array(
             'table' => array('tbl_client','tbl_registration','tbl_quotation'),
             'join_field' => array('id','id','job_id'),
@@ -1352,8 +1364,23 @@ class Subbie extends CI_Controller{
 
         $this->my_model->setSelectFields($fields);
 
-        $whatVal = true;
-        $whatFld = 'tbl_invoice.is_new';
+        $whatVal = array(true,false);
+        $whatFld = array('tbl_invoice.is_new','tbl_invoice.is_archive');
+
+        if($type){
+            switch($type){
+                case 1:
+                    $whatVal = array(true,false,false);
+                    $whatFld = array('tbl_invoice.is_new','tbl_invoice.is_open','tbl_invoice.is_archive');
+                    break;
+                case 2:
+                    $whatVal = array(true,true,false);
+                    $whatFld = array('tbl_invoice.is_new','tbl_invoice.is_open','tbl_invoice.is_archive');
+                    break;
+                default:
+                    break;
+            }
+        }
 
         $invoice = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
 
