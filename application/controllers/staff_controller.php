@@ -93,12 +93,13 @@ class Staff_Controller extends Subbie{
             'IF(tbl_staff.nz_account != "", CONCAT("$",tbl_staff.nz_account), "") as nz_account',
             'IF(tbl_staff.account_two != "", CONCAT("$",tbl_staff.account_two), "") as account_two',
             'IF(tbl_tax_codes.tax_code !="",tbl_tax_codes.tax_code,"") as tax_code',
-            'tbl_staff.ird_num'
+            'tbl_staff.ird_num',
+            'tbl_staff.is_unemployed'
         ));
         $this->my_model->setOrder('tbl_staff.id');
         $this->data['employee'] = $this->my_model->getinfo('tbl_staff');
 
-        $this->data['loans'] = $this->my_model->getinfo('tbl_staff',true,'has_loans');
+        $this->data['loans'] = $this->my_model->getinfo('tbl_staff',array(true,false),array('has_loans','is_unemployed'));
 
         $this->data['rate'] = $this->my_model->getinfo('tbl_rate');
 
@@ -120,7 +121,7 @@ class Staff_Controller extends Subbie{
             'IF(tbl_deductions.transport != "", CONCAT("$",FORMAT(tbl_deductions.transport,2)),"") as transport'
         ));
         $this->my_model->setOrder('tbl_staff.id');
-        $this->data['deductions'] = $this->my_model->getinfo('tbl_staff');
+        $this->data['deductions'] = $this->my_model->getinfo('tbl_staff',array(false),array('is_unemployed'));
         $date = $this->getFirstNextLastDay(date('Y'),date('m'),'tuesday');
         if(count($this->data['employee'])>0){
             foreach($this->data['employee'] as $v){

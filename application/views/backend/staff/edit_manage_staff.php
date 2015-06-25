@@ -54,7 +54,7 @@ echo form_open('','class="form-horizontal" role="form"');
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-4 control-label">Use Date:</label>
+                <label class="col-sm-4 control-label">Start Date:</label>
                 <div class="col-sm-8">
                     <div class='input-group date datetimepicker' id='datetimepicker1' data-date-format="DD-MM-YYYY">
                         <input type='text' class="form-control" name="start_use" value="<?php echo $v->start_use;?>">

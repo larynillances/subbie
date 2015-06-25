@@ -159,8 +159,9 @@
                 foreach($employee as $v):
                     $print_option = '| <a href="#" id="'. $v->id .'" class="print-staff-btn">print</a>';
                     //$has_print = $v->has_wage ? $print_option : '';
+                    $is_fired = $v->is_unemployed ? 'class="danger"' : '';
                     ?>
-                    <tr>
+                    <tr <?php echo $is_fired;?>>
                         <td><?php echo $v->name;?></td>
                         <td><?php echo $v->description;?></td>
                         <td><?php echo $v->rate_name;?></td>
