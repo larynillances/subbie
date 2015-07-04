@@ -1,5 +1,24 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
+if ( ! function_exists('CurrencyConverter'))
+{
+    function CurrencyConverter($code,$default_currency = 'NZD'){
+        $amount = urlencode(1);
+        $from = urlencode($default_currency);
+        $to = urlencode($code);
+
+        $url     = "http://www.google.com/finance/converter?a=$amount&from=$from&to=$to";
+
+        $get = file_get_contents($url);
+        $get = explode("<span class=bld>",$get);
+        $get = explode("</span>",$get[1]);
+        $converted_amount = preg_replace("/[^0-9\.]/", null, $get[0]);
+
+        return $converted_amount;
+    }
+
+}
+
 if ( ! function_exists('DisplayArray'))
 {
     function DisplayArray($ar, $color = "F00"){

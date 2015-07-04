@@ -31,6 +31,25 @@ ob_start();
             .deduction-table{
                 border-collapse: collapse;
                 width: 100%;
+            }.inner-table{
+                 border-collapse: collapse;
+                 width: 100%;
+                 font-size: 11px!important;
+             }
+            .inner-table > thead > tr > th{
+                border-bottom: 1px solid #000000!important;
+                text-align: center;
+            }
+            .inner-table > thead > tr > th:nth-child(1),
+            .inner-table > tbody > tr > td:nth-child(1){
+                padding: 3px;
+                border-right: 1px solid #000000;
+            }
+            .inner-table > tbody > tr > td{
+                padding: 3px;
+                text-align: right!important;
+                vertical-align: top;
+                height: 50px;
             }
             .deduction-table tr td:last-child{
                 text-align: right;
@@ -43,11 +62,16 @@ ob_start();
         <div id="content">
             <div class="content">
                 <?php
+                $date = $this->uri->segment(3);
                 $name = '';
+                $start_wage = date('d/m/Y',strtotime('April '.date('Y',strtotime($date)).' Tuesday '));
+
                 if(count($staff)>0):
                     foreach($staff as $v):
                         $name = $v->name;
-                        $date = $this->uri->segment(3);
+                        $total = @$total_paid[$v->id][$date];
+                        $total_account_one = @$total['account_one'] ? $v->converted_amount * $total['account_one'] : 0;
+                        $total_account_two = @$total['account_two'] ? $v->converted_amount * $total['account_two'] : 0;
                         ?>
                         <table class="print-table">
                             <thead>
@@ -108,13 +132,13 @@ ob_start();
                                 ?>
                                 <tr>
                                     <td class="bold-text" style="text-align: center">This Pay</td>
-                                    <td class="bold-text" style="text-align: center">Year to date</td>
+                                    <td class="bold-text" style="text-align: center">Year to date<br/> (<?php echo $start_wage;?>)</td>
                                 </tr>
                                 <?php
                             }
                             ?>
                             <tr style="vertical-align: top">
-                                <td >Wage Gross: <span><?php echo $v->gross ? '$ '.number_format($v->gross,2) : '';?></span></td>
+                                <td >Wage Gross: <span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
                                 <td class="deduction-column">
                                     <table class="deduction-table">
                                         <tr>
@@ -166,7 +190,8 @@ ob_start();
                                                 <td><?php echo $v->total_install;?></td>
                                             </tr>
                                             <?php
-                                        }else{
+                                        }
+                                        else{
                                             ?>
                                             <tr>
                                                 <td>&nbsp;</td>
@@ -175,13 +200,13 @@ ob_start();
                                             </tr>
                                             <tr>
                                                 <td>&nbsp;</td>
-                                                <td>Transport</td>
-                                                <td><?php echo $v->total_trans;?></td>
+                                                <td>Student Loan</td>
+                                                <td>&nbsp;</td>
                                             </tr>
                                             <tr>
                                                 <td>&nbsp;</td>
-                                                <td>&nbsp;</td>
-                                                <td>&nbsp;</td>
+                                                <td>Kiwi Saver</td>
+                                                <td><?php echo $v->kiwi_ ? $v->kiwi_ : '&nbsp;';?></td>
                                             </tr>
                                             <tr>
                                                 <td>&nbsp;</td>
@@ -224,7 +249,7 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></td>
+                                            <td><?php echo !$v->nz_account ? ($v->distribution ? '$ '.number_format($v->distribution,2) : '') : '';?></td>
                                         </tr>
                                         <tr>
                                             <td>&nbsp;</td>
@@ -270,7 +295,7 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></td>
+                                            <td><?php echo !$v->nz_account ? (@$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '') : '';?></td>
                                         </tr>
                                         <tr>
                                             <td>&nbsp;</td>
@@ -306,7 +331,7 @@ ob_start();
                                         }else{
                                             ?>
                                             <tr>
-                                                <td style="border-top: 1px solid #000000;"><strong><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></strong></td>
+                                                <td style="border-top: 1px solid #000000;"><strong><?php echo @$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '';?></strong></td>
                                             </tr>
                                             <?php
                                         }
@@ -322,29 +347,120 @@ ob_start();
                                     <strong>Distribution</strong>
                                 </td>
                                 <td style="text-align: center;">
-                                   <?php echo $v->flight ? 'PHP One(self)' : '&nbsp;'?>
+                                   <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
                                 </td>
                                 <td style="text-align: center;">
-                                    <?php echo $v->flight ? 'PHP Two(wife)' : '&nbsp;'?>
+                                    <?php echo $v->nz_account ? 'PHP Two(wife)' : '&nbsp;'?>
                                 </td>
                                 <td style="text-align: center;">
-                                    <?php echo $v->flight ? 'NZ ACC' : '&nbsp;'?>
+                                    <?php echo $v->nz_account ? 'NZ ACC' : '&nbsp;'?>
                                 </td>
                             </tr>
                             <tr>
-                                <td style="text-align: center;">
-                                    <strong><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></strong>
+                                <td style="text-align: center;padding: 0!important;<?php echo !$v->nz_account ? 'height:60px!important;' : ''?>">
+                                    <?php if($v->nz_account){
+                                        ?>
+                                        <table class="inner-table">
+                                            <thead>
+                                            <tr>
+                                                <th>This Pay</th>
+                                                <th>Year to date<br/> (<?php echo $start_wage;?>)</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <strong><?php echo $v->distribution ? '$'.number_format($v->distribution,2) : '';?></strong>
+                                                </td>
+                                                <td>
+                                                    <strong><?php echo @$total['distribution'] ? '$'.number_format(@$total['distribution'],2) : '';?></strong>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                        <?php
+                                    }
+                                    else{
+                                        ?>
+                                        <strong><?php echo $v->distribution ? '$'.number_format($v->distribution,2) : '';?></strong>
+                                        <?php
+                                    }?>
                                 </td>
-                                <td style="text-align: center">
-                                    <span><?php echo $v->flight ? $v->account_one : '&nbsp;';?></span><br/>
-                                    <span style="color: #ff0000;font-weight: bold"><?php echo $v->flight ? $v->account_one_ : '&nbsp;';?></span>
+                                <td style="text-align: center;padding: 0!important;">
+                                    <?php if($v->nz_account){
+                                        ?>
+                                        <table class="inner-table">
+                                            <thead>
+                                            <tr>
+                                                <th>This Pay</th>
+                                                <th>Year to date<br/> (<?php echo $start_wage;?>)</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <span><?php echo $v->nz_account ? $v->account_one : '&nbsp;';?></span><br/>
+                                                    <span style="color: #ff0000;font-weight: bold"><?php echo $v->nz_account ? $v->account_one_ : '&nbsp;';?></span>
+                                                </td>
+                                                <td>
+                                                    <span><?php echo $v->nz_account ? '$'.number_format(@$total['account_one'],2) : '&nbsp;';?></span><br/>
+                                                    <span style="color: #ff0000;font-weight: bold"><?php echo $total_account_one ? $v->symbols.number_format($total_account_one,2) : '&nbsp;';?></span>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    <?php
+                                    }?>
                                 </td>
-                                <td style="text-align: center">
-                                    <span><?php echo $v->total_account_two && $v->flight ? '$ '.number_format($v->total_account_two,2,'.',',') : '&nbsp;';?></span><br/>
-                                    <span style="color: #ff0000;font-weight: bold"><?php echo $v->flight ? $v->account_two_ : '&nbsp;';?></span>
+                                <td style="text-align: center;padding: 0!important;">
+                                    <?php if($v->nz_account){
+                                        ?>
+                                        <table class="inner-table">
+                                            <thead>
+                                            <tr>
+                                                <th>This Pay</th>
+                                                <th>Year to date<br/> (<?php echo $start_wage;?>)</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <span><?php echo $v->total_account_two ? '$'.number_format($v->total_account_two,2,'.',',') : '&nbsp;';?></span><br/>
+                                                    <span style="color: #ff0000;font-weight: bold"><?php echo $v->visa ? $v->account_two_ : '&nbsp;';?></span>
+                                                </td>
+                                                <td>
+                                                    <span><?php echo @$total['account_two'] ? '$'.number_format(@$total['account_two'],2) : '&nbsp;';?></span><br/>
+                                                    <span style="color: #ff0000;font-weight: bold"><?php echo $total_account_two ? $v->symbols.number_format($total_account_two,2) : '&nbsp;';?></span>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    <?php
+                                    }?>
                                 </td>
-                                <td style="text-align: center">
-                                    <span><?php echo $v->total_nz_account ? '$ '.number_format($v->total_nz_account,2,'.',',') : '';?></span>
+                                <td style="text-align: center;padding: 0!important;">
+                                    <?php if($v->nz_account){
+                                        ?>
+                                        <table class="inner-table">
+                                            <thead>
+                                            <tr>
+                                                <th>This Pay</th>
+                                                <th>Year to date<br/> (<?php echo $start_wage;?>)</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <span><?php echo $v->total_nz_account ? '$'.number_format($v->total_nz_account,2,'.',',') : '';?></span>
+                                                </td>
+                                                <td>
+                                                    <span><?php echo @$total['nz_account'] ? '$'.number_format(@$total['nz_account'],2,'.',',') : '';?></span>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    <?php
+                                    }?>
                                 </td>
                             </tr>
                             </tbody>
@@ -374,16 +490,8 @@ $pdf = $domPdf->output();
 // You can now write $pdf to disk, store it in a database or stream it
 // to the client.
 $pdfName = 'Pay Slip for '.date('d-F-y',strtotime($date)) .' ('.$name.')';
-@ $domPdf->stream($pdfName.".pdf", array("Attachment" => 1));
+@ $domPdf->stream($pdfName.".pdf", array("Attachment" => 0));
 
 $file_to_save = $dir.'/'.$pdfName.'.pdf';
 //save the pdf file on the server
-//file_put_contents($file_to_save, $domPdf->output());
-//print the pdf file to the screen for saving
-/*header('Content-type: application/pdf');
-header('Content-Disposition: inline; filename="'.$pdfName.'.pdf"');
-header('Content-Transfer-Encoding: binary');
-header('Content-Length: ' . filesize($file_to_save));
-header('Accept-Ranges: bytes');
-readfile($file_to_save);*/
-?>
+file_put_contents($file_to_save, $pdf);

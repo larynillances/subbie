@@ -344,7 +344,7 @@ class Admin_Controller extends Subbie{
         }
 
         //$this->displayarray($this->data['job_assign']);
-        $this->data['staff'] = $this->my_model->getinfo('tbl_staff');
+        $this->data['staff'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
 
         $this->data['page_load'] = 'backend/dtr/dtr_view';
         $this->load->view('main_view',$this->data);
@@ -382,7 +382,7 @@ class Admin_Controller extends Subbie{
         ));
         $this->my_model->setSelectFields(array('tbl_registration.id','CONCAT(tbl_client.client_code,LPAD(tbl_registration.id, 5,"0")) as job_ref'));
         $job = $this->my_model->getInfo('tbl_registration');
-        $this->data['staff'] = $this->my_model->getinfo('tbl_staff');
+        $this->data['staff'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
 
         $this->my_model->setSelectFields(array(
             'TIMESTAMPDIFF(SECOND, time_in, time_out) as hours',

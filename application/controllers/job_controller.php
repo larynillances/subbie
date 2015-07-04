@@ -1097,7 +1097,7 @@ class Job_Controller extends Subbie{
         ));
         $this->my_model->setNormalized('code','id');
         $this->my_model->setSelectFields(array('tbl_team.id','tbl_team.code'));
-        $this->data['team'] = $this->my_model->getInfo('tbl_staff');
+        $this->data['team'] = $this->my_model->getInfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
 
         $this->my_model->setJoin(array(
             'table' => array('tbl_tracking_log'),

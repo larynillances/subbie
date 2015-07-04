@@ -16,6 +16,12 @@ echo form_open('','class="form-horizontal" role="form"');
                         <input type="text" name="nz_account" class="form-control input-sm number" value="<?php echo $v->nz_account;?>">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="col-sm-5 control-label">Hourly Rate:</label>
+                    <div class="col-sm-7">
+                        <?php echo form_dropdown('hourly_nz_rate_id',$hourly_rate,$v->hourly_nz_rate_id,'class="form-control input-sm"');?>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-primary submit-btn" name="submit">Submit</button>

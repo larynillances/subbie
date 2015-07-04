@@ -416,6 +416,36 @@ class Subbie extends CI_Controller{
         return $date;
     }
 
+    function getPaymentStartDate($year,$month = 'April',$day = 'tuesday',$start = 2){
+
+        $month_day = $this->first_day_of_month($year,$month,$day);
+
+        $date = new DateTime($month_day);
+        $week = $date->format("W");
+
+        $end_year = $year + 1;
+        $end_month_day = $this->first_day_of_month($end_year,$month,$day);
+        $this_month = date('m',strtotime($end_month_day));
+        $this_day = date('d',strtotime('-2 days '.$end_month_day));
+
+        $weeksPeriod = new DatePeriod(
+            new DateTime("$year-W$week-$start"),
+            new DateInterval('P1W'),
+            new DateTime("$end_year-$this_month-$this_day T23:59:59Z")
+        );
+        $year_week = array();
+        foreach ($weeksPeriod as $week => $monday) {
+            $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+        }
+
+        return $year_week;
+    }
+
+    function first_day_of_month($year,$month = 'April',$day="Tuesday"){
+        $day = new DateTime(sprintf("First $day of $month %s", $year));
+        return $day->format('Y-m-d');
+    }
+
     function getWeekDays($m,$d,$y,$std = 2){
         $arr = array(
             $y . '-12-29', $y . '-12-30', $y . '-12-31'
@@ -524,16 +554,141 @@ class Subbie extends CI_Controller{
         return $month;
     }
 
-    function currencyConverter($code,$default_currency = 'NZD'){
-        $amount = urlencode(1);
-        $from_Currency = urlencode($default_currency);
-        $to_Currency = urlencode($code);
-        $get = file_get_contents("https://www.google.com/finance/converter?a=".$amount."&from=".$from_Currency."&to=".$to_Currency."");
-        $get = explode("<span class=bld>",$get);
-        $get = explode("</span>",$get[1]);
-        $converted_amount = preg_replace("/[^0-9\.]/", null, $get[0]);
+    function getOverAllWageTotalPay($date,$id = ''){
 
-        return $converted_amount;
+        $this_year = date('Y',strtotime($date));
+        $first_tuesday_in_month = $this->first_day_of_month($this_year);
+        $year = strtotime($first_tuesday_in_month) > strtotime($date) ? date('Y',strtotime('-1 year'.$date)) : date('Y',strtotime($date));
+
+        $earnings = floatval($this->data['earnings']);
+        $m_paye = floatval($this->data['m_paye']);
+
+        $this->getYearTotalBalance($this_year);
+
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type','tbl_kiwi'),
+            'join_field' => array('id','id','staff_id','id','id'),
+            'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type','tbl_staff.kiwi_id'),
+            'type' => 'left'
+        ));
+        $deductions = $this->arrayWalk(array(
+            'flight_deduct','flight_debt',
+            'visa_deduct','visa_debt',
+            'accommodation','transport'
+        ),'tbl_deductions.');
+        $staff = $this->arrayWalk(array(
+            'tax_number','installment','balance',
+            'nz_account','account_two'
+        ),'tbl_staff.');
+
+        $fields = array_merge($deductions,$staff);
+        $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';
+        $fields[] = 'tbl_rate.rate_cost';
+        $fields[] = 'tbl_staff.id as employee';
+        $fields[] = 'tbl_currency.symbols';
+        $fields[] = 'tbl_currency.currency_code';
+        $fields[] = 'tbl_wage_type.type as wage_type';
+        $fields[] = 'tbl_kiwi.kiwi';
+
+        $whatVal = false;
+        $whatFld = 'tbl_staff.is_unemployed';
+
+        if($id){
+            $whatVal = $id;
+            $whatFld = 'tbl_staff.id';
+        }
+
+        $this->my_model->setSelectFields($fields);
+        $staff_list = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+
+        $set_wage_date = $this->getPaymentStartDate($year);
+        $wage_total_data = array();
+
+        if(count($set_wage_date) > 0){
+            foreach($set_wage_date as $key=>$dv){
+                if(count($staff_list) > 0){
+                    foreach($staff_list as $ev){
+                        $rate = $this->getStaffRate($ev->employee,$key);
+                        $ev->start_use = '';
+                        if(count($rate) > 0){
+                            foreach($rate as $val){
+                                $ev->rate_name = $val->rate_name;
+                                $ev->rate_cost = $val->rate;
+                                $ev->start_use = $val->start_use;
+                            }
+                        }
+
+
+                        $ev->tax = 0;
+                        $hours = $ev->wage_type != 1 ? $this->getTotalHours($key,$ev->employee) : 1;
+                        $ev->gross = $ev->rate_cost * $hours;
+                        $ev->gross = $ev->gross != 0 ? floatval(number_format($ev->gross,0,'','')):'0.00';
+                        $ev->kiwi_ = 0;
+                        $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
+
+                        if($ev->wage_type == 1){
+                            $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$key.'" AND wage_type_id = "'.$ev->wage_type.'"';
+                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            if(count($tax)>0){
+                                foreach($tax as $tv){
+                                    $ev->tax = $tv->m_paye;
+                                    $ev->kiwi_ = $kiwi ? $tv->$kiwi : 0;
+                                }
+                            }
+                        }else{
+                            if($ev->gross > $earnings){
+                                $ev->tax = (($ev->gross - $earnings) * 0.33) + $m_paye;
+                            }else{
+                                $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$key.'" AND wage_type_id = "'.$ev->wage_type.'"';
+                                $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                                if(count($tax)>0){
+                                    foreach($tax as $tv){
+
+                                        $ev->tax = $tv->m_paye;
+                                        $ev->kiwi_ = $kiwi ? $tv->$kiwi : 0;
+                                    }
+                                }
+                            }
+                        }
+
+                        $ev->flight_debt = @$this->data['total_bal'][$key][$ev->employee]['flight_debt'];
+                        $ev->flight_deduct = $ev->flight_debt > 0 ?
+                            ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
+
+                        $ev->visa_debt = @$this->data['total_bal'][$key][$ev->employee]['visa_debt'];
+                        $ev->visa_deduct = $ev->visa_debt > 0 ?
+                            ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
+
+                        $ev->balance = @$this->data['total_bal'][$key][$ev->employee]['balance'];
+                        $ev->installment = $ev->balance > 0 ?
+                            ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
+
+                        $ev->recruit = $ev->visa_deduct ? $ev->gross * 0.03 : 0;
+                        $ev->admin = $ev->visa_deduct ? $ev->gross * 0.01 : 0;
+                        $ev->nett = $ev->gross - ($ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+
+                        $ev->distribution = $ev->nett - $ev->installment;
+                        $ev->account_one = $ev->distribution - ($ev->nz_account + $ev->account_two);
+
+                        if($ev->gross > 0){
+                            @$ev->total_distribution +=  floatval($ev->distribution);
+                            @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
+                            @$ev->total_account_two +=  floatval($ev->account_two);
+                            @$ev->total_nz_account +=  floatval($ev->nz_account);
+
+                            $wage_total_data[$ev->employee][$key] = array(
+                                'distribution' => $ev->total_distribution,
+                                'account_one' => $ev->total_account_one,
+                                'account_two' => $ev->total_account_two,
+                                'nz_account' => $ev->total_nz_account
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        return $wage_total_data;
     }
 
     function getOrderData($id,$order_id = ''){
@@ -598,9 +753,9 @@ class Subbie extends CI_Controller{
         switch($type){
             case 'weekly':
                 $this->my_model->setJoin(array(
-                    'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type'),
-                    'join_field' => array('id','id','staff_id','id'),
-                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type'),
+                    'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type','tbl_kiwi'),
+                    'join_field' => array('id','id','staff_id','id','id'),
+                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type','tbl_staff.kiwi_id'),
                     'type' => 'left'
                 ));
                 $deductions = $this->arrayWalk(array(
@@ -620,14 +775,16 @@ class Subbie extends CI_Controller{
                 $fields[] = 'tbl_currency.symbols';
                 $fields[] = 'tbl_currency.currency_code';
                 $fields[] = 'tbl_wage_type.type as wage_type';
+                $fields[] = 'tbl_kiwi.kiwi';
 
                 $this->my_model->setSelectFields($fields);
-                $staff_list = $this->my_model->getinfo('tbl_staff');
+                $staff_list = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
                 $this->data['balance'] = array();
                 $this->data['wage_data'] = array();
 
                 $this->data['date'] = $this->getFirstNextLastDay($year,$month,'tuesday');
-
+                $this->data['wage_total_data'] = array();
+                $phpCurrency = CurrencyConverter('PHP');
                 if(count($this->data['date']) > 0){
                     foreach($this->data['date'] as $dv){
                         if(count($staff_list) > 0){
@@ -642,6 +799,14 @@ class Subbie extends CI_Controller{
                                     }
                                 }
 
+                                $hourly_rate = $this->getStaffHourlyRate($ev->employee);
+                                $ev->hourly_rate = 0;
+                                if(count($hourly_rate) > 0){
+                                    foreach($hourly_rate as $val){
+                                        $ev->hourly_rate = $val->hourly_rate;
+                                    }
+                                }
+
                                 $this->data['balance'][$ev->employee] = array(
                                     'balance' => $ev->balance,
                                     'flight_debt' => $ev->flight_debt,
@@ -650,12 +815,16 @@ class Subbie extends CI_Controller{
                                 $code = $ev->currency_code != 'NZD' ? $ev->currency_code : 'PHP';
                                 $symbols = $ev->currency_code != 'NZD' ? $ev->symbols : '₱';
 
-                                $converted_amount = 1;//$this->currencyConverter($code);
+                                $converted_amount = $ev->currency_code != 'NZD' ? 1 : $phpCurrency;
 
                                 $ev->tax = 0;
                                 $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->employee) : 1;
                                 $ev->gross = $ev->rate_cost * $hours;
                                 $ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'',''):'0.00';
+                                $ev->kiwi_ = 0;
+                                $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
+
+                                $ev->nz_account = $ev->nz_account ? ($ev->nz_account + ($hours * $ev->hourly_rate)) : 0;
 
                                 if($ev->wage_type == 1){
                                     $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$ev->wage_type.'"';
@@ -663,17 +832,20 @@ class Subbie extends CI_Controller{
                                     if(count($tax)>0){
                                         foreach($tax as $tv){
                                             $ev->tax = $tv->m_paye;
+                                            $ev->kiwi_ = $kiwi ? $tv->$kiwi : 0;
                                         }
                                     }
                                 }else{
                                     if($ev->gross > $earnings){
-                                        $ev->tax = (($ev->gross - $earnings) * 0.33) + $m_paye;
+                                        $ev->tax = ((floatval($ev->gross) - $earnings) * 0.33) + $m_paye;
                                     }else{
                                         $whatVal = 'earnings ="'.$ev->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$ev->wage_type.'"';
                                         $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                                         if(count($tax)>0){
                                             foreach($tax as $tv){
+
                                                 $ev->tax = $tv->m_paye;
+                                                $ev->kiwi_ = $kiwi ? $tv->$kiwi : 0;
                                             }
                                         }
                                     }
@@ -693,10 +865,11 @@ class Subbie extends CI_Controller{
 
                                 $ev->recruit = $ev->visa_deduct ? $ev->gross * 0.03 : 0;
                                 $ev->admin = $ev->visa_deduct ? $ev->gross * 0.01 : 0;
-                                $ev->nett = $ev->gross - ($ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+                                $ev->nett = $ev->gross - ($ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
 
                                 $ev->distribution = $ev->nett - $ev->installment;
                                 $ev->account_one = $ev->distribution - ($ev->nz_account + $ev->account_two);
+
                                 $this->data['wage_data'][$dv][] = array(
                                     'id' => $ev->employee,
                                     'name' => $ev->name,
@@ -713,8 +886,8 @@ class Subbie extends CI_Controller{
                                     'distribution' => $ev->distribution,
                                     'date' => $dv,
                                     'nett' => '$'.number_format($ev->nett,2,'.',''),
-                                    'recruit' => $ev->flight_deduct ? '$'.number_format($ev->recruit,2,'.','') : '',
-                                    'admin' => $ev->flight_deduct ? '$'.number_format($ev->admin,2,'.','') : '',
+                                    'recruit' => $ev->visa_deduct ? '$'.number_format($ev->recruit,2,'.','') : '',
+                                    'admin' => $ev->visa_deduct ? '$'.number_format($ev->admin,2,'.','') : '',
                                     'currency' => $code,
                                     'account_two' => $ev->account_two,
                                     'account_one' => $ev->flight_deduct ? $ev->account_one : 0,
@@ -724,7 +897,8 @@ class Subbie extends CI_Controller{
                                     'start_use' => $ev->start_use,
                                     'wage_type' => $ev->wage_type,
                                     'symbols' => $symbols,
-                                    'installment' => $ev->installment
+                                    'installment' => $ev->installment,
+                                    'kiwi' => $ev->kiwi_
                                 );
                                 $this->data['last_week'] = $this->getWeeks(date('Y-m-t',strtotime('-1 week '.$dv)));
                                 $this->data['start_week'] = $this->getWeekNumberOfDateInYear($ev->start_use);
@@ -736,12 +910,12 @@ class Subbie extends CI_Controller{
             case 'monthly':
                 $this->data['monthly_pay'] = array();
                 $date = $this->getFirstNextLastDay($year,$month,'tuesday');
-                $this->data['staff'] = $this->my_model->getinfo('tbl_staff');
+                $this->data['staff'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
 
                 $this->my_model->setJoin(array(
-                    'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type'),
-                    'join_field' => array('id','id','staff_id','id'),
-                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type'),
+                    'table' => array('tbl_rate','tbl_currency','tbl_deductions','tbl_wage_type','tbl_kiwi'),
+                    'join_field' => array('id','id','staff_id','id','id'),
+                    'source_field' => array('tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type','tbl_staff.kiwi_id'),
                     'type' => 'left'
                 ));
                 $this->my_model->setSelectFields(array(
@@ -755,31 +929,43 @@ class Subbie extends CI_Controller{
                     'tbl_staff.balance','tbl_staff.installment',
                     'tbl_currency.currency_code','tbl_staff.account_two',
                     'tbl_staff.nz_account',
-                    'tbl_wage_type.type as wage_type'
+                    'tbl_wage_type.type as wage_type',
+                    'tbl_kiwi.kiwi'
                 ),false);
 
-                $staff_wage = $this->my_model->getinfo('tbl_staff');
-
+                $staff_wage = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
+                $phpCurrency = CurrencyConverter('PHP');
                 if(count($staff_wage)>0){
                     foreach($staff_wage as $mv){
                         if(count($date) >0){
                             foreach($date as $dv){
                                 $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id,'monthly') : 1;
                                 $weekly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id) : 1;
-                                $rate = $this->getStaffRate($mv->staff_id,$dv);
-                                $mv->start_use = '';
-                                if(count($rate) > 0){
-                                    foreach($rate as $val){
-                                        $mv->rate_name = $val->rate_name;
-                                        $mv->rate_cost = $val->rate;
-                                        $mv->start_use = $val->start_use;
-                                    }
-                                }
 
                                 if($monthly_hours != 0){
+                                    $rate = $this->getStaffRate($mv->staff_id,$dv);
+                                    $mv->start_use = '';
+                                    if(count($rate) > 0){
+                                        foreach($rate as $val){
+                                            $mv->rate_name = $val->rate_name;
+                                            $mv->rate_cost = $val->rate;
+                                            $mv->start_use = $val->start_use;
+                                        }
+                                    }
+
+                                    $hourly_rate = $this->getStaffHourlyRate($mv->staff_id);
+                                    $mv->hourly_rate = 0;
+                                    if(count($hourly_rate) > 0){
+                                        foreach($hourly_rate as $val){
+                                            $mv->hourly_rate = $val->hourly_rate;
+                                        }
+                                    }
+
                                     $mv->hours = $monthly_hours;
                                     $mv->gross = number_format($mv->hours * $mv->rate_cost,0,'.','');
                                     $mv->weekly_gross = number_format($weekly_hours * $mv->rate_cost,0,'.','');
+
+                                    $mv->nz_account = $mv->nz_account ? ($mv->nz_account + ($mv->hours * $mv->hourly_rate)) : 0;
 
                                     $mv->flight_debt = @$this->data['total_bal'][$dv][$mv->staff_id]['flight_debt'];
                                     $mv->flight = $mv->flight_debt > 0 ?
@@ -799,13 +985,16 @@ class Subbie extends CI_Controller{
                                     $code = $mv->currency_code != 'NZD' ? $mv->currency_code : 'PHP';
                                     $symbols = $mv->currency_code != 'NZD' ? $mv->symbols : '₱';
 
-                                    $converted_amount = 1;//$this->currencyConverter($code);
+                                    $converted_amount = $mv->currency_code != 'NZD' ? 1 : $phpCurrency;
                                     if(!$mv->gross){
                                         $mv->tax = 0;
+                                        $mv->kiwi_ = 0;
                                     }else{
                                         $mv->tax = 0;
                                         $mv->m_paye = 0;
                                         $mv->me_paye = 0;
+                                        $mv->kiwi_ = 0;
+                                        $kiwi = $mv->kiwi ? 'kiwi_saver_'.$mv->kiwi : '';
                                         if($mv->wage_type == 1){
                                             $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$mv->wage_type.'"';
                                             $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
@@ -814,6 +1003,7 @@ class Subbie extends CI_Controller{
                                                     $mv->tax = $tv->m_paye;
                                                     $mv->m_paye = $tv->m_paye;
                                                     $mv->me_paye = $tv->me_paye;
+                                                    $mv->kiwi_ = $kiwi ? $tv->$kiwi : 0;
                                                 }
                                             }
                                         }else{
@@ -827,6 +1017,7 @@ class Subbie extends CI_Controller{
                                                         $mv->tax = $tv->m_paye;
                                                         $mv->m_paye = $tv->m_paye;
                                                         $mv->me_paye = $tv->me_paye;
+                                                        $mv->kiwi_ = $kiwi ? $tv->$kiwi : 0;
                                                     }
                                                 }
                                             }
@@ -841,6 +1032,7 @@ class Subbie extends CI_Controller{
                                     @$mv->total_flight += $mv->flight;
                                     @$mv->total_account_two += $mv->account_two;
                                     @$mv->total_nz_account += $mv->nz_account;
+                                    @$mv->total_kiwi += $mv->kiwi_;
 
                                     $this->data['monthly_pay'][$mv->staff_id] = array(
                                         'staff_id' => $mv->staff_id,
@@ -864,6 +1056,7 @@ class Subbie extends CI_Controller{
                                         'weekly_gross' => $mv->weekly_gross,
                                         'm_paye' => $mv->m_paye,
                                         'me_paye' => $mv->me_paye,
+                                        'kiwi' => $mv->total_kiwi,
                                         'rate_value' => $converted_amount
                                     );
                                 }
@@ -875,6 +1068,176 @@ class Subbie extends CI_Controller{
             default:
                 break;
         }
+    }
+
+    function getPaySlipData($id,$date){
+        $this->my_model->setJoin(array(
+            'table' => array(
+                'tbl_rate',
+                'tbl_currency',
+                'tbl_deductions',
+                'tbl_wage_type',
+                'tbl_kiwi'
+            ),
+            'join_field' => array(
+                'id',
+                'id',
+                'staff_id',
+                'id',
+                'id'
+            ),
+            'source_field' => array(
+                'tbl_staff.rate',
+                'tbl_staff.currency',
+                'tbl_staff.id',
+                'tbl_staff.wage_type',
+                'tbl_staff.kiwi_id'
+            ),
+            'type' => 'left'
+        ));
+        $this->my_model->setSelectFields(array(
+            'tbl_staff.id',
+            'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name',
+            'tbl_staff.tax_number','tbl_staff.company',
+            'tbl_currency.symbols',
+            'tbl_deductions.flight_deduct as flight',
+            'tbl_rate.rate_cost',
+            'tbl_deductions.flight_debt',
+            'tbl_deductions.visa_debt',
+            'tbl_deductions.visa_deduct as visa','tbl_deductions.accommodation',
+            'tbl_deductions.transport',
+            'tbl_staff.balance','tbl_staff.installment',
+            'tbl_currency.currency_code','tbl_staff.account_two',
+            'tbl_staff.nz_account',
+            'tbl_staff.position',
+            'tbl_wage_type.type as wage_type',
+            'tbl_kiwi.kiwi',
+            'tbl_staff.email',
+            'IF(tbl_currency.symbols = "₱","Php",tbl_currency.symbols) as symbols'
+        ),false);
+
+        $data['staff'] = $this->my_model->getinfo('tbl_staff',$id,'tbl_staff.id');
+
+        $earnings = floatval($this->data['earnings']);
+        $m_paye = floatval($this->data['m_paye']);
+
+        $this->getYearTotalBalance(date('Y',strtotime($date)));
+        $data['staff_name'] = '';
+        $data['has_email'] = 0;
+        $phpCurrency = CurrencyConverter('PHP');
+        if(count($data['staff'])>0){
+            foreach($data['staff'] as $v){
+                $data['staff_name'] = $v->name;
+                $data['has_email'] = $v->email ? 1 : 0;
+                $v->hours = $v->wage_type != 1 ? $this->getTotalHours($date,$v->id) : 1;
+                $v->working_hours = $v->wage_type != 1 ? $this->getWorkingHours($date,$v->id) : 1;
+                $v->non_working_hours = $v->wage_type != 1 ? $this->getWorkingHours($date,$v->id,2) : 1;
+                $v->code = $v->currency_code != 'NZD' ? $v->currency_code : 'PHP';
+                $v->currency_symbols = $v->symbols;
+                $v->symbols = $v->currency_code != 'NZD' ? $v->symbols : 'Php';
+
+                $rate = $this->getStaffRate($v->id,$date);
+                if(count($rate) > 0){
+                    foreach($rate as $val){
+                        $v->rate_name = $val->rate_name;
+                        $v->rate_cost = $val->rate;
+                    }
+                }
+
+                $hourly_rate = $this->getStaffHourlyRate($v->id);
+                $v->hourly_rate = 0;
+                if(count($hourly_rate) > 0){
+                    foreach($hourly_rate as $val){
+                        $v->hourly_rate = $val->hourly_rate;
+                    }
+                }
+
+                $converted_amount = $v->currency_code != 'NZD' ? 1 : $phpCurrency;
+                $v->converted_amount = $converted_amount;
+                $v->nz_account = $v->nz_account ? ($v->nz_account + ($v->hours * $v->hourly_rate)) : 0;
+                $v->gross = $v->rate_cost * $v->hours;
+                $v->gross = $v->gross != 0 ? number_format($v->gross,0,'',''):'0.00';
+
+                $v->flight_debt = @$this->data['total_bal'][$date][$v->id]['flight_debt'];
+                $v->flight = $v->flight_debt > 0 ? $v->flight : 0;
+
+                $v->visa_debt = @$this->data['total_bal'][$date][$v->id]['visa_debt'];
+                $v->visa = $v->visa_debt > 0 ? $v->visa : 0;
+
+                $v->balance = @$this->data['total_bal'][$date][$v->id]['balance'];
+                $v->installment = $v->balance > 0 ? $v->installment : 0;
+
+                if(!$v->gross){
+                    $v->tax = 0;
+                    $v->kiwi_ = 0;
+                }else{
+                    $v->tax = 0;
+                    $v->kiwi_ = 0;
+                    $kiwi = $v->kiwi ? 'kiwi_saver_'.$v->kiwi : '';
+                    if($v->wage_type == 1){
+                        $whatVal = 'earnings ="'.$v->gross.'" AND start_date <= "'.$date.'" AND wage_type_id = "'.$v->wage_type.'"';
+                        $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                        if(count($tax)>0){
+                            foreach($tax as $tv){
+                                $v->tax = $tv->m_paye;
+                                $v->kiwi_ = $kiwi ? $tv->$kiwi : 0;
+                            }
+                        }
+                    }else{
+                        if($v->gross > $earnings){
+                            $v->tax = ((floatval($v->gross) - $earnings) * 0.33) + $m_paye;
+                        }else{
+                            $whatVal = 'earnings ="'.$v->gross.'" AND start_date <= "'.$date.'" AND wage_type_id = "'.$v->wage_type.'"';
+                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            if(count($tax)>0){
+                                foreach($tax as $tv){
+                                    $v->tax = $tv->m_paye;
+                                    $v->kiwi_ = $kiwi ? $tv->$kiwi : 0;
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                @$v->tax_total += $v->tax;
+                @$v->total_install += $v->installment;
+                @$v->total_flight += $v->flight;
+                @$v->total_visa += $v->visa;
+                @$v->total_accom += $v->accommodation;
+                @$v->total_trans += $v->transport;
+                @$v->total_account_two += $v->account_two;
+                @$v->total_nz_account += $v->nz_account;
+                @$v->total_kiwi += $v->kiwi_;
+
+                $v->recruit = $v->visa ? $v->gross * 0.03 : 0;
+                $v->admin = $v->visa ? $v->gross * 0.01 : 0;
+                $v->net = $v->gross - ($v->kiwi_ + $v->tax + $v->flight + $v->recruit + $v->admin + $v->visa + $v->accommodation + $v->transport);
+                $v->total = $v->total_kiwi + $v->tax_total + $v->total_install + $v->recruit + $v->admin + $v->total_flight + $v->total_visa + $v->total_accom + $v->total_trans;
+                $v->distribution = $v->net - $v->installment;
+                $v->account_one = $v->distribution - ($v->nz_account + $v->account_two);
+
+                $v->account_one_ = $v->account_one > 0 ? $v->symbols.number_format($v->account_one * $converted_amount,2,'.',','):$v->symbols.' 0.00';
+                $v->account_two_ = $v->symbols.number_format($v->total_account_two * $converted_amount,2,'.',',');
+                $v->account_one = '$'.number_format($v->account_one,2,'.',',');
+
+                $v->net = number_format($v->net,2,'.',',');
+                $v->total = number_format($v->total,2,'.',',');
+                $v->flight_debt = $v->flight_debt != '' ? $v->flight_debt :  '&nbsp;';
+                $v->visa_debt = $v->visa_debt != '' ? $v->visa_debt :  '&nbsp;';
+                $v->total_visa = $v->total_visa != 0 ? number_format($v->total_visa,2,'.',',') :  '&nbsp;';
+                $v->total_trans = $v->total_trans != 0 ? number_format($v->total_trans,2,'.',',') : '&nbsp;';
+                $v->total_install = $v->total_install != 0 ? number_format($v->total_install,2,'.',',') : '&nbsp;';
+                $v->admin = number_format($v->admin,2,'.',',');
+                $v->recruit = number_format($v->recruit,2,'.',',');
+                $v->total_flight = $v->total_flight != 0 ? number_format($v->total_flight,2,'.',',') : '&nbsp;';
+                $v->tax = $v->tax_total != 0 ? $v->tax_total : '&nbsp;';
+                $v->star_balance = $v->balance != '' ? number_format($v->balance,2,'.',',') : '';
+                $v->rem_balance = $v->balance - $v->total_install;
+            }
+        }
+
+        return $data;
     }
 
     function getEmployerData($year,$month){
@@ -902,7 +1265,7 @@ class Subbie extends CI_Controller{
             'IF(tbl_staff.date_employed != "0000-00-00" ,DATE_FORMAT(tbl_staff.date_employed,"%d-%m-%Y"),"") as date_employed'
         ),false);
 
-        $this->data['staff'] = $this->my_model->getinfo('tbl_staff');
+        $this->data['staff'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
         if(count($this->data['staff'])>0){
             foreach($this->data['staff'] as $mv){
                 if(count($date) >0){
@@ -927,7 +1290,7 @@ class Subbie extends CI_Controller{
                                 $mv->m_paye = 0;
                                 $mv->me_paye = 0;
                                 if($mv->gross > $earnings){
-                                    $mv->tax = (($mv->gross - $earnings) * 0.33) + $m_paye;
+                                    $mv->tax = ((floatval($mv->gross) - $earnings) * 0.33) + $m_paye;
                                 }else{
                                     $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'"';
                                     $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
@@ -982,7 +1345,7 @@ class Subbie extends CI_Controller{
         $fields[] = 'tbl_wage_type.type as wage_type';
 
         $this->my_model->setSelectFields($fields);
-        $staff_list = $this->my_model->getinfo('tbl_staff');
+        $staff_list = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
 
         $this->data['total_bal'] = array();
 
@@ -1042,6 +1405,29 @@ class Subbie extends CI_Controller{
         $fields[] = 'tbl_rate.rate_name';
         $this->my_model->setSelectFields($fields);
         $rate = $this->my_model->getInfo('tbl_staff_rate',$whatVal,$whatFld);
+
+        return $rate;
+    }
+
+    function getStaffHourlyRate($id,$date = ''){
+        $whatVal = $id;
+        $whatFld = 'staff_id';
+
+        if($date){
+            $whatVal = 'date_used <= "' . $date . '" AND staff_id = "' . $id . '"';
+            $whatFld = '';
+        }
+
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_hourly_nz_rate'),
+            'join_field' => array('id'),
+            'source_field' => array('tbl_staff_nz_rate.hourly_nz_rate_id'),
+            'type' => 'left'
+        ));
+        $fields = $this->arrayWalk($this->my_model->getFields('tbl_staff_nz_rate',array('id')),'tbl_staff_nz_rate.');
+        $fields[] = 'tbl_hourly_nz_rate.hourly_rate';
+        $this->my_model->setSelectFields($fields);
+        $rate = $this->my_model->getInfo('tbl_staff_nz_rate',$whatVal,$whatFld);
 
         return $rate;
     }

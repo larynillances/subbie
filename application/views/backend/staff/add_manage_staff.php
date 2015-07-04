@@ -27,6 +27,12 @@ echo form_open('','class="form-horizontal" role="form"');
         </div>
     </div>
     <div class="form-group">
+        <label class="col-sm-4 control-label">Email:</label>
+        <div class="col-sm-8">
+            <input type="text" name="email" class="form-control input-sm">
+        </div>
+    </div>
+    <div class="form-group">
         <label class="col-sm-4 control-label">IRD Number:</label>
         <div class="col-sm-8">
             <input type="text" name="ird_num" class="form-control input-sm required">
@@ -54,6 +60,12 @@ echo form_open('','class="form-horizontal" role="form"');
         <label class="col-sm-4 control-label">Wage Type:</label>
         <div class="col-sm-8">
             <?php echo form_dropdown('wage_type',$wage_type,'','class="form-control input-sm required"');?>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-4 control-label">Kiwi Saver:</label>
+        <div class="col-sm-8">
+            <?php echo form_dropdown('kiwi_id',$kiwi,'','class="form-control input-sm required"');?>
         </div>
     </div>
     <div class="form-group">

@@ -628,7 +628,7 @@ class invoice_export_controller extends CI_Controller{
 
             if($take_off_setting->via_email){
                 $pdf = $dir . "/invoice/" .date('Y/F/',strtotime($date)). $pdfName;
-                echo $pdf;
+                //echo $pdf;
                 $url = array();
                 $disposition = array();
                 $file_names = array();
@@ -636,7 +636,7 @@ class invoice_export_controller extends CI_Controller{
                     $url[] = $pdf;
                     $file_names[] = $pdfName;
                 }
-                DisplayArray($url);
+
                 $this->data['comment'] = isset($_POST['comment']) ? nl2br($_POST['comment']) : '';
                 $msg = $this->load->view('backend/invoice/export/export_send_take_off', $this->data, TRUE);
                 if(count($url) > 0 && $take_off_setting->take_off_merchant_email){

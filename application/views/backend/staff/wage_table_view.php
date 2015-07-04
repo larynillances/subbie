@@ -132,7 +132,7 @@
     </div>
 </div>
 <div class="row">
-    <div class="col-lg-6">
+    <div class="col-lg-8">
         <div class="form-group">
             <div class="col-md-9">
                 <h4>Staff Table</h4>
@@ -149,6 +149,7 @@
                 <th>Rate</th>
                 <th>Tax Number</th>
                 <th>Tax Code</th>
+                <th>Change Date</th>
                 <th>IRD</th>
                 <th></th>
             </tr>
@@ -167,6 +168,7 @@
                         <td><?php echo $v->rate_name;?></td>
                         <td><?php echo $v->tax_number;?></td>
                         <td><?php echo $v->tax_code;?></td>
+                        <td><?php echo $v->start_use ? date('d/m/Y',strtotime($v->start_use)) : '';?></td>
                         <td><?php echo $v->ird_num;?></td>
                         <td>
                             <a href="#" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
@@ -186,7 +188,7 @@
             </tbody>
         </table>
     </div>
-    <div class="col-lg-3">
+    <div class="col-lg-4">
         <div class="col-md-12">
             <h4>Currency Table</h4>
         </div>
@@ -216,41 +218,6 @@
                     <td colspan="3" class="empty-table">No data has found.</td>
                 </tr>
                 <?php
-            endif;
-            ?>
-            </tbody>
-        </table>
-    </div>
-    <div class="col-lg-3">
-        <div class="col-md-12">
-            <h4>Loans Table</h4>
-        </div>
-        <table class="table table-colored-header table-responsive">
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>Amount</th>
-                <th>Installment</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php
-            if(count($loans)>0):
-                foreach($loans as $v):
-                    ?>
-                    <tr>
-                        <td><?php echo $v->fname.' '.$v->lname;?></td>
-                        <td style="text-align: center"><?php echo '$ '.$v->balance;?></td>
-                        <td><?php echo '$ '.$v->installment;?></td>
-                    </tr>
-                <?php
-                endforeach;
-            else:
-                ?>
-                <tr>
-                    <td colspan="3" class="empty-table">No data has found.</td>
-                </tr>
-            <?php
             endif;
             ?>
             </tbody>
@@ -320,6 +287,7 @@
                 <th>Name</th>
                 <th>Acc Two</th>
                 <th>NZ ACC</th>
+                <th>Hourly Rate</th>
                 <th></th>
             </tr>
             </thead>
@@ -333,6 +301,7 @@
                         <td><?php echo $v->name;?></td>
                         <td><?php echo $v->account_two;?></td>
                         <td><?php echo $v->nz_account;?></td>
+                        <td><?php echo $v->hourly_rate ? '$'.number_format($v->hourly_rate,2) : '';?></td>
                         <td><a href="#" class="edit-fixed-btn" id="<?php echo $v->id;?>"><?php echo $link_name;?></a></td>
                     </tr>
                 <?php
@@ -341,6 +310,43 @@
                 ?>
                 <tr>
                     <td colspan="4" class="empty-table">No data has found.</td>
+                </tr>
+            <?php
+            endif;
+            ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-4">
+        <div class="col-md-12">
+            <h4>Loans Table</h4>
+        </div>
+        <table class="table table-colored-header table-responsive">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Amount</th>
+                <th>Installment</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php
+            if(count($loans)>0):
+                foreach($loans as $v):
+                    ?>
+                    <tr>
+                        <td><?php echo $v->fname.' '.$v->lname;?></td>
+                        <td style="text-align: center"><?php echo '$ '.$v->balance;?></td>
+                        <td><?php echo '$ '.$v->installment;?></td>
+                    </tr>
+                <?php
+                endforeach;
+            else:
+                ?>
+                <tr>
+                    <td colspan="3" class="empty-table">No data has found.</td>
                 </tr>
             <?php
             endif;

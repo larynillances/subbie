@@ -57,14 +57,12 @@ echo form_open('','class="form-horizontal" role="form"');
                     $is_not_even = $start_week % 2;
                     $condition = $is_not_even ? !$modulus : $modulus;
 
-                    /*$week = @$val['week'] != '' ? @$val['week'] : $last_week;
-                    $modulus = @$val['week'] % 2;*/
                     echo $ref != 0 ? '<tr>' : '';
                         ?>
                     <td class="column">
                         <?php
                         $tooltip = 'class="tooltip-class" data-toggle="tooltip" data-placement="top" title="Tax No.: '.$val['tax_number'].'"';
-                        $url = '<a href="'.base_url().'printPaySlip/'.$val['id'].'/'.$this_date.'" target="_blank">'.$val['name'].'</a>';
+                        $url = '<a href="'.base_url().'printPaySlip/'.$val['id'].'/'.$this_date.'?view=1" class="payslip-view-btn" id="'.$val['id'].'" data-value="'.$this_date.'">'.$val['name'].'</a>';
                         if($val['wage_type'] == 1){
                             $name = $val['hours'] != 0 && (@$val['start_use'] && $this_date <= date('Y-m-d')) && $condition ? $url : $val['name'];
                         }else{
@@ -201,6 +199,12 @@ echo form_open('','class="form-horizontal" role="form"');
                                 echo $val['tax'];
                                 ?>
                             </td>
+                            <!--<td class="column">
+                                <?php
+/*                                echo $val['kiwi'];
+                                */?>
+                            </td>
+                            <td class="column">&nbsp;</td>-->
                             <td class="column">
                                 <?php
                                 echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
@@ -291,7 +295,7 @@ echo form_open('','class="form-horizontal" role="form"');
                     echo $ref != 0 ? '</tr>' : '';
                 endforeach;
             else:
-                for($i=0;$i<=15;$i++):
+                for($i=0;$i<=14;$i++):
                 ?>
                     <td>&nbsp;</td>
 
@@ -303,7 +307,7 @@ echo form_open('','class="form-horizontal" role="form"');
     else:
         ?>
         <tr>
-            <td colspan="17" style="text-align: center">
+            <td colspan="19" style="text-align: center">
                 No data has been found.
             </td>
         </tr>
@@ -348,5 +352,15 @@ echo form_close();
         // make the header fixed on scroll
         //$('.table-fixed-header').fixedHeader();
         $('.table-fixed-header').scrollTableBody({rowsToDisplay:10});
+        $('.payslip-view-btn').click(function(e){
+            e.preventDefault();
+            var url = this.href;
+            $(this).newForm.addLoadingForm();
+            $.post(bu + 'printPaySlip/' + this.id + '/' + $(this).data('value'),{save:1},function(data){
+                if(data){
+                    location.replace(url);
+                }
+            });
+        });
     })
 </script>
