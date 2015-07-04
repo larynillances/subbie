@@ -47,13 +47,23 @@ echo form_open('','class="form-horizontal" role="form"');
     <div class="form-group">
         <label class="col-sm-4 control-label">Currency:</label>
         <div class="col-sm-8">
-            <?php echo form_dropdown('currency',$currency,109,'class="form-control input-sm required"');?>
+            <?php echo form_dropdown('currency',$currency,72,'class="form-control input-sm required"');?>
         </div>
     </div>
     <div class="form-group">
         <label class="col-sm-4 control-label">Rate:</label>
         <div class="col-sm-8">
             <?php echo form_dropdown('rate',$rate,'','class="form-control input-sm required"');?>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-4 control-label">Start Date:</label>
+        <div class="col-sm-8">
+            <div class='input-group date datetimepicker' id='datetimepicker1' data-date-format="DD-MM-YYYY">
+                <input type='text' class="form-control" name="start_use" >
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+            </div>
         </div>
     </div>
     <div class="form-group">

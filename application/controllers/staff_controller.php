@@ -549,7 +549,21 @@ class Staff_Controller extends Subbie{
             unset($_POST['submit']);
             switch($action){
                 case 'add':
+                    $this->my_model->setLastId('rate_cost');
+                    @$rate_value = $this->my_model->getInfo('tbl_rate',$_POST['rate']);
+
+                    $post = array(
+                        'staff_id' => $id,
+                        'rate_id' => $_POST['rate'],
+                        'date_added' => date('Y-m-d'),
+                        'start_use' => date('Y-m-d',strtotime($_POST['start_use'])),
+                        'rate' => $rate_value
+                    );
+
+                    $this->my_model->insert('tbl_staff_rate',$post);
+
                     $_POST['has_loans'] = $_POST['balance'] != '' ? true : false;
+                    unset($_POST['start_use']);
                     $this->my_model->insert('tbl_staff',$_POST);
                     break;
                 case 'fixed':
