@@ -9,13 +9,13 @@ class invoice_export_controller extends CI_Controller{
         parent::__construct();
         $subbie = new Subbie();
         $this->data = $subbie->getUserInfo(true);
+
+        
+        
     }
     
     function jobExportOption(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
-        DisplayArray($this->data);exit;
+        //DisplayArray($this->data);exit;
         $whatId = $this->uri->segment(2);
         if(!$whatId){
             exit;
@@ -119,9 +119,6 @@ class invoice_export_controller extends CI_Controller{
     }
 
     function setExportOption(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
 
         $whatId = $this->uri->segment(2);
         if(!$whatId){
@@ -136,9 +133,6 @@ class invoice_export_controller extends CI_Controller{
     }
 
     function csvExport(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
 
         $exportOption = $this->session->userdata('exportOption');
         if(!$exportOption){
@@ -561,9 +555,6 @@ class invoice_export_controller extends CI_Controller{
     }
 
     function csvExportSendTakeOff(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
 
         $subbie = new Subbie();
 
@@ -711,9 +702,6 @@ class invoice_export_controller extends CI_Controller{
     }
 
     function csvExportTakeOffRecord(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
 
         $whatId = $this->uri->segment(2);
         if(!$whatId){
@@ -733,9 +721,6 @@ class invoice_export_controller extends CI_Controller{
     }
 
     function invoiceExportEmailLog(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
 
         $this->data['page_load'] = 'backend/invoice/export/export_email_log';
 
@@ -779,9 +764,6 @@ class invoice_export_controller extends CI_Controller{
     }
 
     function exportArchiveInvoice(){
-        if($this->session->userdata('is_logged_in') != true){
-            redirect('');
-        }
 
         $client_id = $this->uri->segment(2);
         $inv_ref = $this->uri->segment(3);

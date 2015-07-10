@@ -347,13 +347,13 @@ ob_start();
                                     <strong>Distribution</strong>
                                 </td>
                                 <td style="text-align: center;">
-                                   <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
+                                    <strong><?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?></strong>
                                 </td>
                                 <td style="text-align: center;">
-                                    <?php echo $v->nz_account ? 'PHP Two(wife)' : '&nbsp;'?>
+                                    <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : 'Annual Leave'?></strong>
                                 </td>
                                 <td style="text-align: center;">
-                                    <?php echo $v->nz_account ? 'NZ ACC' : '&nbsp;'?>
+                                    <strong><?php echo $v->nz_account ? 'NZ ACC' : 'Sick Leave'?></strong>
                                 </td>
                             </tr>
                             <tr>
@@ -436,6 +436,23 @@ ob_start();
                                             </tbody>
                                         </table>
                                     <?php
+                                    }else{
+                                        ?>
+                                        <table class="inner-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Total</th>
+                                                <th>Days</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td style="padding-right: 10px;">0</td>
+                                                <td style="padding-right: 10px;">$0.00</td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    <?php
                                     }?>
                                 </td>
                                 <td style="text-align: center;padding: 0!important;">
@@ -456,6 +473,23 @@ ob_start();
                                                 <td>
                                                     <span><?php echo @$total['nz_account'] ? '$'.number_format(@$total['nz_account'],2,'.',',') : '';?></span>
                                                 </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    <?php
+                                    }else{
+                                        ?>
+                                        <table class="inner-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Total</th>
+                                                <th>Days</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <td style="padding-right: 10px;">0</td>
+                                                <td style="padding-right: 10px;">$0.00</td>
                                             </tr>
                                             </tbody>
                                         </table>

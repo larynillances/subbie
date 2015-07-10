@@ -3,11 +3,14 @@ include('subbie.php');
 
 class Staff_Controller extends Subbie{
 
-    //region wage functions
-    function wageTable(){
+    function __construct(){
+        parent::__construct();
         if($this->session->userdata('is_logged_in') === false){
             redirect('');
         }
+    }
+    //region wage functions
+    function wageTable(){
 
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
@@ -26,9 +29,6 @@ class Staff_Controller extends Subbie{
     }
 
     function taxTable(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->my_model->setSelectFields(
             array(
@@ -57,9 +57,6 @@ class Staff_Controller extends Subbie{
     }
 
     function wageManage(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->data['salary_type'] = $this->my_model->getinfo('tbl_salary_type',array(1,2));
         $this->data['salary_freq'] = $this->my_model->getinfo('tbl_salary_freq');
@@ -174,9 +171,6 @@ class Staff_Controller extends Subbie{
     }
 
     function printPaySlip(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $id = $this->uri->segment(2);
         $this_date = $this->uri->segment(3);
@@ -190,7 +184,17 @@ class Staff_Controller extends Subbie{
         $dir = realpath(APPPATH.'../pdf');
         $path = 'payslip/'.date('Y/F',strtotime($this_date));
         $this->data['dir'] = $dir.'/'.$path;
+        $this->data['total_holiday_leave'] = $this->getAnnualLeave($id,$this_date);
+        $this->data['total_sick_leave'] = $this->getSickLeave($id,$this_date);
 
+        $this->my_model->setSelectFields(array('MIN(start_use) as start_use'));
+        $start_date = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
+        $this->data['start_date'] = '';
+        if(count($start_date) > 0){
+            foreach($start_date as $sv){
+                $this->data['start_date'] = date('d/m/Y',strtotime($sv->start_use));
+            }
+        }
         if(!is_dir($this->data['dir'])){
             mkdir($this->data['dir'], 0777, TRUE);
         }
@@ -229,9 +233,6 @@ class Staff_Controller extends Subbie{
     }
 
     function sendStaffPaySlip(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $id = $this->uri->segment(2);
         $this_date = $this->uri->segment(3);
@@ -290,9 +291,6 @@ class Staff_Controller extends Subbie{
     }
 
     function monthlyTotalPay(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
@@ -318,9 +316,7 @@ class Staff_Controller extends Subbie{
     }
 
     function printSummary(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
+        
         $type = $this->uri->segment(2);
         $month = $this->uri->segment(3);
         $year = $this->uri->segment(4);
@@ -670,9 +666,6 @@ class Staff_Controller extends Subbie{
     }
 
     function pdfSummaryArchive(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->my_model->setJoin(array(
             'table' => array('tbl_staff'),
@@ -706,9 +699,6 @@ class Staff_Controller extends Subbie{
     }
 
     function download() {
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $id = $this->uri->segment(2);
 
@@ -752,9 +742,6 @@ class Staff_Controller extends Subbie{
     }
 
     function staffList(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->my_model->setJoin(array(
             'table' => array('tbl_rate','tbl_wage_type','tbl_currency','tbl_deductions','tbl_team'),
@@ -802,9 +789,6 @@ class Staff_Controller extends Subbie{
     }
 
     function staffTeamManage(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->data['action'] = $this->uri->segment(2);
         $id = $this->uri->segment(3);
@@ -831,9 +815,6 @@ class Staff_Controller extends Subbie{
     }
 
     function staffWageHistory(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $id = $this->uri->segment(2);
 
@@ -1022,9 +1003,6 @@ class Staff_Controller extends Subbie{
     }
 
     function employerMonthlySched(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
 
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
@@ -1060,9 +1038,7 @@ class Staff_Controller extends Subbie{
     }
 
     function employerDeduction(){
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
+        
 
         $this->data['thisYear'] = date('Y');
         $this->data['thisMonth'] = date('m');

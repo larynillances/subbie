@@ -877,7 +877,7 @@ class Subbie extends CI_Controller{
                                     'gross' => '$'.$ev->gross,
                                     'rate_cost' => $ev->rate_cost,
                                     'hours' => $ev->wage_type != 1 ? $hours : 40,
-                                    'tax' => $ev->tax != 0 ? '$'.$ev->tax : '',
+                                    'tax' => $ev->tax != 0 ? '$'.number_format($ev->tax,2) : '',
                                     'flight' => $ev->flight_deduct,
                                     'visa' => $ev->visa_deduct,
                                     'accommodation' => $ev->accommodation != '' ? '$'.$ev->accommodation: '',
@@ -1008,7 +1008,7 @@ class Subbie extends CI_Controller{
                                             }
                                         }else{
                                             if($mv->gross > $earnings){
-                                                $mv->tax = (($mv->gross - $earnings) * 0.33) + $m_paye;
+                                                $mv->tax = ((floatval($mv->gross) - $earnings) * 0.33) + $m_paye;
                                             }else{
                                                 $whatVal = 'earnings ="'.$mv->gross.'" AND start_date <= "'.$dv.'" AND wage_type_id = "'.$mv->wage_type.'"';
                                                 $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
@@ -1247,11 +1247,21 @@ class Subbie extends CI_Controller{
         $this->data['over_all_pay'] = array();
         $earnings = $this->data['earnings'];
         $m_paye = $this->data['m_paye'];
-
+        $date_ = $year.'-'.$month.'-01';
         $this->my_model->setJoin(array(
-            'table' => array('tbl_rate','tbl_tax_codes','tbl_wage_type'),
-            'join_field' => array('id','id','id'),
-            'source_field' => array('tbl_staff.rate','tbl_staff.tax_code_id','tbl_staff.wage_type'),
+            'table' => array(
+                'tbl_rate',
+                'tbl_tax_codes',
+                'tbl_wage_type',
+                'tbl_staff_rate'
+            ),
+            'join_field' => array('id','id','id','staff_id'),
+            'source_field' => array(
+                'tbl_staff.rate',
+                'tbl_staff.tax_code_id',
+                'tbl_staff.wage_type',
+                'tbl_staff.id'
+            ),
             'type' => 'left'
         ));
         $this->my_model->setSelectFields(array(
@@ -1264,14 +1274,16 @@ class Subbie extends CI_Controller{
             'tbl_wage_type.type as wage_type',
             'IF(tbl_staff.date_employed != "0000-00-00" ,DATE_FORMAT(tbl_staff.date_employed,"%d-%m-%Y"),"") as date_employed'
         ),false);
-
-        $this->data['staff'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
-        if(count($this->data['staff'])>0){
-            foreach($this->data['staff'] as $mv){
-                if(count($date) >0){
-                    foreach($date as $dv){
-                        $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->id,'monthly') : 1;
+        $this->my_model->setGroupBy('id');
+        $whatVal = 'tbl_staff_rate.start_use <= "'.$date_.'" AND tbl_staff.is_unemployed !=1';
+        $this->data['staff'] = $this->my_model->getinfo('tbl_staff',$whatVal,'');
+        if(count($date) >0){
+            foreach($date as $dv){
+                if(count($this->data['staff'])>0){
+                    foreach($this->data['staff'] as $mv){
+                        $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->id) : 1;
                         $rate = $this->getStaffRate($mv->id,$dv);
+
                         if(count($rate) > 0){
                             foreach($rate as $val){
                                 $mv->rate_name = $val->rate_name;
@@ -1282,7 +1294,8 @@ class Subbie extends CI_Controller{
                         if($monthly_hours != 0){
                             $mv->hours = $monthly_hours;
                             $mv->gross = number_format($mv->hours * $mv->rate_cost,0,'.','');
-
+                            $mv->total_hours += $mv->hours;
+                            $mv->total_gross += floatval($mv->gross);
                             if(!$mv->gross){
                                 $mv->tax = 0;
                             }else{
@@ -1304,12 +1317,13 @@ class Subbie extends CI_Controller{
                                 }
                             }
 
+                            $mv->total_tax += $mv->tax;
                             $this->data['monthly_pay'][$mv->id] = array(
                                 'id' => $mv->id,
                                 'rate_cost' => $mv->rate_cost,
-                                'tax' => $mv->tax,
-                                'hours' => $mv->hours,
-                                'gross' => $mv->gross,
+                                'tax' => $mv->total_tax,
+                                'hours' => $mv->total_hours,
+                                'gross' => $mv->total_gross,
                                 'm_paye' => $mv->m_paye,
                                 'me_paye' => $mv->me_paye
                             );
@@ -1323,7 +1337,6 @@ class Subbie extends CI_Controller{
     function getYearTotalBalance($year,$type = 'weekly',$set_range = false,$start = '',$end = ''){
         $year_week = $set_range ? $this->getWeekBetweenDates($start,$end) : $this->getWeekInYearBetweenDates($year);
 
-        //$this->displayarray($year_week);
         $this->my_model->setJoin(array(
             'table' => array('tbl_deductions','tbl_wage_type'),
             'join_field' => array('staff_id','id'),
@@ -1382,7 +1395,6 @@ class Subbie extends CI_Controller{
             }
         }
 
-        //$this->displayarray($this->data['total_bal']);
     }
 
     function getStaffRate($id,$date = ''){
@@ -1430,12 +1442,6 @@ class Subbie extends CI_Controller{
         $rate = $this->my_model->getInfo('tbl_staff_nz_rate',$whatVal,$whatFld);
 
         return $rate;
-    }
-
-    function displayarray($ar, $color = "F00"){
-        echo '<pre style="font-size:12px;z-index:9999;color:#'.$color.'">';
-        print_r($ar);
-        echo '</pre><br style="clear:both;" /><br />';
     }
 
     function arrayWalk($array, $append, $type = 'front', $as = ''){
@@ -1771,5 +1777,41 @@ class Subbie extends CI_Controller{
         $invoice = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
 
         return $invoice;
+    }
+
+    function getSickLeave($id,$date,$default = 5){
+        $date = date('Y-m-d',strtotime($date));
+        $this->my_model->setSelectFields(array('DATEDIFF("'.$date.'",MIN(start_use)) as date_diff'));
+        $staff = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
+        $leave = 0;
+
+        if(count($staff) > 0){
+           foreach($staff as $val){
+               $total_days_in_year = date("z", mktime(0,0,0,06,30,date('Y',strtotime($date)))) + 1;
+               $total_year =  $val->date_diff / $total_days_in_year;
+               $int = explode('.',$total_year);
+               $leave = $int[0] * $default;
+           }
+        }
+
+        return $leave;
+    }
+
+    function getAnnualLeave($id,$date,$default = 20){
+        $date = date('Y-m-d',strtotime($date));
+        $this->my_model->setSelectFields(array('DATEDIFF("'.$date.'",MIN(start_use)) as date_diff'));
+        $staff = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
+        $leave = 0;
+
+        if(count($staff) > 0){
+            foreach($staff as $val){
+                $total_days_in_year = date("z", mktime(0,0,0,12,31,date('Y',strtotime($date)))) + 1;
+                $total_year =  $val->date_diff / $total_days_in_year;
+                $int = explode('.',$total_year);
+                $leave = $int[0] * $default;
+            }
+        }
+
+        return $leave;
     }
 }

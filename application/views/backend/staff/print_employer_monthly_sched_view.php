@@ -258,8 +258,8 @@ ob_start();
                                 <td colspan="4"></td>
                             </tr>
                             <tr class="info">
-                                <td style="width: 23%;"><div class="info-content"><?php echo $v->fname?></div></td>
-                                <td style="width: 20%;"><div class="info-content"><?php echo $v->lname?></div></td>
+                                <td style="width: 23%;"><div class="info-content"><?php echo $v->lname?></div></td>
+                                <td style="width: 20%;"><div class="info-content"><?php echo $v->fname?></div></td>
                                 <td style="width: 10%;"><div class="info-content"><?php echo $v->ird_num ? $v->ird_num :'&nbsp;';?></div></td>
                                 <td style="width: 3%;color: #000000;">Tax Code:</td>
                                 <td style="width: 7%;"><div class="info-content"><?php echo $v->tax_code ? $v->tax_code :'&nbsp;';?></div></td>

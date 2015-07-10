@@ -118,7 +118,8 @@
                         <?php
                         }else{
                             ?>
-                            <td class="bold-text" colspan="2">Position: <?php echo $v->position;?></td>
+                            <td class="bold-text">Position: <?php echo $v->position;?></td>
+                            <td class="bold-text">Start Date: <?php echo $start_date;?></td>
                         <?php
                         }
                         ?>
@@ -200,7 +201,7 @@
                                     <tr>
                                         <td>&nbsp;</td>
                                         <td>Tax</td>
-                                        <td><?php echo $v->tax;?></td>
+                                        <td><?php echo number_format($v->tax,2);?></td>
                                     </tr>
                                     <tr>
                                         <td>&nbsp;</td>
@@ -351,13 +352,13 @@
                             <strong>Distribution</strong>
                         </td>
                         <td style="text-align: center;">
-                            <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
+                            <strong><?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?></strong>
                         </td>
                         <td style="text-align: center;">
-                            <?php echo $v->nz_account ? 'PHP Two(wife)' : '&nbsp;'?>
+                            <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : 'Annual Leave <span style="color: #ff0000">(' .$total_holiday_leave.')</span>'?></strong>
                         </td>
                         <td style="text-align: center;">
-                            <?php echo $v->nz_account ? 'NZ ACC' : '&nbsp;'?>
+                            <strong><?php echo $v->nz_account ? 'NZ ACC' : 'Sick Leave <span style="color: #ff0000">(' .$total_sick_leave.')</span>'?></strong>
                         </td>
                     </tr>
                     <tr>
@@ -439,6 +440,23 @@
                                     </tbody>
                                 </table>
                             <?php
+                            }else{
+                                ?>
+                                <table class="inner-table">
+                                    <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Left</th>
+                                        <th>Days Used</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td style="padding-right: 10px;"><?php echo $total_holiday_leave?></td>
+                                        <td style="padding-right: 10px;">0</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            <?php
                             }?>
                         </td>
                         <td style="text-align: center;padding: 0!important;">
@@ -459,6 +477,23 @@
                                         <td>
                                             <span><?php echo @$total['nz_account'] ? '$'.number_format(@$total['nz_account'],2,'.',',') : '';?></span>
                                         </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            <?php
+                            }else{
+                                ?>
+                                <table class="inner-table">
+                                    <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Left</th>
+                                        <th>Days Used</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td style="padding-right: 10px;"><?php echo $total_sick_leave?></td>
+                                        <td style="padding-right: 10px;">0</td>
                                     </tr>
                                     </tbody>
                                 </table>

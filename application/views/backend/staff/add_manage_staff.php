@@ -60,7 +60,7 @@ echo form_open('','class="form-horizontal" role="form"');
         <label class="col-sm-4 control-label">Start Date:</label>
         <div class="col-sm-8">
             <div class='input-group date datetimepicker' id='datetimepicker1' data-date-format="DD-MM-YYYY">
-                <input type='text' class="form-control" name="start_use" >
+                <input type='text' class="form-control" name="start_use" value="<?php echo date('d-m-Y')?>">
                         <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
                         </span>
             </div>
@@ -75,7 +75,7 @@ echo form_open('','class="form-horizontal" role="form"');
     <div class="form-group">
         <label class="col-sm-4 control-label">Kiwi Saver:</label>
         <div class="col-sm-8">
-            <?php echo form_dropdown('kiwi_id',$kiwi,'','class="form-control input-sm required"');?>
+            <?php echo form_dropdown('kiwi_id',$kiwi,'','class="form-control input-sm"');?>
         </div>
     </div>
     <div class="form-group">
@@ -131,7 +131,7 @@ echo form_close();
                 installment.addClass('required');
             }
         });
-        $('#datetimepicker1').datetimepicker({
+        $('.datetimepicker').datetimepicker({
             pickTime: false
         });
     })

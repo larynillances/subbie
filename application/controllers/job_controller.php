@@ -342,15 +342,25 @@ class Job_Controller extends Subbie{
             @$code = $this->my_model->getInfo('tbl_client',$id);
             $gen_inv_code = date('d') <= 15 ? $code.date('my').'A' : $code.date('my').'B';
 
-            $this->my_model->setLastId('inv_ref');
-
             $whatVal = array($id,true);
             $whatFld = array('client_id','is_archive');
-
             @$inv_ref = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
+            $ref_inv = 0;
+            //$array = array();
+            if(count($inv_ref) > 0){
+                foreach($inv_ref as $val){
+                    $inv = explode('-',$val->inv_ref);
+                    $array[] = $inv[1];
+                    asort($array);
+                    if(count($array) > 0){
+                        foreach($array as $array_val){
+                            $ref_inv = $array_val;
+                        }
+                    }
+                }
+            }
 
-            $get_count = explode('-',$inv_ref);
-            @$count = $inv_ref ? (int)$get_count[1] + 1 : 1;
+            @$count = $ref_inv ? $ref_inv + 1 : 1;
 
             $this->data['inv_code'] = $gen_inv_code.'-'.$count;
             $this->data['page_name'] = $this->data['page_name'].' '.$this->data['inv_code'];

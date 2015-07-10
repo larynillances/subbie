@@ -173,8 +173,8 @@ if(count($info_array) >0){
                                 <td colspan="4"></td>
                             </tr>
                             <tr class="info">
-                                <td><input type="text" class="form-control input-sm input-text" value="<?php echo $v->fname?>" disabled></td>
                                 <td><input type="text" class="form-control input-sm input-text" value="<?php echo $v->lname?>" disabled></td>
+                                <td><input type="text" class="form-control input-sm input-text" value="<?php echo $v->fname?>" disabled></td>
                                 <td style="width: 12%;"><input type="text" class="form-control input-sm input-text" disabled value="<?php echo $v->ird_num;?>"></td>
                                 <td style="width: 5%;color: #000000;">Tax Code:</td>
                                 <td style="width: 7%;"><input type="text" class="form-control input-sm input-text" value="<?php echo $v->tax_code;?>" disabled></td>
