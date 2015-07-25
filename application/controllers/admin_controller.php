@@ -540,7 +540,7 @@ class Admin_Controller extends Subbie{
         $this->data['working_type'] = $this->my_model->getInfo('tbl_working_type');
         $this->data['working_type'][0] = '-';
 
-        $this->data['page_load'] = 'backend/dtr/edit_dtr_view';
+        $this->data['page_load'] = 'backend/dtr/new_edit_dtr_view';
         $this->load->view('main_view',$this->data);
     }
 

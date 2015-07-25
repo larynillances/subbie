@@ -15,13 +15,20 @@ class Staff_Controller extends Subbie{
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
-        $this->data['thisYear'] = date('Y');
-        $this->data['thisMonth'] = date('m');
-
         if(isset($_POST['search'])){
             $this->data['thisYear'] = $_POST['year'];
             $this->data['thisMonth'] = $_POST['month'];
+            $this->session->set_userdata(array(
+                '_year' => $_POST['year'],
+                '_month' => $_POST['month']
+            ));
+
+            redirect('wageTable');
         }
+
+        $this->data['thisYear'] = $this->session->userdata('_year') ? $this->session->userdata('_year') : date('Y');
+        $this->data['thisMonth'] = $this->session->userdata('_month') ? $this->session->userdata('_month') : date('m');
+
         $this->getWageData($this->data['thisYear'],$this->data['thisMonth']);
 
         $this->data['page_load'] = 'backend/staff/wage_summary_view';
@@ -929,7 +936,8 @@ class Staff_Controller extends Subbie{
                         }
 
                         $sv->gross = $sv->hours * $sv->rate_cost;
-                        $sv->gross = $sv->gross != 0 ? number_format($sv->gross,0,'','') : '0.00';
+                        $sv->gross_ = $sv->gross != 0 ? number_format($sv->gross,2,'.','') : '0.00';
+                        $sv->gross = $sv->gross != 0 ? number_format($sv->gross,0,'.','') : '0.00';
 
                         $sv->gross = floatval($sv->gross);
 
@@ -975,7 +983,7 @@ class Staff_Controller extends Subbie{
                             'installment' => $sv->installment,
                             'nz_account' => $sv->nz_account != '' ? '$'.number_format($sv->nz_account,2,'.','') : '',
                             'account_two' => $sv->account_two != '' ? '$'.number_format($sv->account_two,2,'.','') : '',
-                            'gross' => $sv->gross != 0 ? '$'.$sv->gross : '',
+                            'gross' => $sv->gross_ != 0 ? '$'.$sv->gross_ : '',
                             'recruit' => $sv->recruit != 0 ? '$'.number_format($sv->recruit,2,'.','') : '',
                             'admin' => $sv->admin != 0 ? '$'.number_format($sv->admin,2,'.','') : '',
                             'nett' => $sv->nett != 0 ? '$'.number_format($sv->nett,2,'.','') : '',

@@ -22,6 +22,7 @@ echo form_open('','class="form-horizontal" role="form"');
         <th>Hours</th>
         <th>Gross</th>
         <th>Tax</th>
+        <th>Kiwi</th>
         <th>Flight</th>
         <th>Visa</th>
         <th>Accom</th>
@@ -46,7 +47,7 @@ echo form_open('','class="form-horizontal" role="form"');
                 <?php
                 $this_data = @$wage_data[$this_date];
                 ?>
-                <td rowspan="<?php echo count($this_data)?>"><?php echo date('d-m-Y',strtotime('+6 days'.$v));?></td>
+                <td rowspan="<?php echo count($this_data)?>"><?php echo date('d/m/Y',strtotime('+6 days'.$v));?></td>
             <?php
             $ref = 0;
             if(count($this_data) >0):
@@ -59,7 +60,7 @@ echo form_open('','class="form-horizontal" role="form"');
 
                     echo $ref != 0 ? '<tr>' : '';
                         ?>
-                    <td class="column">
+                    <td class="column details-column">
                         <?php
                         $tooltip = 'class="tooltip-class" data-toggle="tooltip" data-placement="top" title="Tax No.: '.$val['tax_number'].'"';
                         $url = '<a href="'.base_url().'printPaySlip/'.$val['id'].'/'.$this_date.'?view=1" class="payslip-view-btn" id="'.$val['id'].'" data-value="'.$this_date.'">'.$val['name'].'</a>';
@@ -68,8 +69,16 @@ echo form_open('','class="form-horizontal" role="form"');
                         }else{
                             $name = $val['hours'] != 0 && @$val['start_use'] ? $url : $val['name'];
                         }
-                        echo $val['name'] != '' ? $name.'<br/><strong '.$tooltip.'>Tax: ######</strong>' :'';
+                        //echo $val['name'] != '' ? '<strong>'.$name.'</strong> <span '.$tooltip.'>Tax: ######</span>' :'';
                         ?>
+                        <table style="width: 100%;">
+                            <tr>
+                                <?php
+                                echo $val['name'] != '' ? '<td class="text-left"><strong>'.$name.'</strong></td><td class="text-right"><span '.$tooltip.'>Tax: ######</span></td> ' :'';
+                                ?>
+                                <td></td>
+                            </tr>
+                        </table>
                     </td>
                     <?php
                     if($val['wage_type'] != 1):
@@ -90,6 +99,11 @@ echo form_open('','class="form-horizontal" role="form"');
                             <td class="column">
                                 <?php
                                 echo $val['tax'];
+                                ?>
+                            </td>
+                            <td class="column">
+                                <?php
+                                echo '$'.number_format($val['kiwi'],2);
                                 ?>
                             </td>
                             <td class="column">
@@ -171,7 +185,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             </td>
                             <?php
                             else:
-                                for($i=0;$i<=14;$i++):
+                                for($i=0;$i<=15;$i++):
                                     ?>
                                     <td>&nbsp;</td>
                                 <?php
@@ -199,12 +213,11 @@ echo form_open('','class="form-horizontal" role="form"');
                                 echo $val['tax'];
                                 ?>
                             </td>
-                            <!--<td class="column">
+                            <td class="column">
                                 <?php
-/*                                echo $val['kiwi'];
-                                */?>
+                                echo '$'.number_format($val['kiwi'],2);
+                                ?>
                             </td>
-                            <td class="column">&nbsp;</td>-->
                             <td class="column">
                                 <?php
                                 echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
@@ -284,7 +297,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             </td>
                         <?php
                         else:
-                            for($i=0;$i<=14;$i++):
+                            for($i=0;$i<=15;$i++):
                                 ?>
                                 <td>&nbsp;</td>
                             <?php
@@ -327,6 +340,10 @@ echo form_close();
     }
     .table-fixed-header > thead.header-copy > .headerTr{
         width: 1140px!important;
+        vertical-align: middle;
+    }
+    .table-fixed-header tr td.details-column{
+        vertical-align: middle;
     }
 </style>
 <script>
@@ -351,7 +368,7 @@ echo form_close();
 
         // make the header fixed on scroll
         //$('.table-fixed-header').fixedHeader();
-        $('.table-fixed-header').scrollTableBody({rowsToDisplay:10});
+        $('.table-fixed-header').scrollTableBody({rowsToDisplay:30});
         $('.payslip-view-btn').click(function(e){
             e.preventDefault();
             var url = this.href;

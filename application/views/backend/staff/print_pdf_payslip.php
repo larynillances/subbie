@@ -441,14 +441,14 @@ ob_start();
                                         <table class="inner-table">
                                             <thead>
                                             <tr>
-                                                <th>Total</th>
-                                                <th>Days</th>
+                                                <th style="width: 50%;">Left</th>
+                                                <th>Days Used</th>
                                             </tr>
                                             </thead>
                                             <tbody>
                                             <tr>
+                                                <td style="padding-right: 10px;"><?php echo $total_holiday_leave?></td>
                                                 <td style="padding-right: 10px;">0</td>
-                                                <td style="padding-right: 10px;">$0.00</td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -482,14 +482,14 @@ ob_start();
                                         <table class="inner-table">
                                             <thead>
                                             <tr>
-                                                <th>Total</th>
-                                                <th>Days</th>
+                                                <th style="width: 50%;">Left</th>
+                                                <th>Days Used</th>
                                             </tr>
                                             </thead>
                                             <tbody>
                                             <tr>
+                                                <td style="padding-right: 10px;"><?php echo $total_sick_leave?></td>
                                                 <td style="padding-right: 10px;">0</td>
-                                                <td style="padding-right: 10px;">$0.00</td>
                                             </tr>
                                             </tbody>
                                         </table>
