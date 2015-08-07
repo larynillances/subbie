@@ -231,6 +231,9 @@ ob_start();
             <?php
             $gross_total = 0;
             $tax_total = 0;
+            $st_loan_total = 0;
+            $kiwi_total = 0;
+            $emp_kiwi_total = 0;
             $ref = 0;
             if(count($staff) > 0):
                 foreach($staff as $v):
@@ -323,6 +326,10 @@ ob_start();
                                 if($staff_wage['hours'] != 0):
                                     $gross_total += $staff_wage['gross'];
                                     $tax_total += $staff_wage['tax'];
+                                    $st_loan_total += $staff_wage['st_loan'];
+                                    $kiwi_total += $staff_wage['kiwi'];
+                                    $emp_kiwi_total += $staff_wage['emp_kiwi'];
+                                    $gross_ = explode('.',number_format($staff_wage['gross'],2));
                                         ?>
                                         <td colspan="10">
                                             <table style="width: 100%;font-size: 13px;">
@@ -345,11 +352,11 @@ ob_start();
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
                                                     <td><div class="info-content">nil</div></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
-                                                    <td><div class="info-content">nil</div></td>
+                                                    <td><div class="info-content"><?php echo number_format($staff_wage['st_loan'],2)?></div></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
-                                                    <td><div class="info-content">nil</div></td>
+                                                    <td><div class="info-content"><?php echo number_format($staff_wage['kiwi'],2)?></div></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
-                                                    <td><div class="info-content">nil</div></td>
+                                                    <td><div class="info-content"><?php echo number_format($staff_wage['emp_kiwi'],2)?></div></td>
                                                 </tr>
                                                 </tbody>
                                             </table>
@@ -466,11 +473,11 @@ ob_start();
                             <td style="width: 2%;text-align: right;">$</td>
                             <td><div class="info-content">nil</div></td>
                             <td style="width: 2%;text-align: right;">$</td>
-                            <td><div class="info-content">nil</div></td>
+                            <td><div class="info-content"><?php echo number_format($st_loan_total,2)?></div></td>
                             <td style="width: 2%;text-align: right;">$</td>
-                            <td><div class="info-content">nil</div></td>
+                            <td><div class="info-content"><?php echo number_format($kiwi_total,2);?></div></td>
                             <td style="width: 2%;text-align: right;">$</td>
-                            <td><div class="info-content">nil</div></td>
+                            <td><div class="info-content"><?php echo number_format($emp_kiwi_total,2);?></div></td>
                         </tr>
                         </tbody>
                     </table>

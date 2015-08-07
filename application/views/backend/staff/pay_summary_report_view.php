@@ -1,0 +1,210 @@
+<style>
+    .inner-table-class{
+        font-size: 13px;
+        width: 100%;
+    }
+    .inner-table-class tr td{
+        padding: 5px;
+    }
+    .inner-table-class tr td:nth-child(odd){
+        width: 12%;
+        font-weight: bold;
+        text-align: right;
+        white-space: nowrap;
+    }
+    .inner-table-class tr td:nth-child(even){
+        color: #0000ff;
+    }
+    .inner-table-class tr td:nth-child(2){
+        width: 15%;
+    }
+    .inner-table-class tr td:nth-child(4){
+        width: 15%;
+    }
+    .inner-table-class tr td:last-child{
+        width: 12%;
+    }
+    .content-div{
+        padding: 5px;
+        border-bottom: 1px dotted #000000;
+    }
+    .content-div:first-child{
+        border-top: 1px dotted #000000;
+    }
+</style>
+<?php
+echo form_open('');
+?>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="form-group form-class">
+            <label class="col-sm-1 control-label" >Date:</label>
+            <div class="col-sm-2">
+                <?php echo form_dropdown('month',$month,$thisMonth,'class="form-control input-sm select month-dp"')?>
+            </div>
+            <div class="col-sm-1">
+                <?php echo form_dropdown('year',$year,$thisYear,'class="form-control input-sm select year-dp"')?>
+            </div>
+            <label class="col-sm-1 control-label" >Week:</label>
+            <div class="col-sm-1 week-display">
+                <?php echo form_dropdown('week',$week,$thisWeek,'class="form-control input-sm"')?>
+            </div>
+            <div class="col-sm-3">
+                <input type="submit" name="search" class="btn btn-success btn-sm" value="Go">
+                <a href="<?php echo base_url().'payPeriodSummaryReport?print=1'?>" class="btn btn-sm btn-success" target="_blank">Print</a>
+            </div>
+        </div>
+    </div>
+</div><br/>
+<?php
+echo form_close();
+?>
+<div class="row">
+    <div class="col-sm-12">
+        <?php
+        $this_date = $date[$thisWeek];
+        $this_data = @$wage_data[$this_date];
+        $total_nett = 0;
+        $total_dist = 0;
+        $total_gross = 0;
+        $total_paye = 0;
+        $total_st_loan = 0;
+        $total_kiwi = 0;
+        $total_emp_kiwi = 0;
+        $total_esct = 0;
+        $ref = 0;
+        if(count($this_data) >0) {
+            foreach ($this_data as $val) {
+                if($val['hours'] > 0){
+                    $total_nett += $val['nett'];
+                    $total_dist += $val['distribution'];
+                    $total_gross += $val['gross'];
+                    $total_paye += $val['tax'];
+                    $total_st_loan += $val['st_loan'];
+                    $total_kiwi += $val['kiwi'];
+                    $total_emp_kiwi += $val['cec'];
+                    $total_esct += $val['esct'];
+                }
+                ?>
+                <div class="content-div">
+                    <table class="inner-table-class">
+                        <tbody>
+                        <tr>
+                            <td>Franchise Name:</td>
+                            <td><?php echo 'Subbie Solutions'?></td>
+                            <td>Employee:</td>
+                            <td><?php echo $val['name']?></td>
+                            <td>IRD Number:</td>
+                            <td><?php echo $val['ird_num']?></td>
+                            <td>Tax Code:</td>
+                            <td><?php echo $val['tax_code']?></td>
+                        </tr>
+                        <tr>
+                            <td>Hours worked:</td>
+                            <td><?php echo number_format($val['hours'],2)?></td>
+                            <td>Gross Pay:</td>
+                            <td><?php echo $val['gross'] ? '$ '.number_format($val['gross'],2) : '$ 0.00'?></td>
+                            <td>PAYE:</td>
+                            <td><?php echo $val['tax'] ? '$ '.number_format($val['tax'],2) : '$ 0.00'?></td>
+                            <td class="text-right">Nett Pay:</td>
+                            <td><strong><?php echo $val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00'?></strong></td>
+                        </tr>
+                        <tr>
+                            <td>Student Loan:</td>
+                            <td><?php echo $val['st_loan'] ? '$ '.number_format($val['st_loan'],2) : '$ 0.00'?></td>
+                            <td>Kiwisaver:</td>
+                            <td><?php echo $val['kiwi'] ? '$ '.number_format($val['kiwi'],2) : '$ 0.00'?></td>
+                            <td>ESCT:</td>
+                            <td><?php echo $val['has_kiwi'] ? ($val['esct'] ? '$ '.number_format($val['esct'],2) : '$ 0.00') : 'N/A';?></td>
+                            <td>CEC:</td>
+                            <td><?php echo $val['has_kiwi'] ? ($val['cec'] ? '$ '.number_format($val['cec'],2) : '$ 0.00') : 'N/A';?></td>
+                        </tr>
+                        <tr>
+                            <td>Accom.:</td>
+                            <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['accommodation'],2) : '$ 0.00';?></td>
+                            <td>Transport:</td>
+                            <td colspan="5"><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
+                        </tr>
+                        <tr>
+                            <td>Holiday Taken:</td>
+                            <td><?php echo $val['total_holiday_leave'].' ('.$val['total_holiday_leave'].')'?></td>
+                            <td>Holiday Remaining:</td>
+                            <td><?php echo $val['total_holiday_leave'].' ('.$val['total_holiday_leave'].')'?></td>
+                            <td>ACC Levy:</td>
+                            <td>&nbsp;</td>
+                            <td>Loan Repay:</td>
+                            <td>
+                                <?php
+                                $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
+                                echo $thisBalance;
+                                echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                ?>
+                            </td>
+                        </tr>
+                        <?php
+                        if($val['has_nz_account']){
+                            ?>
+                            <tr>
+                                <td>Sick Leave Taken:</td>
+                                <td><?php echo $val['total_sick_leave'].' ('.$val['total_sick_leave'].')'?></td>
+                                <td>Sick Leave Remaining:</td>
+                                <td colspan="5"><?php echo $val['total_sick_leave'].' ('.$val['total_sick_leave'].')'?></td>
+                            </tr>
+                            <tr>
+                                <td>PHP One:</td>
+                                <td><?php echo $val['nz_account'] ? '$ '.number_format($val['account_one'],2) : 'N/A'?></td>
+                                <td>PHP Two:</td>
+                                <td colspan="3"><?php echo $val['nz_account'] ? '$ '.number_format($val['account_two'],2) : 'N/A'?></td>
+                                <td>To Bank:</td>
+                                <td style="background: #b2b2b2;color: #000000"><strong><?php echo $val['hours'] ? '$ '.number_format($val['nz_account'],2) : '$ '.number_format($val['distribution'],2);?></strong></td>
+                            </tr>
+                        <?php
+                        }else{
+                            ?>
+                            <tr>
+                                <td>Sick Leave Taken:</td>
+                                <td><?php echo $val['total_sick_leave'].' ('.$val['total_sick_leave'].')'?></td>
+                                <td>Sick Leave Remaining:</td>
+                                <td colspan="3"><?php echo $val['total_sick_leave'].' ('.$val['total_sick_leave'].')'?></td>
+                                <td>To Bank:</td>
+                                <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format($val['distribution'],2);?></strong></td>
+                            </tr>
+                        <?php
+                        }
+                        ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php
+            }
+        }
+        ?>
+        <div class="content-div">
+            <table class="inner-table-class">
+                <tr>
+                    <td colspan="8" style="text-align: left;"><strong>TOTALS:</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-right"><strong>GROSS:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_gross,2)?></strong></td>
+                    <td class="text-right"><strong>PAYE:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_paye,2)?></strong></td>
+                    <td class="text-right"><strong>Student Loan:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_st_loan,2)?></strong></td>
+                    <td class="text-right"><strong>Nett Pay:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_nett,2)?></strong></td>
+                </tr>
+                <tr>
+                    <td class="text-right"><strong>Kiwisaver Employee:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_kiwi,2)?></strong></td>
+                    <td class="text-right"><strong>Kiwisaver Employeer:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_emp_kiwi,2)?></strong></td>
+                    <td class="text-right"><strong>ESCT:</strong></td>
+                    <td><strong><?php echo '$ '.number_format($total_esct,2)?></strong></td>
+                    <td class="text-right"><strong>To Bank:</strong></td>
+                    <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format($total_dist,2)?></strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>

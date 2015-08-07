@@ -12,7 +12,8 @@ switch($this->session->userdata('account_type')){
                 'invoiceCreate' => 'New Invoice Entry',
                 'taxTable' => 'Tax Table',
                 'workFlowCalendar' => 'Work Flow Calendar',
-                'invoiceExportEmailLog' => 'Email Log'
+                'invoiceExportEmailLog' => 'Email Log',
+                'paySetup' => 'Pay Setup'
             ),
             'List' => array(
                 'invoiceList' => 'Invoice List',
@@ -31,16 +32,19 @@ switch($this->session->userdata('account_type')){
                 'textTemplate' => 'Template'
             ),
             'Wage' => array(
-                'wageManage' => 'Wage Management',
+                'wageManage' => 'Staff Details',
+                'staffList' => 'Staff List',
+                'payPeriodSummaryReport' => 'Pay Period Summary Report',
+                'wageTable' => 'Monthly Wage Summary',
                 'monthlyTotalPay' => 'Monthly Pay',
-                'wageTable' => 'Wage Summary',
                 'employerMonthlySched' => 'Employer Monthly Schedule',
-                'staffList' => 'Staff List'
+                'yearToDateReport' => 'YTD Report'
             ),
             'outstandingBalance' => 'Outstanding',
             'PDF Archive' => array(
                 'archiveQuote' => 'Quote',
                 'archiveInvoice' => 'Invoice',
+                'archiveCreditNote' => 'Credit Note',
                 'archiveStatement' => 'Statement',
                 'pdfSummaryArchive' => 'Summary'
             )
@@ -79,6 +83,35 @@ switch($this->session->userdata('account_type')){
                 'orderSentList' => 'Order Sent List'
             ),
             'timeSheet' => 'DTR'
+        );
+        break;
+    case 4:
+        $header_links = array(
+            'trackingLog' => 'Tracking Log',
+            'Admin' => array(
+                'newJobRequestForm' => 'New Job Request',
+                'userList' => 'User List',
+                'quotation' => 'New Quote',
+                'orderBookInput' => 'New Order',
+                'invoiceCreate' => 'New Invoice Entry',
+                'taxTable' => 'Tax Table',
+                'paySetup' => 'Pay Setup'
+            ),
+            'List' => array(
+                'invoiceList' => 'Invoice List',
+                'quoteList' => 'Quote List',
+                'clientList' => 'Client List',
+                'orderSentList' => 'Order Sent List',
+                'jobList' => 'Job List',
+                'supplierList' => 'Supplier List'
+            ),
+            'timeSheetEdit' => 'DTR',
+            'Manage' => array(
+                'textTemplate' => 'Template'
+            ),
+            'Wage' => array(
+                'wageManage' => 'Staff Details'
+            )
         );
         break;
     default:

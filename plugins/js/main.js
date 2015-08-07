@@ -1,4 +1,27 @@
 $(function(){
+    $('.select').change(function(){
+        var year = $('.year-dp'),
+            month = parseInt($('.month-dp').val()),
+            year_val = parseInt(year.val());
+
+        $.post(bu + 'monthWeeks',
+            {
+                month:month,
+                year:year_val
+            },
+            function(data){
+                var week_display = $('.week-display');
+                var ele = '<select name="week" class="form-control input-sm">';
+                $.each(jQuery.parseJSON(data),function(key,val){
+                    ele += '<option value="' + key + '">' + val + '</option>';
+
+                });
+                ele += '</select>';
+                week_display.html(ele);
+            }
+        );
+    });
+
     $('.cancel-btn').live('click',function(e){
         $(this).newForm.forceClose();
     });

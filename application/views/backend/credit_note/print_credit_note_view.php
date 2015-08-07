@@ -14,7 +14,7 @@ ob_start();
     <style>
         body{
             font-family: helvetica, sans-serif;
-            font-size: 13px;
+            font-size: 12px;
         }
         .header-title{
             background: #484848;
@@ -70,29 +70,17 @@ ob_start();
 <body>
 <script type="text/php">
         if ( isset($pdf) ) {
-        $font = Font_Metrics::get_font("verdana");;
-        $size = 6;
-        $color = array(0,0,0);
-        $text_height = Font_Metrics::get_font_height($font, $size);
+        $font = Font_Metrics::get_font('helvetica', 'normal');
+        $size = 8;
+        $y = $pdf->get_height() - 24;
+        $x = $pdf->get_width() - 60 - Font_Metrics::get_text_width('1/1', $font, $size);
+        $pdf->page_text($x, $y, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, $size);
 
-        $foot = $pdf->open_object();
-
-        $w = $pdf->get_width();
-        $h = $pdf->get_height();
-
-        // Draw a line along the bottom
-        $y = $h - $text_height - 24;
-        $pdf->line(16, $y, $w - 16, $y, $color, 0.5);
-
-        $pdf->close_object();
-        $pdf->add_object($foot, "all");
-
-        $text = "Page {PAGE_NUM} of {PAGE_COUNT}";
-        // Center the text
-        $width = Font_Metrics::get_text_width("Page 1 of 2", $font, $size);
-        $pdf->page_text($w / 2 - $width / 2, $y, $text, $font, $size, $color);
-        $pdf->add_object($footer, "all");
-        }
+        $date = date("d/m/Y h:i:s A");
+        $y = $pdf->get_height() - 24;
+        $x = $pdf->get_width() - 550 - Font_Metrics::get_text_width('1/1', $font, $size);
+        $pdf->page_text($x, $y, 'Printed : '. $date, $font, 8, array(0, 0, 0));
+      }
     </script>
 <div id="content">
     <table style="width: 100%;">
@@ -165,7 +153,8 @@ ob_start();
         endif;
         ?>
         <?php
-        $maxLen = 30;
+        $maxLen = $total_len >= 29 ? 40 : 30;
+
         $len = $maxLen - $total_len;
 
         for($i = 0; $i <= $len; $i++):
@@ -226,12 +215,12 @@ $pdf = $domPdf->output();
 
 // You can now write $pdf to disk, store it in a database or stream it
 // to the client.
-$pdfName = 'Credit Note '.date('d-F-y');
+$pdfName = $file_name;
 @ $domPdf->stream($pdfName.".pdf", array("Attachment" => 0));
 
 $file_to_save = $dir.'/'.$pdfName.'.pdf';
 //save the pdf file on the server
-file_put_contents($file_to_save, $domPdf->output());
+file_put_contents($file_to_save, $pdf);
 //print the pdf file to the screen for saving
 /*header('Content-type: application/pdf');
 header('Content-Disposition: inline; filename="'.$pdfName.'.pdf"');

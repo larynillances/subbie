@@ -74,10 +74,15 @@
                 <tbody>
                 <?php
                 $totalHours = array();
+                $totalHolidayHours = array();
                 $hoursValue = 0;
                 $holidayHours = 0;
                 $sickLeaveHours = 0;
-                for($whatDay=1; $whatDay<=7; $whatDay++):
+                $week_start = StartWeekNumber($week_number,$thisYear);
+                $_start_day = $week_start['start_day'];
+                $_end_day = $week_start['end_day'];
+
+                for($whatDay=$_start_day; $whatDay<=$_end_day; $whatDay++):
                     $getDate =  $dt->setISODate($thisYear,$week_number,$whatDay)->format('Y-m-d');
                     $day = date('Y-m-d', strtotime($getDate));
                     $d = date('j',strtotime($getDate));
@@ -87,7 +92,7 @@
                     if(count($staff)>0):
                         ?>
                         <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>">
-                            <td style="font-weight: bold;" rowspan="<?php echo count($staff) + 1?>">
+                            <td style="vertical-align: middle;font-weight: bold;" rowspan="<?php echo count($staff) + 1?>">
                                 <?php
                                 echo date('l', strtotime($getDate)).'<br/>'.
                                     date('d-M-Y', strtotime($getDate)).'<br/>';
@@ -103,6 +108,10 @@
                             $getValue = @$thisDtr[$day];
                             $holidayHours += @$getValue['holiday_hours'];
                             $sickLeaveHours += @$getValue['sick_hours'];
+                            $totalHolidayHours[$v->id][] = array(
+                                'holiday' => @$getValue['holiday_hours'],
+                                'sick' => @$getValue['sick_hours']
+                            );
                             ?>
                             <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>">
                                 <td style="background: #34386a;color: white;font-style: italic;vertical-align: middle;width: 20%;">
@@ -168,7 +177,7 @@
                                             @$totalHours[$v->id] += @$thisTime['seconds'];
 
                                             $dtr_id = @$thisTime['dtr_id'];
-                                            echo @$thisTime['hours'];
+                                            echo @$thisTime['hours'] ? @$thisTime['hours'] : '0.00';
                                         }else{
                                             echo '&nbsp;';
                                         }
@@ -203,16 +212,37 @@
                 endfor;
                 ?>
                 <tr class="danger">
-                    <td colspan="6" style="text-align: right;"><strong>Total Hours for week</strong></td>
-                    <?php
-                    $hoursValue = 0;
-                    if(count($staff)>0):
-                        foreach($staff as $v):
-                            $total = @$totalHours[$v->id];
-                            $hoursValue += ($total/3600);
-                        endforeach;
-                    endif;
-                    ?>
+                    <td colspan="9" style="text-align: center;text-transform: uppercase"><strong>Total Weekly Hours per Employee</strong></td>
+                </tr>
+                <?php
+                $hoursValue = 0;
+                if(count($staff)>0):
+                    foreach($staff as $v):
+                        $total = @$totalHours[$v->id];
+                        $hours = $total/3600;
+                        $holiday_total = 0;
+                        $sick_total = 0;
+                        if(count($totalHolidayHours[$v->id]) > 0){
+                            foreach($totalHolidayHours[$v->id] as $data){
+                                $holiday_total += $data['holiday'];
+                                $sick_total += $data['sick'];
+                            }
+                        }
+                        ?>
+                        <tr class="info">
+                            <td colspan="6" style="text-align: right;"><strong><?php echo $v->fname.' '.$v->lname?></strong></td>
+                            <td><strong><?php echo number_format($hours,2);?></strong></td>
+                            <td><strong><?php echo number_format($holiday_total,2);?></strong></td>
+                            <td><strong><?php echo number_format($sick_total,2);?></strong></td>
+                        </tr>
+                        <?php
+                        $hoursValue += ($total/3600);
+                    endforeach;
+                endif;
+                ?>
+
+                <tr class="danger">
+                    <td colspan="6" style="text-align: right;text-transform: uppercase"><strong>Total Hours</strong></td>
                     <td><strong><?php echo number_format($hoursValue,2);?></strong></td>
                     <td><strong><?php echo number_format($holidayHours,2);?></strong></td>
                     <td><strong><?php echo number_format($sickLeaveHours,2);?></strong></td>
@@ -304,10 +334,10 @@
                 '<div class="modal-body">' +
                     '<div class="row">' +
                         '<div class="col-sm-12">' +
-                            'Please confirm you are ready to commit these <strong>Hours Worked</strong> for the <strong>Pay Period</strong> shown. ' +
-                            'Once these Hours are committed the Pay Period is <strong>Locked</strong>, permanently, and any changes must then ' +
-                            'be applied to a following Pay Period. If you <strong>Cancel</strong>, you may continue to edit any of the data on ' +
-                            'this page until you are satisfied it is correct and may be paid out on.' +
+                        'Please confirm you are ready to commit these <strong>Hours Worked</strong> for the <strong>Pay Period</strong> shown. ' +
+                        'Once these Hours are committed the Pay Period is <strong>Locked</strong>, permanently, and any changes must then ' +
+                        'be applied to a following Pay Period. If you <strong>Cancel</strong>, you may continue to edit any of the data on ' +
+                        'this page until you are satisfied it is correct and may be paid out on.' +
                         '</div>' +
                     '</div>' +
                 '</div>' +

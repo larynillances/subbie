@@ -58,14 +58,29 @@ ob_start();
     </head>
 
     <body>
+    <script type='text/php'>
+          if ( isset($pdf) ) {
+            $font = Font_Metrics::get_font('helvetica', 'normal');
+            $size = 9;
+            $y = $pdf->get_height() - 24;
+            $x = $pdf->get_width() - 60 - Font_Metrics::get_text_width('1/1', $font, $size);
+            $pdf->page_text($x, $y, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, $size);
+
+            $date = date("d/m/Y");
+            $y = $pdf->get_height() - 24;
+            $x = $pdf->get_width() - 550 - Font_Metrics::get_text_width('1/1', $font, $size);
+            $pdf->page_text($x, $y, 'Printed : '. $date, $font, 8, array(0, 0, 0));
+          }
+        </script>
     <div id="wrap">
         <div id="content">
             <div class="content">
                 <?php
                 $date = $this->uri->segment(3);
                 $name = '';
+                $_date = new DateTime($date);
+                $week = $_date->format("W");
                 $start_wage = date('d/m/Y',strtotime('April '.date('Y',strtotime($date)).' Tuesday '));
-
                 if(count($staff)>0):
                     foreach($staff as $v):
                         $name = $v->name;
@@ -77,7 +92,7 @@ ob_start();
                             <thead>
                             <tr>
                                 <th colspan="4" style="text-transform: uppercase;">
-                                    SUBBIE SOLUTIONS LTD.
+                                    <?php echo 'SUBBIE SOLUTIONS LTD.';?>
                                 </th>
                             </tr>
                             <tr>
@@ -86,7 +101,9 @@ ob_start();
                                 </th>
                             </tr>
                             <tr>
-                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Pay Advice Slip for the Pay Period Ended: <?php echo date('j F Y',strtotime('+5 days '.$date));?></th>
+                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Pay Advice Slip for the Pay Period Ended:
+                                    <?php echo $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));?>
+                                </th>
                             </tr>
                             </thead>
                             <tbody>
@@ -95,11 +112,19 @@ ob_start();
                                     Name: <span><?php echo $v->name;?></span>
                                 </td>
                                 <td>
-                                    Tax Number: <span><?php echo $v->tax_number;?></span>
+                                    IRD No.: <span><?php echo $v->ird_num;?></span>
                                 </td>
                                 <td>
-                                    Working: <span><?php echo $v->wage_type != 1 ? $v->working_hours : 40;?></span><br/>
-                                    Non-Working: <span><?php echo @$v->non_working_hour ? @$v->non_working_hour : '00.0'?></span>
+                                    <table style="font-size: 13px;border-collapse: collapse;">
+                                        <tr>
+                                            <td style="text-align: right">Working:</td>
+                                            <td style="padding-left: 5px;"><span><?php echo $v->wage_type != 1 ? $v->working_hours : 40;?></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: right">Non-Working:</td>
+                                            <td style="padding-left: 5px;"><span><?php echo @$v->non_working_hour ? @$v->non_working_hour : '00.0'?></span></td>
+                                        </tr>
+                                    </table>
                                 </td>
                                 <td>
                                     <?php echo $v->wage_type != 1 ? 'Hourly Rate:' : 'Fixed Rate:'?> <span><?php echo $v->rate_cost;?></span>
@@ -115,7 +140,8 @@ ob_start();
                                     <?php
                                 }else{
                                     ?>
-                                    <td class="bold-text" colspan="2">Position: <?php echo $v->position;?></td>
+                                    <td class="bold-text">Position: <?php echo $v->position;?></td>
+                                    <td class="bold-text">Start Date: <?php echo $start_date;?></td>
                                     <?php
                                 }
                                 ?>
@@ -151,7 +177,7 @@ ob_start();
                                             ?>
                                             <tr>
                                                 <td></td>
-                                                <td>Tax</td>
+                                                <td>PAYE</td>
                                                 <td><?php echo $v->tax;?></td>
                                             </tr>
                                             <tr>
@@ -167,7 +193,7 @@ ob_start();
                                             <tr>
                                                 <td></td>
                                                 <td>Accom</td>
-                                                <td><?php echo $v->total_accom != '' ? number_format($v->total_accom,2,'.',',') : '&nbsp;';?></td>
+                                                <td><?php echo $v->total_accom != '' ? number_format($v->total_accom,2) : '&nbsp;';?></td>
                                             </tr>
                                             <tr>
                                                 <td></td>
@@ -190,23 +216,22 @@ ob_start();
                                                 <td><?php echo $v->total_install;?></td>
                                             </tr>
                                             <?php
-                                        }
-                                        else{
+                                        }else{
                                             ?>
                                             <tr>
                                                 <td>&nbsp;</td>
-                                                <td>Tax</td>
-                                                <td><?php echo $v->tax;?></td>
+                                                <td>PAYE</td>
+                                                <td><?php echo $v->tax ? number_format($v->tax,2,'.','') : '0.00';?></td>
                                             </tr>
                                             <tr>
                                                 <td>&nbsp;</td>
                                                 <td>Student Loan</td>
-                                                <td>&nbsp;</td>
+                                                <td><?php echo $v->st_loan ? number_format($v->st_loan,2,'.','') : '0.00';?></td>
                                             </tr>
                                             <tr>
                                                 <td>&nbsp;</td>
                                                 <td>Kiwi Saver</td>
-                                                <td><?php echo $v->kiwi_ ? $v->kiwi_ : '&nbsp;';?></td>
+                                                <td><?php echo $v->kiwi_ ? number_format($v->kiwi_,2,'.','') : '0.00';?></td>
                                             </tr>
                                             <tr>
                                                 <td>&nbsp;</td>
@@ -239,7 +264,7 @@ ob_start();
                                         <tr>
                                             <td></td>
                                             <td><strong>Total</strong></td>
-                                            <td style="border-top: 1px solid #000000"><strong><?php echo $v->total;?></strong></td>
+                                            <td style="border-top: 1px solid #000000"><strong><?php echo '$ '.number_format($v->total,2);?></strong></td>
                                         </tr>
                                     </table>
                                 </td>
@@ -295,7 +320,7 @@ ob_start();
                                             <td>&nbsp;</td>
                                         </tr>
                                         <tr>
-                                            <td><?php echo !$v->nz_account ? (@$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '') : '';?></td>
+                                            <td><?php echo !$v->nz_account ? (@$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '&nbsp;') : '';?></td>
                                         </tr>
                                         <tr>
                                             <td>&nbsp;</td>
@@ -324,14 +349,14 @@ ob_start();
                                             <tr>
                                                 <td style="text-align: center">
                                                     <?php
-                                                    echo @$total_bal[$date][$v->id]['balance'] != 0 ? number_format(@$total_bal[$date][$v->id]['balance'],2,'.',',') : '&nbsp;';?>
+                                                    echo @$total_bal[$date][$v->id]['balance'] != 0 ? number_format(@$total_bal[$date][$v->id]['balance'],2) : '&nbsp;';?>
                                                 </td>
                                             </tr>
                                             <?php
                                         }else{
                                             ?>
                                             <tr>
-                                                <td style="border-top: 1px solid #000000;"><strong><?php echo @$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '';?></strong></td>
+                                                <td style="border-top: 1px solid #000000;"><strong><?php echo @$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '&nbsp;';?></strong></td>
                                             </tr>
                                             <?php
                                         }
@@ -347,13 +372,13 @@ ob_start();
                                     <strong>Distribution</strong>
                                 </td>
                                 <td style="text-align: center;">
-                                    <strong><?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?></strong>
+                                   <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
                                 </td>
                                 <td style="text-align: center;">
-                                    <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : 'Annual Leave'?></strong>
+                                    <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : 'Holiday <span style="color: #ff0000">(' .$total_holiday_leave.')</span>'?></strong>
                                 </td>
                                 <td style="text-align: center;">
-                                    <strong><?php echo $v->nz_account ? 'NZ ACC' : 'Sick Leave'?></strong>
+                                    <strong><?php echo $v->nz_account ? 'NZ ACC' : 'Sick Leave <span style="color: #ff0000">(' .$total_sick_leave.')</span>'?></strong>
                                 </td>
                             </tr>
                             <tr>
@@ -378,17 +403,16 @@ ob_start();
                                             </tr>
                                             </tbody>
                                         </table>
-                                        <?php
+                                    <?php
                                     }
                                     else{
                                         ?>
                                         <strong><?php echo $v->distribution ? '$'.number_format($v->distribution,2) : '';?></strong>
-                                        <?php
+                                    <?php
                                     }?>
                                 </td>
                                 <td style="text-align: center;padding: 0!important;">
-                                    <?php if($v->nz_account){
-                                        ?>
+                                    <?php if($v->nz_account){?>
                                         <table class="inner-table">
                                             <thead>
                                             <tr>
@@ -441,8 +465,8 @@ ob_start();
                                         <table class="inner-table">
                                             <thead>
                                             <tr>
-                                                <th style="width: 50%;">Left</th>
-                                                <th>Days Used</th>
+                                                <th style="width: 50%;">Remaining</th>
+                                                <th>Taken</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -482,8 +506,8 @@ ob_start();
                                         <table class="inner-table">
                                             <thead>
                                             <tr>
-                                                <th style="width: 50%;">Left</th>
-                                                <th>Days Used</th>
+                                                <th style="width: 50%;">Remaining</th>
+                                                <th>Taken</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -523,9 +547,10 @@ $pdf = $domPdf->output();
 
 // You can now write $pdf to disk, store it in a database or stream it
 // to the client.
-$pdfName = 'Pay Slip for '.date('d-F-y',strtotime($date)) .' ('.$name.')';
-@ $domPdf->stream($pdfName.".pdf", array("Attachment" => 0));
+$pdfName = $file_name;
+@$domPdf->stream($pdfName.".pdf", array("Attachment" => 0));
 
 $file_to_save = $dir.'/'.$pdfName.'.pdf';
 //save the pdf file on the server
 file_put_contents($file_to_save, $pdf);
+?>

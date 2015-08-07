@@ -66,6 +66,25 @@ ob_start();
             $name_address = str_replace("\n","<br/>",$inv_data->info_text);
         }
     }
+    $gross_total = 0;
+    $tax_total = 0;
+    $st_loan_total = 0;
+    $kiwi_total = 0;
+    $emp_kiwi_total = 0;
+    $esct_total = 0;
+    if(count($staff) > 0){
+        foreach($staff as $sv){
+            $staff_wage = @$monthly_pay[$sv->id];
+            if($staff_wage['hours'] != 0){
+                $gross_total += $staff_wage['gross'];
+                $tax_total += $staff_wage['tax'];
+                $st_loan_total += $staff_wage['st_loan'];
+                $kiwi_total += $staff_wage['kiwi'];
+                $emp_kiwi_total += $staff_wage['emp_kiwi'];
+                $esct_total += $staff_wage['esct'];
+            }
+        }
+    }
     ?>
     <table class="table" style="width: 100%;">
         <thead>
@@ -135,6 +154,7 @@ ob_start();
         <tbody style="border:1px solid #000000!important;">
         <?php
         $total = 0;
+        $over_all_total = 0;
         if(count($monthly_pay) >0){
             foreach($monthly_pay as $k=>$pay){
                 $this_pay = $monthly_pay[$k];
@@ -143,6 +163,7 @@ ob_start();
                 }
             }
         }
+        $over_all_total = $total + $esct_total + $st_loan_total + $emp_kiwi_total + $kiwi_total;
         ?>
         <tr>
             <td>
@@ -197,7 +218,7 @@ ob_start();
                         <td style="width: 30%;">Student loan deductions</td>
                         <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-5-right.png'?>"></td>
                         <td style="font-size: 13px;width: 5%;">$</td>
-                        <td><div class="info-content"><?php echo 'nil'?></div></td>
+                        <td><div class="info-content"><?php echo number_format($st_loan_total,2)?></div></td>
                     </tr>
                     </tbody>
                 </table>
@@ -215,7 +236,7 @@ ob_start();
                         <td style="width: 30%;">KiwiSaver deductions</td>
                         <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-6-right.png'?>"></td>
                         <td style="font-size: 13px;width: 5%;">$</td>
-                        <td><div class="info-content"><?php echo 'nil'?></div></td>
+                        <td><div class="info-content"><?php echo number_format($kiwi_total,2)?></div></td>
                     </tr>
                     </tbody>
                 </table>
@@ -271,7 +292,7 @@ ob_start();
                         <td style="width: 30%;">Net KiwiSaver employer contributions</td>
                         <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-7-right.png'?>"></td>
                         <td style="font-size: 13px;width: 5%;">$</td>
-                        <td><div class="info-content"><?php echo 'nil'?></div></td>
+                        <td><div class="info-content"><?php echo number_format($emp_kiwi_total,2)?></div></td>
                     </tr>
                     </tbody>
                 </table>
@@ -285,13 +306,13 @@ ob_start();
                         <td style="width: 30%;">ESCT deductions</td>
                         <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-8-right.png'?>"></td>
                         <td style="font-size: 13px;width: 5%;">$</td>
-                        <td><div class="info-content"><?php echo 'nil'?></div></td>
+                        <td><div class="info-content"><?php echo number_format($esct_total,2)?></div></td>
                     </tr>
                     <tr style="border-bottom: 1px solid #000000;">
                         <td style="width: 30%;font-weight: bold;">Add Boxes 3, 4, 5, 6, 7 and 8.This is the amount you need to pay</td>
                         <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-9-right.png'?>"></td>
                         <td style="font-size: 13px;width: 5%;">$</td>
-                        <td><div class="info-content"><?php echo number_format($total,2)?></div></td>
+                        <td><div class="info-content"><?php echo number_format($over_all_total,2)?></div></td>
                     </tr>
                     </tbody>
                 </table>
@@ -374,7 +395,7 @@ ob_start();
                         <td style="width: 15%;">Amount of payment</td>
                         <td style="width: 5%;"><img src="<?php echo base_url().'images/black-arrow-10-right.png'?>"></td>
                         <td style="font-size: 17px;width: 5%;">$</td>
-                        <td style="width: 60%;"><div class="info-content"><?php echo number_format($total,2)?></div></td>
+                        <td style="width: 60%;"><div class="info-content"><?php echo number_format($over_all_total,2)?></div></td>
 
                     </tr>
                     <tr>

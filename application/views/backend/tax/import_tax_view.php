@@ -6,13 +6,20 @@
     <div class="form-group">
         <label class="control-label col-sm-3 text-left">Wage Type:</label>
         <div class="col-sm-4">
-            <?php echo form_dropdown('wage_type',$wage_type,'','class="form-control input-sm wage_type"');?>
+            <?php echo form_dropdown('wage_type',$wage_type,'','class="form-control input-sm wage_type_"');?>
         </div>
     </div>
     <div class="form-group">
+        <label class="control-label col-sm-3 text-left">Frequency Type:</label>
+        <div class="col-sm-4">
+            <?php echo form_dropdown('frequency',$frequency,'','class="form-control input-sm frequency_"');?>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-sm-3 text-left">Date Range:</label>
         <div class="col-sm-4">
             <div class='input-group date-picker' id='datetimepicker1' data-date-format="DD-MM-YYYY">
-                <input type='text' id="start_date" name="start_date" class="form-control input-sm" value="<?php echo date('01-04-Y')?>" placeholder="Start Date" disabled/>
+                <input type='text' id="start_date" name="start_date" class="form-control input-sm date-class" value="<?php echo date('01-04-Y')?>" placeholder="Start Date"/>
                 <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
                 </span>
             </div>
@@ -20,15 +27,20 @@
         <label class="col-sm-1 control-label">To</label>
         <div class="col-sm-4">
             <div class='input-group date-picker' id='datetimepicker2' data-date-format="DD-MM-YYYY">
-                <input type='text' id="end_date" name="end_date" class="form-control input-sm" value="<?php echo date('31-03-Y',strtotime('+1year'))?>" placeholder="End Date" disabled/>
+                <input type='text' id="end_date" name="end_date" class="form-control input-sm date-class" value="<?php echo date('31-03-Y',strtotime('+1year'))?>" placeholder="End Date"/>
             <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
             </span>
             </div>
         </div>
     </div>
-    <input type="file" name="file" id="input-file" accept="application/vnd.ms-excel">
-    <div class="errorMsg"></div>
+    <div class="form-group">
+        <label class="control-label col-sm-3 text-left">&nbsp;</label>
+        <div class="col-sm-9">
+            <input type="file" name="file" id="input-file" accept="application/vnd.ms-excel">
+        </div>
+    </div>
 
+    <div class="errorMsg"></div>
 </div>
 <div class="modal-footer">
     <a href="javascript:$('#input-file').uploadify('upload','*')" class="uploadBtn btn-primary btn btn-sm disabled">Import</a>
@@ -36,8 +48,9 @@
 </div>
 </div>
 <style>
-    .disabled{
+    .date-class{
         pointer-events: none;
+        background: #d5d5d5;
     }
     .errorMsg{
         text-align: right;
@@ -51,16 +64,29 @@
             pickTime: false
         });
 
+        var frequency = function(){
+            var dp = $('.frequency_');
+            var result = dp.val();
+            dp.change(function(){
+                result = $(this).val();
+            });
+
+            return result;
+        },
+        wage_type = function(){
+            var dp = $('.wage_type_');
+            var result = dp.val();
+            dp.change(function(){
+                result = $(this).val();
+            });
+
+            return result;
+        };
         fu.uploadify({
             'auto'     : false,
             'fileSizeLimit' : '10000KB',
             'fileTypeExts' : '*.xls',
             'buttonText': 'Browse...',
-            'formData' : {
-                start_date: $('#start_date').val(),
-                end_date: $('#end_date').val(),
-                wage_type: $('.wage_type').val()
-            },
             'multi'    : false,
             'queueSizeLimit' : 1,
             'swf':  bu + 'uploadify/uploadify.swf',
@@ -71,6 +97,12 @@
             'onUploadStart' : function(file) {
                 $(this).newForm.addLoadingForm();
                 $('.uploadBtn').addClass('disabled');
+                fu.uploadify("settings", 'formData',{
+                    start_date: $('#start_date').val(),
+                    end_date: $('#end_date').val(),
+                    wage_type: wage_type(),
+                    frequency: frequency()
+                });
             },
             'onUploadSuccess' : function(file, data, response) {
                 $(this).newForm.removeLoadingForm();

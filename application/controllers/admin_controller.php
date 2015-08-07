@@ -357,9 +357,34 @@ class Admin_Controller extends Subbie{
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
+        $this->my_model->setNormalized('holiday_type','id');
+        $this->my_model->setSelectFields(array('id','holiday_type'));
+        $this->data['holiday'] = $this->my_model->getInfo('tbl_holiday_type');
+        $this->data['holiday'][''] = '-';
+
+        ksort($this->data['holiday']);
+
         $this->data['dtr'] = array();
         $this->data['job_assign'] = array();
         $this->data['job'] = '';
+
+        //$tuesday = date('d',strtotime('last Tuesday'));
+        //$thisDay = date('N') == 2 ? date('d') : $tuesday;
+        if(isset($_POST['search'])){
+            $this->data['thisYear'] = $_POST['year'];
+            $this->data['thisMonth'] = $_POST['month'];
+            $this->data['thisWeek'] = $_POST['week'];
+            $this->session->set_userdata(array(
+                'year' => $_POST['year'],
+                'month' => $_POST['month'],
+                'week' => $_POST['week']
+            ));
+            redirect('timeSheetEdit');
+        }
+        $this->data['thisYear'] = $this->session->userdata('year') != '' ? $this->session->userdata('year') : date('Y');
+        $this->data['thisMonth'] = $this->session->userdata('month') != '' ? $this->session->userdata('month') : date('m');
+        $this->data['thisWeek'] = $this->session->userdata('week') != '' ? $this->session->userdata('week') : date('W');
+
         $this->my_model->setJoin(array(
             'table' => array('tbl_registration','tbl_client'),
             'join_field' => array('id','id'),
@@ -384,10 +409,27 @@ class Admin_Controller extends Subbie{
         $job = $this->my_model->getInfo('tbl_registration');
         $this->data['staff'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
 
+        $this->my_model->setJoin(array(
+            'table' => array(
+               'tbl_holiday_type as holiday_tbl',
+               'tbl_holiday_type as sick_leave_tbl'
+            ),
+            'join_field' => array('id','id'),
+            'source_field' => array(
+               'tbl_login_sheet.holiday_type_id',
+               'tbl_login_sheet.sick_leave_type_id',
+
+            ),
+            'type' => 'left',
+            'join_append' => array(
+                'holiday_tbl','sick_leave_tbl'
+            )
+        ));
         $this->my_model->setSelectFields(array(
             'TIMESTAMPDIFF(SECOND, time_in, time_out) as hours',
             'time_in','time_out','staff_id','date',
-            'id as dtr_id','working_type_id'
+           'tbl_login_sheet.id as dtr_id','working_type_id','holiday_type_id','sick_leave_type_id',
+            'holiday_tbl.hours as holiday_hours','sick_leave_tbl.hours as sick_hours'
         ));
         $dtr = $this->my_model->getinfo('tbl_login_sheet');
         if(count($job)>0){
@@ -396,40 +438,21 @@ class Admin_Controller extends Subbie{
             }
         }
 
-        $tuesday = date('d',strtotime('last Tuesday'));
-        $thisDay = date('N') == 2 ? date('d') : $tuesday;
-        if(isset($_POST['search'])){
-            $this->data['thisYear'] = $_POST['year'];
-            $this->data['thisMonth'] = $_POST['month'];
-            $this->data['thisDay'] = date('d',strtotime($_POST['days']));
-            $this->session->set_userdata(array(
-                'year' => $_POST['year'],
-                'month' => $_POST['month'],
-                'day' => $this->data['thisDay']
-            ));
-            //$this->displayarray($this->session->userdata('year'));exit;
-        }
-        $this->data['thisYear'] = $this->session->userdata('year') != '' ? $this->session->userdata('year') : date('Y');
-        $this->data['thisMonth'] = $this->session->userdata('month') != '' ? $this->session->userdata('month') : date('m');
-        $this->data['thisDay'] = $this->session->userdata('day') != '' ? $this->session->userdata('day') : $thisDay;
+        $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $this_week = $this->getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $whatVal = array(
+            $this->data['thisWeek'],
+            $this_week[$this->data['thisWeek']]
+        );
+        $whatFld = array('week_num','date');
+        $this->my_model->setShift();
+        $this->data['pay_period'] = (Object)$this->my_model->getInfo('tbl_week_pay_period',$whatVal,$whatFld);
 
-        $this->getNumberOfWeeks($this->data['thisYear'],$this->data['thisMonth']);
-        //$this->displayarray($this->data['days']);exit;
-
-        $date = mktime(0, 0, 0, $this->data['thisMonth'],$this->data['thisDay'],$this->data['thisYear']);
-        $this->getWeekDays($this->data['thisMonth'],$this->data['thisDay'],$this->data['thisYear']);
-        //$this->displayarray($this->data['days_of_week']);
-
-        $this->data['week_number'] = (int)date('W', $date);
+        $dt = new DateTime();
 
         if(isset($_POST['submit'])){
-            $date = mktime(0, 0, 0, $_POST['month'],date('d',strtotime($_POST['days'])),$_POST['year']);
-            //$str_date = $_POST['year'] . "-" . $_POST['month'] . "-" . $_POST['days'];
-            $week = (int)date('W', $date);
-            $dt = new DateTime();
-
-            for($whatDay=2; $whatDay<=8; $whatDay++){
-                $getDate =  $dt->setISODate($_POST['year'], $week , $whatDay)->format('Y-m-d');
+            for($whatDay=1; $whatDay<=8; $whatDay++){
+                $getDate =  $dt->setISODate($_POST['year'], $_POST['week'] , $whatDay)->format('Y-m-d');
                 $d = date('j',strtotime($getDate));
                 if(count($this->data['staff']) >0){
                     foreach($this->data['staff'] as $staff){
@@ -437,40 +460,39 @@ class Admin_Controller extends Subbie{
 
                         $this->my_model->setLastId('id');
                         $id = (int)$this->my_model->getinfo('tbl_login_sheet',array($staff->id,$getDate),array('staff_id','date'));
+                        $user_id = $this->session->userdata('user_id');
+                        if(@$_POST['holiday_type_id'][$staff->id][$getDate]){
+                            $post = array(
+                                'staff_id' => $staff->id,
+                                'date' => $getDate,
+                                'working_type_id' => 2,
+                                'user_id' => $user_id,
+                                'holiday_type_id' => $_POST['holiday_type_id'][$staff->id][$getDate]
+                            );
 
-                        $exclude_day = array(6,7);
-                        if($_POST['working_type'][$getDate] == 2){
-                            $whatSpecificDay = date('N',strtotime($getDate));
-                            if($staff->id != 4){
-                                if(in_array($whatSpecificDay,$exclude_day)){
-                                    $post = array(
-                                        'staff_id' => $staff->id,
-                                        'date' => $getDate,
-                                        'time_in' => $getDate.' 00:00:00',
-                                        'time_out' => $getDate.' 00:00:00',
-                                        'working_type_id' => $_POST['working_type'][$getDate]
-                                    );
-                                }else{
-                                    $post = array(
-                                        'staff_id' => $staff->id,
-                                        'date' => $getDate,
-                                        'time_in' => $getDate.' 08:00:00',
-                                        'time_out' => $getDate.' 12:00:00',
-                                        'working_type_id' => $_POST['working_type'][$getDate]
-                                    );
-                                }
+                            if(count($hasVal) >0){
+                                $this->my_model->update('tbl_login_sheet',$post,$id);
+                            }else{
+                                $this_id = $this->my_model->insert('tbl_login_sheet',$post);
+                            }
+                        }
+                        if(@$_POST['sick_leave_type_id'][$staff->id][$getDate]){
+                            $post = array(
+                                'staff_id' => $staff->id,
+                                'date' => $getDate,
+                                'user_id' => $user_id,
+                                'working_type_id' => 2,
+                                'sick_leave_type_id' => $_POST['sick_leave_type_id'][$staff->id][$getDate]
+                            );
 
-
-                                if(count($hasVal) >0){
-                                    $this->my_model->update('tbl_login_sheet',$post,$id);
-                                }else{
-                                    $this_id = $this->my_model->insert('tbl_login_sheet',$post);
-                                }
+                            if(count($hasVal) >0){
+                                $this->my_model->update('tbl_login_sheet',$post,$id);
+                            }else{
+                                $this_id = $this->my_model->insert('tbl_login_sheet',$post);
                             }
                         }
 
                         if(isset($_POST['time_in_'.$staff->id])){
-                            //echo $id;exit;
                             if(@$_POST['time_in_'.$staff->id][$d] != ''){
                                 $str_hours = str_split(@$_POST['time_in_'.$staff->id][$d],2);
                                 $str_hours[0] = $str_hours[0] > 23 ? '00' : $str_hours[0];
@@ -479,7 +501,7 @@ class Admin_Controller extends Subbie{
                                     'staff_id' => $staff->id,
                                     'date' => $getDate,
                                     'time_in' => $getDate.' '.$str_hours[0].':'.$str_hours[1].':00',
-                                    'working_type_id' => $_POST['working_type'][$getDate] ? $_POST['working_type'][$getDate] : 1
+                                    'working_type_id' => 1
                                 );
                                 if(count($hasVal) >0){
                                     $this->my_model->update('tbl_login_sheet',$post,$id);
@@ -489,8 +511,8 @@ class Admin_Controller extends Subbie{
                             }
                             if(@$_POST['time_out_'.$staff->id][$d] != ''){
                                 $str_hours = str_split(@$_POST['time_out_'.$staff->id][$d],2);
-                                $str_hours[0] = $str_hours[0] > 23 ? '00' : $str_hours[0];
-                                $str_hours[1] = $str_hours[1] > 59 ? '00' : $str_hours[1];
+                                $str_hours[0] = $str_hours[0] ? ($str_hours[0] > 23 ? '00' : $str_hours[0]) : '00';
+                                $str_hours[1] = $str_hours[1] ? ($str_hours[1] > 59 ? '00' : $str_hours[1]) : '00';
                                 $post = array(
                                     'time_out' => $getDate.' '.$str_hours[0].':'.$str_hours[1].':00'
                                 );
@@ -501,8 +523,63 @@ class Admin_Controller extends Subbie{
                     }
                 }
             }
+            $_this_date = date('Y-m-d',strtotime($this_week[$this->data['thisWeek']]));
+            $whatVal = array(
+                $this->data['thisWeek'],
+                $_this_date
+            );
+            $whatFld = array('week_num','date');
+            $week_pay_data = $this->my_model->getInfo('tbl_week_pay_period',$whatVal,$whatFld);
+
+            $_data = $this->getTotalStaffData($_this_date);
+            if(count($week_pay_data) > 0){
+                foreach($week_pay_data as $val){
+                    $post = array(
+                        'staff_count' => $_data['staff_count'],
+                        'total_wage' => $_data['wage_total'],
+                        'total_paye' => $_data['paye_total']
+                    );
+                    $this->my_model->update('tbl_week_pay_period',$post,$val->id);
+                }
+            }else{
+                $post = array(
+                    'week_num' => $this->data['thisWeek'],
+                    'date' => $_this_date,
+                    'staff_count' => $_data['staff_count'],
+                    'total_wage' => $_data['wage_total'],
+                    'total_paye' => $_data['paye_total']
+                );
+                $this->my_model->insert('tbl_week_pay_period',$post);
+            }
             redirect('timeSheetEdit');
         }
+
+        if(isset($_POST['commit'])){
+            $post = array(
+                'is_locked' => 1
+            );
+            $this->my_model->update('tbl_week_pay_period',$post,$this->data['pay_period']->id);
+            $msg = 'Good day. <br/>Here is the attach file for Pay Period Summary Report from ';
+            $msg .= '<strong>'.date('j F Y',strtotime($this_week[$this->data['thisWeek']])) .' to '.date('j F Y',strtotime('+6 days '.$this_week[$this->data['thisWeek']])).'</strong>.';
+
+            $this_date = $this_week[$this->data['thisWeek']];
+            $this_range = date('Y/F',mktime(0,0,0,$this->data['thisMonth'],1,$this->data['thisYear']));
+
+            $result = $this->payPeriodSentEmail($this_date,$this_range,$msg);
+            if(count($result) > 0){
+                $post = array(
+                    'user_id' => $this->session->userdata('user_id'),
+                    'message' => json_encode($result['mail_settings']),
+                    'email_type' => 'Report',
+                    'type' => $result['result']->type,
+                    'debug' => $result['mail_settings']->debug,
+                    'date' => date('Y-m-d H:i:s')
+                );
+
+                $this->my_model->insert('tbl_email_log',$post,false);
+            }
+        }
+
 
         if(count($job_assign) > 0){
             foreach($job_assign as $jv){
@@ -512,14 +589,11 @@ class Admin_Controller extends Subbie{
                 );
             }
         }
-        //$this->displayarray($this->data['job_assign']);
+
         $this->data['working'] = array();
         if(count($dtr) > 0){
             foreach($dtr as $v){
-                //$minutes = (int)($v->hours/60);
                 $hoursValue = number_format(($v->hours/3600),2);
-                //$minutesValue = $minutes - ($hoursValue * 60);
-                //$secondsValue = $v->hours - (($hoursValue * 3600) + ($minutesValue * 60));
                 $hours = $hoursValue;
 
                 $this->data['dtr'][$v->staff_id][$v->date] = array(
@@ -527,6 +601,10 @@ class Admin_Controller extends Subbie{
                     'time_out' => $v->time_out != '' ? date('Hi',strtotime($v->time_out)) : '',
                     'hours' => $hours != '00.00' ? $hours : '&nbsp;',
                     'seconds' => $v->hours,
+                    'sick_leave_type_id' => $v->sick_leave_type_id,
+                    'holiday_type_id' => $v->holiday_type_id,
+                    'sick_hours' => $v->sick_hours,
+                    'holiday_hours' => $v->holiday_hours,
                     'dtr_id' => $v->dtr_id,
                     'date' => $v->date
                 );
@@ -542,6 +620,78 @@ class Admin_Controller extends Subbie{
 
         $this->data['page_load'] = 'backend/dtr/new_edit_dtr_view';
         $this->load->view('main_view',$this->data);
+    }
+
+    function timeSheetDefault(){
+        if($this->session->userdata('is_logged_in') == false){
+            redirect('');
+        }
+
+        $this->data['year'] = $this->getYear();
+        if(isset($_POST['search'])){
+            $this->session->set_userdata(array(
+                'year_data'=> $_POST['year']
+            ));
+            redirect('timeSheetDefault');
+        }
+        $year_session = $this->session->userdata('year_data');
+        $this->data['thisYear'] = $year_session ? $year_session : date('Y');
+        if(isset($_GET['json']) && $_GET['json'] == 1){
+            ini_set("memory_limit","512M");
+            set_time_limit(90000);
+            header("Content-type: application/json");
+
+            $week_in_year = $this->getWeekInYear($this->data['thisYear']);
+            $json = array();
+            $ref = 1;
+
+            if(count($week_in_year) > 0){
+                foreach($week_in_year as $week=>$date){
+                    $pay_period = date('M d/y',strtotime($date));
+                    $pay_period .= '-' . date('M d/y',strtotime('+6 days '.$date));
+                    $whatVal = array($week,$date);
+                    $whatFld = array('week_num','date');
+                    $this->my_model->setGroupBy('date');
+                    $has_week_pay = $this->my_model->getInfo('tbl_week_pay_period',$whatVal,$whatFld);
+
+                    if(count($has_week_pay) > 0){
+                        foreach($has_week_pay as $val){
+                            $json[] = array(
+                                'id' => $ref,
+                                'week_num' => str_pad($week,2,'0',STR_PAD_LEFT),
+                                'pay_period' => $pay_period,
+                                'no_employee' => $val->staff_count,
+                                'locked' => $val->is_locked ? 'Yes' : 'No',
+                                'year' => date('Y',strtotime($val->date)),
+                                'month' => date('m',strtotime($val->date)),
+                                'is_locked' => $val->is_locked ? 1 : 0,
+                                'total_pay' => '$'.number_format($val->total_wage,2),
+                                'total_paye' => '$'.number_format($val->total_paye,2),
+                            );
+                        }
+                    }else{
+                        $json[] = array(
+                            'id' => $ref,
+                            'week_num' => str_pad($week,2,'0',STR_PAD_LEFT),
+                            'pay_period' => $pay_period,
+                            'no_employee' => 0,
+                            'locked' => 'No',
+                            'year' => date('Y',strtotime($date)),
+                            'month' => date('m',strtotime($date)),
+                            'is_locked' => 0,
+                            'total_pay' => '$0.00',
+                            'total_paye' => '$0.00',
+                        );
+                    }
+
+                    $ref++;
+                }
+            }
+            echo json_encode($json);
+        }else{
+            $this->data['page_load'] = 'backend/dtr/time_sheet_view';
+            $this->load->view('main_view',$this->data);
+        }
     }
 
     function absentReason(){
@@ -1236,9 +1386,6 @@ class Admin_Controller extends Subbie{
         $this->data['invoice_list'] = array();
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
-        $this->data['whatYear'] = date('Y');
-        $this->data['whatMonth'] = date('m');
-        $this->data['client_key'] = '';
 
         $this->my_model->setNormalized('client_name','id');
         $this->my_model->setSelectFields(array('id','client_name'));
@@ -1247,23 +1394,30 @@ class Admin_Controller extends Subbie{
 
         ksort($this->data['client']);
 
-        $date = $this->data['whatYear'].'-'.$this->data['whatMonth'];
-        $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
-
         if(isset($_POST['submit'])){
-            $this->data['whatYear'] = $_POST['year'];
-            $this->data['whatMonth'] = $_POST['month'];
-            $this->data['client_key'] = $_POST['client'];
+            $this->session->set_userdata(array(
+                'whatYear' => $_POST['year'],
+                'whatMonth' => $_POST['month'],
+                'client_key' => $_POST['client'],
+                'type' => $_POST['type']
+            ));
+            redirect('archiveInvoice');
+        }
 
-            $date = $_POST['year'].'-'.$_POST['month'];
-            if($_POST['type'] == 1){
-                $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$_POST['year'].'%"';
-            }else{
-                $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
-            }
-            if($_POST['client'] != ''){
-                $whatVal .= ' AND tbl_pdf_archive.client_id ="'.$_POST['client'].'"';
-            }
+        $this->data['whatYear'] = $this->session->userdata('whatYear') ? $this->session->userdata('whatYear') : date('Y');
+        $this->data['whatMonth'] = $this->session->userdata('whatMonth') ? $this->session->userdata('whatMonth') : date('m');
+        $this->data['client_key'] = $this->session->userdata('client_key') ? $this->session->userdata('client_key') : '';
+        $this->data['type'] = $this->session->userdata('type') ? $this->session->userdata('type') : 2;
+
+        $date = $this->data['whatYear'].'-'.$this->data['whatMonth'];
+
+        if($this->data['type'] == 1){
+            $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$this->data['whatYear'].'%"';
+        }else{
+            $whatVal = 'tbl_pdf_archive.type = "invoice" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
+        }
+        if($this->data['client_key'] != ''){
+            $whatVal .= ' AND tbl_pdf_archive.client_id ="'.$this->data['client_key'].'"';
         }
 
         $this->my_model->setJoin(array(
@@ -1278,6 +1432,7 @@ class Admin_Controller extends Subbie{
         $fields[] = 'tbl_client.client_code';
 
         $this->my_model->setSelectFields($fields);
+        $this->my_model->setGroupBy('inv_ref');
         $invoice_list = $this->my_model->getInfo('tbl_pdf_archive',$whatVal,'');
 
         if(count($invoice_list) > 0 ){
@@ -1285,11 +1440,16 @@ class Admin_Controller extends Subbie{
                 $file_name = explode(' ',$v->file_name);
                 $this->my_model->setShift();
                 $getAmount = @(Object)$this->my_model->getInfo('tbl_statement',array($file_name[0],'INVOICE'),array('reference','type'));
+
+                $this->my_model->setShift();
+                $invoice = @(Object)$this->my_model->getInfo('tbl_invoice',array($file_name[0],$v->client_id),array('inv_ref','client_id'));
+                $job_name_ = @$invoice->job_name ? explode("\n",@$invoice->job_name) : array();
                 $this->data['invoice_list'][date('m/Y',strtotime($v->date))][] = (object)array(
                     'id' => $v->id,
                     'file_name' => $v->file_name,
                     'date' => $v->date,
                     'archive_date' => $v->archive_date,
+                    'job_name' => count($job_name_) > 0 ? $job_name_[0] : '',
                     'amount' => @number_format(@$getAmount->debits,2),
                     'original_amount' => @$getAmount->debits,
                     'client_name' => $v->client_name,
@@ -1298,7 +1458,6 @@ class Admin_Controller extends Subbie{
                 );
             }
         }
-
         $this->data['page_load'] = 'backend/invoice/archive_invoice_view';
         $this->load->view('main_view',$this->data);
     }
@@ -1488,6 +1647,114 @@ class Admin_Controller extends Subbie{
                     $this->my_model->update('tbl_template',$_POST,$id);
                     redirect('textTemplate');
                 }
+                break;
+            default:
+                break;
+        }
+    }
+
+    function userList(){
+
+        $this->my_model->setNormalized('account_type','account_type');
+        $this->my_model->setSelectFields(array('id','account_type'));
+        $this->data['account_type'] = $this->my_model->getInfo('tbl_account_type');
+        $this->data['account_type'][''] = 'All Account Type';
+
+        ksort($this->data['account_type']);
+
+        $this->data['status'][''] = 'Show All';
+        $this->data['status']['1'] = 'Active';
+        $this->data['status']['0'] = 'InActive';
+
+        ksort($this->data['status']);
+
+        $this->my_model->setSelectFields(
+            array(
+                'tbl_user.id',
+                'tbl_user.name',
+                'tbl_user.username',
+                'tbl_user.email',
+                'IF(tbl_user.date_registered != "0000-00-00",DATE_FORMAT(tbl_user.date_registered,"%d-%m-%Y"),"") as date_registered',
+                'tbl_user.is_active',
+                'tbl_user.account_type as account_type_id',
+                'tbl_account_type.account_type'
+            )
+        );
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_account_type'),
+            'join_field' => array('id'),
+            'source_field' => array('tbl_user.account_type'),
+            'type' => 'left'
+        ));
+
+        $users = $this->my_model->getInfo('tbl_user');
+        $this->data['users'] = json_encode($users);
+
+        $this->data['page_load'] = 'backend/user/user_management_view';
+        $this->load->view('main_view',$this->data);
+    }
+
+    function manageUser(){
+
+        $page = $this->uri->segment(2);
+
+        if(!$page){
+            exit;
+        }
+
+        $this->my_model->setNormalized('account_type','id');
+        $this->my_model->setSelectFields(array('id','account_type'));
+        $this->data['account_type'] = $this->my_model->getInfo('tbl_account_type');
+
+        ksort($this->data['account_type']);
+
+        switch($page){
+            case 'add':
+                if(isset($_POST['submit'])){
+                    unset($_POST['submit']);
+
+                    $_POST['date_registered'] = date('Y-m-d');
+                    $_POST['password'] = $this->encrypt->encode($_POST['password']);
+
+                    $this->my_model->insert('tbl_user',$_POST);
+                    
+                    redirect('userList');
+                }
+
+                $this->load->view('backend/user/add_user_view',$this->data);
+                break;
+            case 'edit':
+                $id = $this->uri->segment(3);
+
+                if(!$id){
+                    exit;
+                }
+
+                $this->data['user'] = $this->my_model->getInfo('tbl_user',$id);
+                $this->load->view('backend/user/edit_user_view',$this->data);
+                if(isset($_POST['submit'])){
+                    unset($_POST['submit']);
+
+                    $_POST['password'] = $this->encrypt->encode($_POST['password']);
+
+                    $this->my_model->update('tbl_user',$_POST,$id);
+                    redirect('userList');
+                }
+                break;
+            case 'delete':
+                $id = $this->uri->segment(3);
+
+                if(!$id){
+                    exit;
+                }
+
+                if(isset($_POST['submit'])){
+                    unset($_POST['submit']);
+                    $this->my_model->delete('tbl_user',$id);
+
+                    redirect('userList');
+                }
+                $this->load->view('backend/user/delete_user_view',$this->data);
                 break;
             default:
                 break;

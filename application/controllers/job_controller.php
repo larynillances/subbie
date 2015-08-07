@@ -7,6 +7,7 @@ class Job_Controller extends Subbie{
         if($this->session->userdata('is_logged_in') == false){
             redirect('');
         }
+
         $this->my_model->setJoin(array(
             'table' => array(
                 'tbl_client',
@@ -583,7 +584,7 @@ class Job_Controller extends Subbie{
 
                 $this->data['statement_data'][$date][] = (object)array(
                     'id' => $v->id,
-                    'job_ref' => $invoice->job_ref,
+                    'job_ref' => @$invoice->job_ref,
                     'date' => $date,
                     'type' => $v->type,
                     'reference' => $v->reference,
@@ -843,11 +844,25 @@ class Job_Controller extends Subbie{
         $this->data['client_data'] = $this->my_model->getInfo('tbl_client',$id);
 
         if(isset($_POST['archive'])){
+            $this->data['dir'] = 'pdf/credit note/'.date('Y').'/'.date('F');
+            if(!is_dir($this->data['dir'])){
+                mkdir($this->data['dir'], 0777, TRUE);
+            }
+            $this->data['file_name'] = 'CREDIT_NOTE_'.$this->data['credit_ref'].'_'.date('Ymd_Hi');
+            $post = array(
+                'client_id' => $id,
+                'file_name' => $this->data['file_name'].'.pdf',
+                'type' => 'credit',
+                'date' => date('Y-m-d')
+            );
+            $this->my_model->insert('tbl_pdf_archive',$post);
+            $this->load->view('backend/credit_note/print_credit_note_view',$this->data);
+
             $this->my_model->update('tbl_credit_note',array('is_archived' => true),$id,'client_id');
             $post = array(
                 'date' => date('Y-m-d'),
                 'type' => 'CREDIT NOTE',
-                'reference' => $this->data['credit_ref'].'( '.$_POST['reference'].' )',
+                'reference' => $this->data['credit_ref'].' ('.$_POST['reference'].')',
                 'credits' => $_POST['total'],
                 'client_id' => $id
             );
@@ -860,9 +875,10 @@ class Job_Controller extends Subbie{
             if(!is_dir($this->data['dir'])){
                 mkdir($this->data['dir'], 0777, TRUE);
             }
+            $this->data['file_name'] = 'CREDIT_NOTE_'.$this->data['credit_ref'].'_'.date('Ymd_Hi');
             $post = array(
                 'client_id' => $id,
-                'file_name' => 'Credit Note '.date('d-F-y').'.pdf',
+                'file_name' => $this->data['file_name'].'.pdf',
                 'type' => 'credit',
                 'date' => date('Y-m-d')
             );
@@ -870,6 +886,83 @@ class Job_Controller extends Subbie{
             $this->load->view('backend/credit_note/print_credit_note_view',$this->data);
         }
         $this->data['page_load'] = 'backend/credit_note/credit_note_view';
+        $this->load->view('main_view',$this->data);
+    }
+
+    function archiveCreditNote(){
+        if($this->session->userdata('is_logged_in') == false){
+            redirect('');
+        }
+        $this->data['invoice_list'] = array();
+        $this->data['year'] = $this->getYear();
+        $this->data['month'] = $this->getMonth();
+        $this->data['whatYear'] = date('Y');
+        $this->data['whatMonth'] = date('m');
+        $this->data['client_key'] = '';
+
+        $this->my_model->setNormalized('client_name','id');
+        $this->my_model->setSelectFields(array('id','client_name'));
+        $this->data['client'] = $this->my_model->getInfo('tbl_client',true,'is_exclude !=');
+        $this->data['client'][''] = 'Select All';
+
+        ksort($this->data['client']);
+
+        $date = $this->data['whatYear'].'-'.$this->data['whatMonth'];
+        $whatVal = 'tbl_pdf_archive.type = "credit" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
+
+        if(isset($_POST['submit'])){
+            $this->data['whatYear'] = $_POST['year'];
+            $this->data['whatMonth'] = $_POST['month'];
+            $this->data['client_key'] = $_POST['client'];
+
+            $date = $_POST['year'].'-'.$_POST['month'];
+            if($_POST['type'] == 1){
+                $whatVal = 'tbl_pdf_archive.type = "credit" AND tbl_pdf_archive.date LIKE "%'.$_POST['year'].'%"';
+            }else{
+                $whatVal = 'tbl_pdf_archive.type = "credit" AND tbl_pdf_archive.date LIKE "%'.$date.'%"';
+            }
+            if($_POST['client'] != ''){
+                $whatVal .= ' AND tbl_pdf_archive.client_id ="'.$_POST['client'].'"';
+            }
+        }
+
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_client','tbl_credit_note','tbl_invoice'),
+            'join_field' => array('id','client_id','id'),
+            'source_field' => array('tbl_pdf_archive.client_id','tbl_pdf_archive.client_id','tbl_credit_note.invoice_id'),
+            'type' => 'left'
+        ));
+        $fields = $this->arrayWalk(array('id','file_name','client_id','type','date','download'),'tbl_pdf_archive.');
+        $fields[] = 'DATE_FORMAT(tbl_pdf_archive.date,"%d/%m/%Y") as archive_date';
+        $fields[] = 'tbl_client.client_name';
+        $fields[] = 'tbl_client.client_code';
+        $fields[] = 'tbl_credit_note.inv_ref';
+        $fields[] = 'tbl_credit_note.invoice_id';
+
+        $this->my_model->setSelectFields($fields);
+        $this->my_model->setGroupBy('invoice_id');
+        $invoice_list = $this->my_model->getInfo('tbl_pdf_archive',$whatVal,'');
+
+        if(count($invoice_list) > 0 ){
+            foreach($invoice_list as $v){
+                $file_name = explode('_',$v->file_name);
+                $whatVal = 'reference LIKE "%'.$file_name[2].'%" AND type="CREDIT NOTE"';
+                $this->my_model->setShift();
+                $getAmount = @(Object)$this->my_model->getInfo('tbl_statement',$whatVal,'');
+                $this->data['invoice_list'][date('m/Y',strtotime($v->date))][] = (object)array(
+                    'id' => $v->id,
+                    'file_name' => $v->file_name,
+                    'date' => $v->date,
+                    'archive_date' => $v->archive_date,
+                    'amount' => @number_format(@$getAmount->credits,2),
+                    'original_amount' => @$getAmount->credits,
+                    'client_name' => $v->client_name,
+                    'client_code' => $v->client_code,
+                    'client_id' => $v->client_id
+                );
+            }
+        }
+        $this->data['page_load'] = 'backend/credit_note/archive_credit_note_view';
         $this->load->view('main_view',$this->data);
     }
 
@@ -884,7 +977,12 @@ class Job_Controller extends Subbie{
             exit;
         }
 
-        $this->my_model->setNormalized('job_ref','id');
+        $this->my_model->setNormalized('inv_ref','inv_ref');
+        $this->my_model->setSelectFields(array('id', 'inv_ref'),false);
+        $whatVal = array($id,'');
+        $whatFld = array('tbl_invoice.client_id','tbl_invoice.inv_ref !=');
+        $this->data['inv_ref'] = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
+
         $this->my_model->setJoin(array(
             'table' => array('tbl_client'),
             'join_field' => array('id'),
@@ -894,6 +992,7 @@ class Job_Controller extends Subbie{
         $this->my_model->setSelectFields(
             array(
                 'tbl_invoice.id',
+                'tbl_invoice.inv_ref',
                 'IF(tbl_invoice.job_id != 0 ,
                             CONCAT(tbl_client.client_code,LPAD(tbl_invoice.job_id, 5,"0")),
                             CONCAT(tbl_client.client_code,LPAD(tbl_invoice.id, 5,"0"),"-I")
@@ -901,26 +1000,41 @@ class Job_Controller extends Subbie{
                     as job_ref'
             ),false
         );
-        $this->data['job_list'] = $this->my_model->getInfo('tbl_invoice',$id,'tbl_invoice.client_id');
-
+        $job_list = $this->my_model->getInfo('tbl_invoice',$id,'tbl_invoice.client_id');
+        $job_list_ = array();
+        if(count($job_list) > 0){
+            foreach($job_list as $row){
+                $job_list_[$row->inv_ref][1][$row->id] = $row->job_ref;
+            }
+        }
+        $this->data['job_list_json'] = json_encode($job_list_);
         switch($action){
             case 'add':
                 $this->load->view('backend/credit_note/add_credit_note',$this->data);
+                if(isset($_POST['submit'])){
+                    unset($_POST['submit']);
+                    $_POST['date'] = date('Y-m-d');
+                    $_POST['client_id'] = $id;
+
+                    $this->my_model->insert('tbl_credit_note',$_POST);
+                    redirect('creditNote/'.$id);
+                }
                 break;
             case 'edit':
+                $_id = $this->uri->segment(4);
+                $this->my_model->setShift();
+                $this->data['credit_note'] = (Object)$this->my_model->getInfo('tbl_credit_note',$_id);
+                $this->load->view('backend/credit_note/edit_credit_note',$this->data);
+                if(isset($_POST['submit'])){
+                    unset($_POST['submit']);
+                    $this->my_model->update('tbl_credit_note',$_POST,$_id);
+                    redirect('creditNote/'.$id);
+                }
                 break;
             default:
                 break;
         }
 
-        if(isset($_POST['submit'])){
-            unset($_POST['submit']);
-            $_POST['date'] = date('Y-m-d');
-            $_POST['client_id'] = $id;
-
-            $this->my_model->insert('tbl_credit_note',$_POST);
-            redirect('creditNote/'.$id);
-        }
     }
 
     function newJobRequestForm(){
@@ -1462,5 +1576,13 @@ class Job_Controller extends Subbie{
         }
 
         echo json_encode(array('success' => 1, 'result' => $out));
+    }
+
+    function jobQuoting(){
+        if($this->session->userdata('is_logged_in') == false){
+            redirect('');
+        }
+        $this->data['page_load'] = 'backend/quote/job_quoting_view';
+        $this->load->view('main_view',$this->data);
     }
 }

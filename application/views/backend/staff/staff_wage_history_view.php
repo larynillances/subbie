@@ -69,7 +69,9 @@ $uri2 = $this->uri->segment(2);
             <th>Week</th>
             <th>Hours</th>
             <th>Gross</th>
-            <th>Tax</th>
+            <th>PAYE</th>
+            <th>Kiwi</th>
+            <th>ST Loan</th>
             <th>Flight</th>
             <th>Visa</th>
             <th>Accom</th>
@@ -144,6 +146,8 @@ $uri2 = $this->uri->segment(2);
                             @$total['hours'] += $data['hours'];
                             @$total['gross'] += floatval(str_replace('$','',$data['gross']));
                             @$total['tax'] += floatval(str_replace('$','',$data['tax']));
+                            @$total['kiwi'] += floatval(str_replace('$','',$data['kiwi']));
+                            @$total['st_loan'] += floatval(str_replace('$','',$data['st_loan']));
                             @$total['flight'] += floatval(str_replace('$','',$flight));
                             @$total['visa'] += floatval(str_replace('$','',$visa));
                             @$total['accommodation'] += floatval(str_replace('$','',$data['accommodation']));
@@ -161,6 +165,8 @@ $uri2 = $this->uri->segment(2);
                             <td style="vertical-align: middle;"><?php echo $data['hours']?></td>
                             <td style="vertical-align: middle;"><?php echo $data['gross']?></td>
                             <td style="vertical-align: middle;"><?php echo $data['tax']?></td>
+                            <td style="vertical-align: middle;"><?php echo '$'.number_format($data['kiwi'],2)?></td>
+                            <td style="vertical-align: middle;"><?php echo '$'.number_format($data['st_loan'],2)?></td>
                             <td>
                                 <?php
                                 echo $flight != '' ? $flight.'<br/>' : '';
@@ -179,12 +185,12 @@ $uri2 = $this->uri->segment(2);
                             </td>
                             <td style="vertical-align: middle;"><?php echo $data['accommodation']?></td>
                             <td style="vertical-align: middle;"><?php echo $data['transport']?></td>
-                            <td style="vertical-align: middle;"><?php echo $data['recruit']?></td>
-                            <td style="vertical-align: middle;"><?php echo $data['admin']?></td>
+                            <td style="vertical-align: middle;"><?php echo $visa > 0 || $visa != '' ? $data['recruit'] : ''?></td>
+                            <td style="vertical-align: middle;"><?php echo $visa > 0 || $visa != '' ? $data['admin'] : ''?></td>
                             <td style="vertical-align: middle;">
                                 <?php
-                                echo $nett > 0 ? '$'.$nett
-                                    : '<strong class="value-class">$'.$nett.'</strong>';
+                                echo $nett > 0 ? '$'.number_format($nett,2)
+                                    : '<strong class="value-class">$'.number_format($nett,2).'</strong>';
                                 ?>
                             </td>
                             <td style="vertical-align: middle;">
@@ -199,15 +205,15 @@ $uri2 = $this->uri->segment(2);
                             </td>
                             <td style="vertical-align: middle;">
                                 <?php
-                                echo $distribution > 0 ? '$'.$distribution
-                                    : '<strong class="value-class">$'.$distribution.'</strong>';
+                                echo $distribution > 0 ? '$'.number_format($distribution,2)
+                                    : '<strong class="value-class">$'.number_format($distribution,2).'</strong>';
                                 ?>
                             </td>
                             <td style="vertical-align: middle;">
                                 <?php
                                 if(in_array($data['staff_id'],array(1,2,3)))
-                                    echo $account_one > 0 ? '$'.$account_one
-                                        : '<strong class="value-class">$'.$account_one.'</strong>';
+                                    echo $account_one > 0 ? '$'.number_format($account_one,2)
+                                        : '<strong class="value-class">$'.number_format($account_one,2).'</strong>';
                                 ?>
                             </td>
                             <td style="vertical-align: middle;">
@@ -220,7 +226,7 @@ $uri2 = $this->uri->segment(2);
                             </td>
                         <?php
                         else:
-                            for($i=1;$i<=15;$i++):
+                            for($i=1;$i<=17;$i++):
                                 echo '<td class="grey-background">&nbsp;</td>';
                             endfor;
                         endif;
@@ -257,6 +263,8 @@ $uri2 = $this->uri->segment(2);
                             @$total['hours'] += $data['hours'];
                             @$total['gross'] += floatval(str_replace('$','',$data['gross']));
                             @$total['tax'] += floatval(str_replace('$','',$data['tax']));
+                            @$total['kiwi'] += floatval(str_replace('$','',$data['kiwi']));
+                            @$total['st_loan'] += floatval(str_replace('$','',$data['st_loan']));
                             @$total['flight'] += floatval(str_replace('$','',$flight));
                             @$total['visa'] += floatval(str_replace('$','',$visa));
                             @$total['accommodation'] += floatval(str_replace('$','',$data['accommodation']));
@@ -274,6 +282,8 @@ $uri2 = $this->uri->segment(2);
                             <td style="vertical-align: middle;"><?php echo $data['hours']?></td>
                             <td style="vertical-align: middle;"><?php echo $data['gross']?></td>
                             <td style="vertical-align: middle;"><?php echo $data['tax']?></td>
+                            <td style="vertical-align: middle;"><?php echo '$'.number_format($data['kiwi'],2)?></td>
+                            <td style="vertical-align: middle;"><?php echo '$'.number_format($data['st_loan'],2)?></td>
                             <td>
                                 <?php
                                 echo $flight != '' ? $flight.'<br/>' : '';
@@ -292,8 +302,8 @@ $uri2 = $this->uri->segment(2);
                             </td>
                             <td style="vertical-align: middle;"><?php echo $data['accommodation']?></td>
                             <td style="vertical-align: middle;"><?php echo $data['transport']?></td>
-                            <td style="vertical-align: middle;"><?php echo $data['recruit']?></td>
-                            <td style="vertical-align: middle;"><?php echo $data['admin']?></td>
+                            <td style="vertical-align: middle;"><?php echo $visa > 0 || $visa != '' ? $data['recruit'] : ''?></td>
+                            <td style="vertical-align: middle;"><?php echo $visa > 0 || $visa != '' ? $data['admin'] : ''?></td>
                             <td style="vertical-align: middle;">
                                 <?php
                                 echo $nett > 0 ? '$'.$nett
@@ -333,7 +343,7 @@ $uri2 = $this->uri->segment(2);
                             </td>
                         <?php
                         else:
-                            for($i=1;$i<=15;$i++):
+                            for($i=1;$i<=17;$i++):
                                 echo '<td class="grey-background">&nbsp;</td>';
                             endfor;
                         endif;
@@ -358,7 +368,7 @@ $uri2 = $this->uri->segment(2);
                     $ref++;
                 }
             }else{
-                for($i=1;$i<=15;$i++){
+                for($i=1;$i<=17;$i++){
                     echo '<td><strong>$ 0.00</strong></td>';
                 }
             }

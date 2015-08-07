@@ -111,12 +111,15 @@ ob_start();
                 if(count($date) >0):
                     foreach($date as $v):
                         $this_date = $v;
+                        $_date = new DateTime($v);
+                        $week = $_date->format("W");
+                        $_what_date = $week != 30 ? date('d-m-Y',strtotime('+6 days'.$v)) : date('d-m-Y',strtotime('+5 days'.$v));
                         ?>
                         <tr>
                         <?php
                         $this_data = @$wage_data[$this_date];
                         ?>
-                        <td rowspan="<?php echo count($this_data)?>"><?php echo date('d-m-Y',strtotime('+6 days '.$v))?></td>
+                        <td rowspan="<?php echo count($this_data)?>"><?php echo $_what_date?></td>
                         <?php
                         $ref = 0;
                         if(count($this_data) >0):
@@ -126,7 +129,7 @@ ob_start();
                                 ?>
                                 <td class="column">
                                     <?php
-                                    echo $val['name'] != '' ? $val['name'].'<br/><strong>Tax: '.$val['tax_number'].'</strong>' :'';
+                                    echo $val['name'] != '' ? $val['name'].'<br/><strong>IRD No.: '.$val['tax_number'].'</strong>' :'';
                                     ?>
                                 </td>
                                 <?php

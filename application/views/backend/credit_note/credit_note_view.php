@@ -1,5 +1,5 @@
 <?php
-echo form_open('');
+echo form_open('','class="form-horizontal"');
 ?>
 <div class="row">
     <table style="width: 100%;">
@@ -60,7 +60,7 @@ echo form_open('');
                 <tr>
                     <td><?php echo $v->client_ref;?></td>
                     <td>
-                        <a href="#" class="edit-btn" id="<?php echo $v->id;?>" data-value="<?php echo $v->job_ref;?>"><?php echo $v->job_ref;?></a>
+                        <a href="#" class="edit-credit-btn" id="<?php echo $v->id;?>" data-value="<?php echo $v->job_ref;?>"><?php echo $v->job_ref;?></a>
                         <input type="hidden" name="reference" value="<?php echo $v->job_ref;?>">
                     </td>
                     <td style="text-align: left;padding-left: 20px!important;"><?php echo $v->job_id != 0 ? $v->reg_job_name : $v->job_name;?></td>
@@ -74,7 +74,7 @@ echo form_open('');
         ?>
         <?php
         $checkData = count($credit) == 0 ? '<a href="#" class="btn btn-primary add-credit"><span class="glyphicon glyphicon-plus"></span>  Add Credit</a>' :
-                                           '<input type="submit" name="archive" class="btn btn-primary" value="Archive">&nbsp;
+                                           '<a href="#" class="btn btn-primary archive-btn-class">Archive</a>
                                            <a href="'.base_url().'creditNote/'.$this->uri->segment(2).'?print=true" class="btn btn-primary print-btn" target="_blank">
                                            <span class="glyphicon glyphicon-print"></span> Print
                                            </a>';
@@ -140,6 +140,23 @@ echo form_close();
             $('.modal-title').html('Add Credit Note');
             content.load(url);
             $('.sm-modal').modal();
+        });
+        $('.edit-credit-btn').click(function(){
+            var url = bu + 'manageCreditNote/edit/<?php echo $this->uri->segment(2)?>/' + this.id;
+            $('.modal-title').html('Edit Credit Note');
+            content.load(url);
+            $('.sm-modal').modal();
+        });
+        $('.archive-btn-class').click(function(e){
+            e.preventDefault();
+            var data = $('.form-horizontal').serializeArray();
+            data.push({name:'archive',value:1});
+            $.post(bu + 'creditNote/<?php echo $this->uri->segment(2)?>',
+                data,
+                function(data){
+                    location.reload();
+                }
+            );
         });
     });
 </script>

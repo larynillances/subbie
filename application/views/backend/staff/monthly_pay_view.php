@@ -30,6 +30,8 @@ echo form_open('','class="form-horizontal" role="form"');
                 <th>Hours</th>
                 <th>Gross</th>
                 <th>Tax</th>
+                <th>Kiwi</th>
+                <th>ST Loan</th>
                 <th>Flight</th>
                 <th>Visa</th>
                 <th>Accom</th>
@@ -47,6 +49,8 @@ echo form_open('','class="form-horizontal" role="form"');
             <?php
             $hours = 0;
             $gross = 0;
+            $kiwi = 0;
+            $st_loan = 0;
             $tax = 0;
             $flight = 0;
             $visa = 0;
@@ -79,6 +83,8 @@ echo form_open('','class="form-horizontal" role="form"');
                                 $tax += $staff_data['tax'];
                                 $flight += $staff_data['flight'];
                                 $visa += $staff_data['visa'];
+                                $kiwi += $staff_data['kiwi'];
+                                $st_loan += $staff_data['st_loan'];
                                 $accommodation += $staff_data['accommodation'];
                                 $transport += $staff_data['transport'];
                                 $recruit += $staff_data['recruit'];
@@ -96,7 +102,9 @@ echo form_open('','class="form-horizontal" role="form"');
                                 ?>
                                 <td class="column"><?php echo $staff_data['hours'];?></td>
                                 <td class="column"><?php echo $staff_data['gross'] ? '$'.number_format($staff_data['gross'],2) : '';?></td>
-                                <td class="column"><?php echo $staff_data['gross'] != 0 ? '$'.number_format($staff_data['tax'],2) : '';?></td>
+                                <td class="column"><?php echo $staff_data['tax'] != 0 ? '$'.number_format($staff_data['tax'],2) : '';?></td>
+                                <td class="column"><?php echo $staff_data['kiwi'] != 0 ? '$'.number_format($staff_data['kiwi'],2) : '';?></td>
+                                <td class="column"><?php echo $staff_data['st_loan'] != 0 ? '$'.number_format($staff_data['st_loan'],2) : '';?></td>
                                 <td class="column">
                                     <?php
                                     echo $staff_data['flight'] != 0 ? '$'.number_format($staff_data['flight'],2) : '';
@@ -156,14 +164,14 @@ echo form_open('','class="form-horizontal" role="form"');
                                 </td>
                             <?php
                             else:
-                                for($i=0;$i<=13;$i++):
+                                for($i=0;$i<=15;$i++):
                                     ?>
                                     <td class="column"></td>
                                 <?php
                                 endfor;
                             endif;
                         else:
-                            for($i=0;$i<=13;$i++):
+                            for($i=0;$i<=15;$i++):
                                 ?>
                                 <td class="column"></td>
                             <?php
@@ -186,6 +194,8 @@ echo form_open('','class="form-horizontal" role="form"');
                 <td><?php echo $hours;?></td>
                 <td><?php echo '$'.number_format($gross,2);?></td>
                 <td><?php echo '$'.number_format($tax,2);?></td>
+                <td><?php echo '$'.number_format($kiwi,2);?></td>
+                <td><?php echo '$'.number_format($st_loan,2);?></td>
                 <td><?php echo '$'.number_format($flight,2);?></td>
                 <td><?php echo '$'.number_format($visa,2);?></td>
                 <td><?php echo '$'.number_format($accommodation,2);?></td>

@@ -146,6 +146,10 @@ if(count($info_array) >0){
             <?php
             $gross_total = 0;
             $tax_total = 0;
+            $st_loan_total = 0;
+            $kiwi_total = 0;
+            $emp_kiwi_total = 0;
+            $esct_total = 0;
             $ref = 0;
             if(count($staff) > 0):
                 foreach($staff as $v):
@@ -238,6 +242,11 @@ if(count($info_array) >0){
                                 if($staff_wage['hours'] != 0):
                                     $gross_total += $staff_wage['gross'];
                                     $tax_total += $staff_wage['tax'];
+                                    $st_loan_total += $staff_wage['st_loan'];
+                                    $kiwi_total += $staff_wage['kiwi'];
+                                    $emp_kiwi_total += $staff_wage['emp_kiwi'];
+                                    $esct_total += $staff_wage['esct'];
+                                    $gross_ = explode('.',number_format($staff_wage['gross'],2));
                                         ?>
                                         <td colspan="10">
                                             <table style="width: 100%;font-size: 13px;">
@@ -245,9 +254,9 @@ if(count($info_array) >0){
                                                 <tr>
                                                     <td style="width: 2%;">$</td>
                                                     <td>
-                                                        <input type="text" class="form-control input-sm input-text" value="<?php echo number_format($staff_wage['gross'])?>">
+                                                        <input type="text" class="form-control input-sm input-text" value="<?php echo $gross_[0]?>">
                                                     </td>
-                                                    <td >.00</td>
+                                                    <td>.<?php echo $gross_[1] ? $gross_[1] : '00'?></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
                                                     <td>
                                                         <input type="text" class="form-control input-sm input-text" value="nil" disabled>
@@ -260,11 +269,11 @@ if(count($info_array) >0){
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
                                                     <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
-                                                    <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
+                                                    <td><input type="text" class="form-control input-sm input-text" value="<?php echo $staff_wage['st_loan'] ? number_format($staff_wage['st_loan'],2) : 'nil'?>" disabled></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
-                                                    <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
+                                                    <td><input type="text" class="form-control input-sm input-text" value="<?php echo $staff_wage['kiwi'] ? number_format($staff_wage['kiwi'],2) : 'nil' ?>" disabled></td>
                                                     <td style="width: 2%;padding-left: 5px;">$</td>
-                                                    <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
+                                                    <td><input type="text" class="form-control input-sm input-text" value="<?php echo $staff_wage['emp_kiwi'] ? number_format($staff_wage['emp_kiwi'],2) : 'nil'?>" disabled></td>
                                                 </tr>
                                                 </tbody>
                                             </table>
@@ -279,7 +288,7 @@ if(count($info_array) >0){
                                                 <td style="width: 2%;">$</td>
                                                 <td><input type="text" class="form-control input-sm input-text"></td>
                                                 <td >.00</td>
-                                                <td style="width: 2%;padding-left: 5px;" disabled>$</td>
+                                                <td style="width: 2%;padding-left: 5px;">$</td>
                                                 <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
                                                 <td>.00</td>
                                                 <td style="width: 2%;padding-left: 5px;">$</td>
@@ -381,11 +390,11 @@ if(count($info_array) >0){
                             <td style="width: 2%;padding-left: 5px;">$</td>
                             <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
                             <td style="width: 2%;padding-left: 5px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo $st_loan_total ? number_format($st_loan_total,2) : 'nil'?>" disabled></td>
                             <td style="width: 2%;padding-left: 5px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo $kiwi_total ? number_format($kiwi_total,2) : 'nil'?>" disabled></td>
                             <td style="width: 2%;padding-left: 5px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil" disabled></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo $emp_kiwi_total ? number_format($emp_kiwi_total,2) : 'nil'?>" disabled></td>
                         </tr>
                         </tbody>
                     </table>
@@ -520,6 +529,7 @@ if(count($info_array) >0){
             <tbody style="border:1px solid #000000!important;" class="table-deduction">
             <?php
             $total = 0;
+            $over_all_total = 0;
             if(count($monthly_pay) >0){
                 foreach($monthly_pay as $k=>$pay){
                     $this_pay = $monthly_pay[$k];
@@ -528,6 +538,7 @@ if(count($info_array) >0){
                     }
                 }
             }
+            $over_all_total = $total + $esct_total + $st_loan_total + $emp_kiwi_total + $kiwi_total;
             ?>
             <tr>
                 <td>
@@ -580,7 +591,7 @@ if(count($info_array) >0){
                             <td style="width: 30%;">Student loan deductions</td>
                             <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-5-right.png'?>"></td>
                             <td style="font-size: 13px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil"></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo number_format($st_loan_total,2)?>"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -597,7 +608,7 @@ if(count($info_array) >0){
                             <td style="width: 30%;">KiwiSaver deductions</td>
                             <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-6-right.png'?>"></td>
                             <td style="font-size: 13px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil"></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo number_format($kiwi_total,2)?>"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -653,7 +664,7 @@ if(count($info_array) >0){
                             <td style="width: 30%;">Net KiwiSaver employer contributions</td>
                             <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-7-right.png'?>"></td>
                             <td style="font-size: 13px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil"></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo number_format($emp_kiwi_total,2)?>"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -667,13 +678,13 @@ if(count($info_array) >0){
                             <td style="width: 30%;">ESCT deductions</td>
                             <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-8-right.png'?>"></td>
                             <td style="font-size: 13px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="nil"></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo number_format($esct_total,2)?>"></td>
                         </tr>
                         <tr style="border-bottom: 1px solid #000000;">
                             <td style="width: 30%;font-weight: bold;">Add Boxes 3, 4, 5, 6, 7 and 8.This is the amount you need to pay</td>
                             <td style="width: 7%;"><img src="<?php echo base_url().'images/black-arrow-9-right.png'?>"></td>
                             <td style="font-size: 13px;">$</td>
-                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo number_format($total,2);?>"></td>
+                            <td><input type="text" class="form-control input-sm input-text" value="<?php echo number_format($over_all_total,2);?>"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -746,7 +757,7 @@ if(count($info_array) >0){
                             <td style="width: 15%;">Amount of payment</td>
                             <td style="width: 5%;"><img src="<?php echo base_url().'images/black-arrow-10-right.png'?>"></td>
                             <td style="font-size: 17px;padding-left: 5px;"><strong>$</strong></td>
-                            <td><input type="text" class="form-control input-sm input-text" style="width: 60%;" value="<?php echo number_format($total,2);?>"></td>
+                            <td><input type="text" class="form-control input-sm input-text" style="width: 60%;" value="<?php echo number_format($over_all_total,2);?>"></td>
                         </tr>
                         <tr>
                             <td colspan="4"><br/><br/><strong>Copy your total from Box 9 and include any late payment penalties and interest, for this period only.</strong></td>
@@ -793,9 +804,6 @@ echo form_close();
     }
     .staff-info > tbody > tr > td{
         font-weight: bold;
-    }
-    .staff-info > tbody > tr.info > td{
-        color: #ff0000;
     }
     .date-table > thead > tr > th,
     .date-table > tbody > tr > td{

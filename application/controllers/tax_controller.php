@@ -15,9 +15,15 @@ Class Tax_Controller extends Subbie{
         $this->my_model->setNormalized('type','id');
         $this->my_model->setSelectFields(array('id','type'));
         $this->data['wage_type'] = $this->my_model->getInfo('tbl_salary_type',array(1,2));
+
+        $this->my_model->setNormalized('frequency','id');
+        $this->my_model->setSelectFields(array('id','frequency'));
+        $this->my_model->setOrder(array('frequency'));
+        $this->data['frequency'] = $this->my_model->getInfo('tbl_salary_freq',array(1,2));
+
         if($action && $action == 'upload'){
             $uploadDir = realpath(APPPATH . '../uploads/tax');
-            $file_name = 'tax table 2015-2016.xls';
+            $file_name = '';
             if(!empty($_FILES)) {
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0777, TRUE);
@@ -66,6 +72,7 @@ Class Tax_Controller extends Subbie{
                                 $temp[$fields[16]] = $_POST['start_date'] ? date('Y-m-d',strtotime($_POST['start_date'])) : '';
                                 $temp[$fields[17]] = $_POST['end_date'] ? date('Y-m-d',strtotime($_POST['end_date'])) : '';
                                 $temp[$fields[18]] = $_POST['wage_type'];
+                                $temp[$fields[19]] = $_POST['frequency'];
                                 $ref++;
                             }
 
@@ -75,10 +82,10 @@ Class Tax_Controller extends Subbie{
                                 $temp['end_date'],
                                 $temp['m_paye'],
                                 $temp['me_paye'],
-                                $temp['wage_type_id']
+                                $temp['frequency_id']
                             );
                             $whatFld = array(
-                                'earnings','start_date','end_date','m_paye','me_paye'
+                                'earnings','start_date','end_date','m_paye','me_paye','wage_type_id','frequency_id'
                             );
                             $has_exist = $this->my_model->getInfo('tbl_tax',$whatVal,$whatFld);
 

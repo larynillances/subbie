@@ -156,3 +156,12 @@ classes should alter those!
   position: absolute;
   border: 2px dashed black;
 }
+.grid-canvas .ui-widget-content .slick-cell{
+    height: 28px;
+}
+.slick-header-columns{
+    height: 28px;
+}
+.grid .slick-header-columns .slick-header-column.ui-state-default{
+    height: 28px;
+}

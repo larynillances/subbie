@@ -19,6 +19,38 @@ if ( ! function_exists('CurrencyConverter'))
 
 }
 
+if ( ! function_exists('StartWeekNumber'))
+{
+    function StartWeekNumber($week_number,$year = 2015){
+        $result = array();
+
+        if($year == 2015){
+            if($week_number > 30){
+                $_start_day = 1;
+                $_end_day = 7;
+            }else if($week_number == 30){
+                $_start_day = 2;
+                $_end_day = 7;
+            }else{
+                $_start_day = 2;
+                $_end_day = 8;
+            }
+
+        }else if($year < 2015){
+            $_start_day = 2;
+            $_end_day = 8;
+        }else{
+            $_start_day = 1;
+            $_end_day = 7;
+        }
+
+        $result['start_day'] = $_start_day;
+        $result['end_day'] = $_end_day;
+
+        return $result;
+    }
+}
+
 if ( ! function_exists('DisplayArray'))
 {
     function DisplayArray($ar, $color = "F00"){
