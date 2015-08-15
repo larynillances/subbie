@@ -12,7 +12,7 @@ switch($this->session->userdata('account_type')){
                 'invoiceCreate' => 'New Invoice Entry',
                 'taxTable' => 'Tax Table',
                 'workFlowCalendar' => 'Work Flow Calendar',
-                'invoiceExportEmailLog' => 'Email Log',
+                'emailLog' => 'Email Log',
                 'paySetup' => 'Pay Setup'
             ),
             'List' => array(
@@ -64,7 +64,7 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'orderSentList' => 'Order Sent List'
             ),
-            'timeSheet' => 'DTR'
+            'timeSheetEdit' => 'DTR'
         );
         break;
     case 3:
@@ -82,7 +82,7 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'orderSentList' => 'Order Sent List'
             ),
-            'timeSheet' => 'DTR'
+            'timeSheetEdit' => 'DTR'
         );
         break;
     case 4:
@@ -95,7 +95,8 @@ switch($this->session->userdata('account_type')){
                 'orderBookInput' => 'New Order',
                 'invoiceCreate' => 'New Invoice Entry',
                 'taxTable' => 'Tax Table',
-                'paySetup' => 'Pay Setup'
+                'paySetup' => 'Pay Setup',
+                'downloadForm' => 'Download Forms'
             ),
             'List' => array(
                 'invoiceList' => 'Invoice List',
@@ -117,6 +118,12 @@ switch($this->session->userdata('account_type')){
     default:
         break;
 }
+
+if(count($form_links) > 0){
+    $title = count($form_links) > 1 ? 'Download Forms' : 'Download Form';
+    $header_links[$title] = $form_links;
+}
+
 ?>
 <ul class="nav navbar-nav navbar-right">
     <?php
@@ -145,12 +152,18 @@ switch($this->session->userdata('account_type')){
                 <li style="background: #cfcfcf;padding: 5px;">
                     <table style="width: 100%">
                         <tr>
-                            <td><?php echo 'New Message: <strong class="count-msg">' . $count_msg .'</strong>';?></td>
+                            <td><span class="msg-content"><?php echo 'New Message: <strong class="count-msg">' . $count_msg .'</strong>';?></span></td>
                             <td><?php echo form_dropdown('filter_msg',$notification_dp,'','class="form-control input-sm filter_msg"');?></td>
                         </tr>
                     </table>
                 </li>
                 <li style="overflow: auto;max-height: 300px;padding: 5px;" class="notification-class"></li>
+                <li class="read-all-message" style="display: none;">
+                    <a class="text-left read-all-msg" href="<?php echo base_url('updateNotification?read_all=1')?>">
+                        <strong>Read All Messages</strong>
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                </li>
             </ul>
             <!-- /.dropdown-messages -->
         </li>

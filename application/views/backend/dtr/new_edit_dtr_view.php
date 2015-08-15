@@ -6,6 +6,9 @@
     $commit_btn_class = @$pay_period->week_num && !$pay_period->is_locked ?
         '' : 'disabled="disabled"';
     $is_locked_dtr = @$pay_period->is_locked ? 'is-locked-dtr' : '';
+
+    $account = array(1,2,4);
+    $is_locked_dtr = in_array($account_type,$account) ? (@$pay_period->is_locked ? 'is-locked-dtr' : '') : (@$pay_period->is_submitted ? 'is-locked-dtr' : '');
     ?>
     <div class="form-group form-class">
         <label class="col-sm-1 control-label" >Date:</label>
@@ -22,17 +25,20 @@
         <div class="col-sm-6">
             <input type="submit" name="submit" class="btn btn-success btn-sm" value="Save" style="display: none">
             <input type="submit" name="search" class="btn btn-success btn-sm" value="Go">
-            <a href="<?php echo base_url('timeSheetDefault')?>"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
             <span class="msg-str" style="display: none;">
                 <span class="alert-danger alert" style="padding: 6px 4px;">Saved data.</span>
             </span>
             <?php
-            if(count($staff) > 0){
+            if(count($staff) > 0 && in_array($account_type,$account)){
                 ?>
                 <span class="pull-right" style="margin-right: 15px;">
                 <a href="<?php echo base_url().'payPeriodSummaryReport?print=1&week=' . $thisWeek . '&month=' . $thisMonth . '&year=' . $thisYear?>" class="btn btn-sm btn-primary preview-btn" name="preview" target="_blank">Preview</a>
                 <button class="btn btn-sm btn-danger commit-btn" name="commit"  <?php echo $commit_btn_class;?>>Commit</button>
             </span>
+            <?php
+            }else{
+                ?>
+                <input type="button" name="submit" class="btn btn-primary btn-sm btn-submit-hours pull-right" style="margin-right: 15px;" value="Submit">
             <?php
             }
             ?>
@@ -115,7 +121,10 @@
                             ?>
                             <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>">
                                 <td style="background: #34386a;color: white;font-style: italic;vertical-align: middle;width: 20%;">
-                                    <?php echo $v->fname.' '.$v->lname?>
+                                    <?php
+                                    echo $v->fname.' '.$v->lname;
+                                    echo $v->rate_cost ? '<span style="color: #ffff00;float: right;font-size: 11px;">($'.$v->rate_cost.')</span>' : '';
+                                    ?>
                                 </td>
                                 <td style="white-space: nowrap;">
                                     <?php
@@ -315,19 +324,44 @@
             });
 
         });
-        hours.keyup(function(e){
-            var data = $('.form-horizontal').serializeArray();
-            data.push({name:'submit',value:1});
-            var msg_str = $('.msg-str');
-            msg_str.css({'display':'none'});
-            $.post(bu + 'timeSheetEdit',
-                data,
-                function(data){
-                    console.log(data);
-                    msg_str.css({'display':'inline'});
-                }
-            );
+
+        $('.btn-submit-hours').click(function(e){
+            e.preventDefault();
+            var ele =
+                '<div class="modal-body">' +
+                    '<div class="row">' +
+                        '<div class="col-sm-12">' +
+                        'Are you sure you have entered all <strong>Employee Hourly Details</strong> accurately ? ' +
+                        'Once these <strong>Hours</strong> are submitted to the <strong>Wages Clerk</strong> you will not be able ' +
+                        'to alter or add to them any further yourself. However, you may contact your ' +
+                        '<strong>Wages Clerk</strong> during the <strong>Monday</strong> of each week if you subsequently do find a ' +
+                        'mistake after submitting these Hours' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="modal-footer">' +
+                    '<button type="button" class="btn btn-success yesBtn-confirm-submit" data-dismiss="modal">Yes</button>' +
+                    '<button type="button" class="btn btn-default" data-dismiss="modal">No</button>' +
+                '</div>';
+            $(this).modifiedModal({
+                html:ele,
+                title: 'Submit Daily Hours'
+            });
+
+            $('.yesBtn-confirm-submit').click(function(){
+                var data_ = $('.form-horizontal').serializeArray();
+                data_.push({name:'hours_submit',value:1});
+                var msg_str = $('.msg-str');
+                msg_str.css({'display':'none'});
+                $.post(bu + 'timeSheetEdit',
+                    data_,
+                    function(data){
+                        location.reload();
+                    }
+                );
+            });
         });
+
         $('.commit-btn').click(function(e){
             e.preventDefault();
             var ele =

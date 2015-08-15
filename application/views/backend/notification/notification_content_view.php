@@ -27,8 +27,8 @@ if(count($notification) > 0){
         $job_name = str_replace('a/c','',$job_name);
         $job_name = str_replace(':','',$job_name);
 
-        $url = 'jobInvoice/'.$nv->client_id.'/'.$nv->id;
-        $link = '<strong>'.$nv->job_ref.' ('.$job_name.')</strong>';
+        $url = $nv->is_new && $nv->is_archive && $nv->is_open ? 'editArchiveInvoice/'.$nv->client_id.'/'.$nv->inv_ref : 'jobInvoice/'.$nv->client_id.'/'.$nv->id;
+        $link = $nv->is_new && $nv->is_archive && $nv->is_open ? '<strong>'.$nv->inv_ref.' ('.$job_name.')</strong>' : '<strong>'.$nv->job_ref.' ('.$job_name.')</strong>';
         $str = 'added by '.$sender.'.';
         ?>
         <li>
@@ -36,7 +36,13 @@ if(count($notification) > 0){
                 <i class="glyphicon glyphicon glyphicon-eye-close tooltip-class msg-link" id="<?php echo $nv->id;?>" title="Mark as Read"></i>&nbsp;
                 <strong><?php echo $user_data->name .':';?></strong>
                         <span class="pull-right text-muted" style="font-size: 11px;">
-                            <?php echo $nv->is_open ? '<em style="color: #d73e3b;font-weight: bold">(opened)</em>' : ''?>
+                            <?php
+                            if($nv->is_new && !$nv->is_archive && !$nv->is_open){
+                                echo '<em style="color: #d73e3b;font-weight: bold">(New)</em>';
+                            }else if($nv->is_new && $nv->is_archive && $nv->is_open){
+                                echo '<em style="color: #d73e3b;font-weight: bold">(Archived)</em>';
+                            }
+                            ?>
                             <em><?php echo date('d/m/Y',strtotime($nv->date))?></em>
                         </span>
             </div>
@@ -57,6 +63,7 @@ if(count($notification) > 0){
 }
 ?>
 </ul>
+
 <script>
     $(function(){
         $('.tooltip-class').tooltip();
@@ -65,19 +72,29 @@ if(count($notification) > 0){
             var notification = $('.notification-class');
             var ele = '<img src="'+ bu + 'images/loading_(2).gif" class="loading-img" style="height: 30px;margin:0 155px;">';
             var loading = $('.loading-img');
+            var read_all_msg = $('.read-all-message');
+            var this_val = $(this).val();
             notification.html(ele);
-            notification.load(bu + 'updateNotification/'+ $(this).val() +'?is_view=true',
+            notification.load(bu + 'updateNotification/'+ this_val +'?is_view=true',
                 function(){
                     loading.css({
                         'display' : 'none'
-                    })
+                    });
+                    read_all_msg.css({
+                        'display' : 'none'
+                    });
+                    if(this_val == 3){
+                        read_all_msg.css({
+                            'display' : 'inline'
+                        });
+                    }
                 }
             );
         });
 
         $('.msg-open').click(function(e){
             var id = this.id;
-            $.post(bu + 'updateNotification/' + id + '?open=1',function(e){
+            $.post(bu + 'updateNotification/' + id + '?active=1',function(e){
                 console.log(e);
             });
         });

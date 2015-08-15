@@ -1,21 +1,27 @@
 <table class="ourTable">
     <tr style="vertical-align: top;">
         <td>
-            <div class="ourGrid"></div>
+            <div class="ourGrid grid"></div>
         </td>
         <td style="width: 364px;">
             <table class="filterArea">
                 <tr>
                     <td>Filter:</td>
-                    <td>
-                        <input type="text" name="filter" class="filter" style="width: 200px;padding: 3px 5px;" />
+                    <td style="padding: 3px 5px;">
+                        <input type="text" name="filter" class="form-control input-sm filter" style="width: 200px;padding: 3px 5px;" />
                         <input type="checkbox" name="exact" class="exact" value="1" />Exact
                     </td>
                 </tr>
                 <tr>
                     <td>Excluding:</td>
-                    <td>
-                        <input type="text" name="exclude" class="exclude" style="width: 200px;padding: 3px 5px;" />
+                    <td style="padding: 3px 5px;">
+                        <input type="text" name="exclude" class="exclude form-control input-sm" style="width: 200px;padding: 3px 5px;" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Email Type:</td>
+                    <td style="padding: 3px 5px;">
+                        <?php echo form_dropdown('email_type',$email_type,'','class="form-control input-sm email_type_class"')?>
                     </td>
                 </tr>
             </table>
@@ -77,13 +83,6 @@
 
 <script language="javascript" src="<?php echo base_url();?>plugins/js/swfobject.js"></script>
 <script language="javascript" src="<?php echo base_url();?>plugins/js/jquery.uploadify-3.1.js"></script>
-<link rel="stylesheet" href="<?php echo base_url();?>plugins/slick-grid/css/slick.grid.css" type="text/css"/>
-<script src="<?php echo base_url();?>plugins/slick-grid/js/jquery.event.drag-2.0.min.js"></script>
-<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.core.js"></script>
-<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.formatters.js"></script>
-<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.rowselectionmodel.js"></script>
-<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.grid.js"></script>
-<script src="<?php echo base_url();?>plugins/slick-grid/js/slick.dataview.js"></script>
 
 <style>
     .ourTable{
@@ -94,10 +93,10 @@
         padding-right: 10px;
     }
     .ourGrid{
-        width: 700px;
+        width: 900px;
         height: 580px;
         border: 1px solid #000000;
-        font-size: 11px!important;
+        font-size: 12px!important;
     }
 
     .filterArea{
@@ -108,17 +107,7 @@
     .filterArea tr td:first-child{
         font-weight: bold;
     }
-    .filter, .exclude{
-        padding: 5px 8px!important;
-    }
 
-    .slick-header-column{
-          background: #484848!important;
-          padding:1px 10px!important;
-          color:#FFF!important;
-          text-align: center!important;
-          font-size: 12px!important;
-      }
     .slick-cell{
         cursor: pointer;
     }
@@ -162,11 +151,6 @@
         text-align: right;
     }
 
-    input[type=text], textarea{
-        padding: 5px 8px;
-        width: 260px;
-    }
-
     .closeBtn{
         float: right;
         color: #ffffff;
@@ -183,10 +167,12 @@
 <script>
     var ourGrid, dataView;
     var ourColumns = [
-        {id: "date", name: "Date", field: "date", width: 30, cssClass: "column-empid"},
+        {id: "date", name: "Date", field: "date", width: 50, cssClass: "column-empid"},
         {id: "status", name: "Status", field: "status", width: 30, cssClass: "column-empid"},
-        {id: "user", name: "User", field: "user", width: 35, cssClass: "column-empid"},
+        {id: "user", name: "User", field: "user", width: 50, cssClass: "column-empid"},
+        {id: "email_type", name: "Email Type", field: "email_type", width: 35, cssClass: "column-empid"},
         {id: "job", name: "Invoice", field: "job", width: 80, cssClass: "column-status"},
+        {id: "staff_name", name: "Staff", field: "staff_name", width: 80, cssClass: "column-status"},
         {id: "client_name", name: "Client", field: "client_name", width: 80, cssClass: "column-empid"}
     ];
 
@@ -196,7 +182,7 @@
         forceFitColumns: true
     };
     var ourActiveId = "",
-        $includes, $excludes,
+        $includes, $excludes,$email_type,
         filterContainsAll, filterContainsAny;
 
     $(function () {
@@ -211,7 +197,8 @@
         $includes = $('.filter');
         $excludes = $('.exclude');
         var lastIncludes = $includes.val(),
-            lastExcludes = $excludes.val();
+            lastExcludes = $excludes.val(),
+            email_type = '';
         //start
         $('.filter, .exclude')
             .stop()
@@ -230,6 +217,17 @@
                     setFilterArgs();
                 }
             });
+
+        $('.email_type_class').change(function(e){
+            if (e.which == 27) {
+                $email_type.val('');
+            }
+            ourGrid.resetActiveCell();
+            $('.slick-cell').removeClass('selected');
+
+            email_type = this.value;
+            setFilterArgs();
+        });
 
         filterContainsAll = function(val, search) {
             for (var i = search.length - 1; i >= 0; i--) {
@@ -263,6 +261,7 @@
 
             dataView.setFilterArgs({
                 includes: includes,
+                email_type: email_type,
                 excludes: excludes
             });
             dataView.refresh();
@@ -286,6 +285,11 @@
                 (filterContainsAny(isExact ? item.job : item.job, args.excludes)) ||
                 (filterContainsAny(isExact ? item.branch : item.branch, args.excludes))
             );
+
+            if (args.email_type != "" && item.email_type_id.indexOf(args.email_type) == -1) {
+                return false;
+            }
+
 
             return match;
         };

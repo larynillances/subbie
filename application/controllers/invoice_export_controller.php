@@ -684,6 +684,7 @@ class invoice_export_controller extends CI_Controller{
                     $sendMailSetting['comment'] = $this->data['comment'];
                     $post = array(
                         'date' => date('Y-m-d H:i:s'),
+                        'email_type_id' => 4,
                         'user_id' => $this->session->userdata('user_id'),
                         'inv_id' => $whatId,
                         'client_id' => $client_id,
@@ -720,7 +721,7 @@ class invoice_export_controller extends CI_Controller{
         echo $last_export_time;
     }
 
-    function invoiceExportEmailLog(){
+    function emailLog(){
 
         $this->data['page_load'] = 'backend/invoice/export/export_email_log';
 
@@ -730,19 +731,23 @@ class invoice_export_controller extends CI_Controller{
         $fields[] = 'tbl_user.name as user';
         $fields[] = 'tbl_pdf_archive.file_name';
         $fields[] = 'tbl_client.client_name';
+        $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as staff_name';
+        $fields[] = 'tbl_email_type.email_type';
 
         $this->my_model->setSelectFields($fields, false);
         $this->my_model->setJoin(array(
             'table' => array(
-                'tbl_user','tbl_pdf_archive','tbl_client'
+                'tbl_user','tbl_pdf_archive','tbl_client','tbl_email_type','tbl_staff'
             ),
             'join_field' => array(
-                'id','id','id'
+                'id','id','id','id','id'
             ),
             'source_field' => array(
                 'tbl_email_export_log.user_id',
                 'tbl_email_export_log.inv_id',
-                'tbl_email_export_log.client_id'
+                'tbl_email_export_log.client_id',
+                'tbl_email_export_log.email_type_id',
+                'tbl_email_export_log.staff_id'
             ),
             'type' => 'left'
         ));
@@ -757,7 +762,11 @@ class invoice_export_controller extends CI_Controller{
                 
             }
         }
-
+        $this->my_model->setNormalized('email_type','id');
+        $this->my_model->setSelectFields(array('id','email_type'));
+        $this->data['email_type'] = $this->my_model->getInfo('tbl_email_type');
+        $this->data['email_type'][''] = 'All';
+        ksort($this->data['email_type']);
         $this->data['log'] = json_encode($log);
 
         $this->load->view('main_view',$this->data);

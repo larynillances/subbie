@@ -20,6 +20,8 @@
     <link href="<?php echo base_url();?>plugins/font-awesome-4.1.0/css/font-awesome.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo base_url() . "plugins/css/email.validation.css"; ?>" />
     <link rel="shortcut icon" href="<?php echo base_url();?>images/subbie-small-logo.png" />
+    <link href="<?php echo base_url().'plugins/multi-select/css/bootstrap-multiselect.css';?>" rel="stylesheet">
+    <link href="<?php echo base_url().'plugins/css/fileinput.css';?>" rel="stylesheet">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -50,6 +52,8 @@
     <script src="<?php echo base_url();?>plugins/js/main.js"></script>
     <script src="<?php echo base_url();?>plugins/js/modified-modal.js"></script>
     <script src="<?php echo base_url() . "plugins/js/email.validation.js"; ?>"></script>
+    <script src="<?php echo base_url() . "plugins/multi-select/js/bootstrap-multiselect.js" ?>"></script>
+    <script src="<?php echo base_url() . "plugins/js/fileinput.js" ?>"></script>
 
 </head>
 <body>

@@ -55,7 +55,6 @@ if(count($user) > 0):
                         <div class="col-sm-8">
                             <div class="checkbox">
                                 <label>
-                                    <input type="hidden" name="active" value="0"/> &nbsp;
                                     <input type="checkbox" name="is_active" id="active" value="1" <?php echo $uv->is_active == 1 ? 'checked' : '';?>/> &nbsp;
                                 </label>
                             </div>

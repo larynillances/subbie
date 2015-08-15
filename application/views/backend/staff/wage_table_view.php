@@ -71,7 +71,7 @@
                             if($v->status_id == 3){
                                 ?>
                                 <a href="#" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
-                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id;?>" class="delete-staff-btn"><span class="glyphicon glyphicon-remove"></a>
+                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id;?>" class="delete-staff-btn"><span class="glyphicon glyphicon-arrow-right"></a>
                             <?php
                             }else if($v->status_id == 2){
                                 ?>
@@ -123,7 +123,7 @@
                 '<div class="modal-body">' +
                     '<div class="row">' +
                         '<div class="col-sm-12">' +
-                        'Do you want to delete this Employee from the List of Current Staff Members?' +
+                        'Do you want this Employee an Active Record, not a Current Employee Record?' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -146,6 +146,7 @@
                 );
             });
         });
+
         $('.move-btn').click(function(e){
             e.preventDefault();
             var title_ = $(this).data('value');

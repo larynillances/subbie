@@ -340,6 +340,19 @@ class Staff_Controller extends Subbie{
                 );
 
                 if($debugResult->type){
+
+                    $post = array(
+                        'user_id' => $this->session->userdata('user_id'),
+                        'message' => json_encode($sendMailSetting),
+                        'email_type' => 2,
+                        'staff_id' => $id,
+                        'type' => $debugResult->type,
+                        'debug' => $debugResult->debug,
+                        'date' => date('Y-m-d H:i:s')
+                    );
+
+                    $this->my_model->insert('tbl_email_export_log', $post, false);
+
                     redirect('printPaySlip/'.$id.'/'.$this_date.'?view=1');
                 }
             }
@@ -530,7 +543,7 @@ class Staff_Controller extends Subbie{
         ksort($this->data['esct_rate']);
 
         $this->my_model->setNormalized('rate_name','id');
-        $this->my_model->setSelectFields(array('id','rate_name'));
+        $this->my_model->setSelectFields(array('id','CONCAT(rate_name," ($" ,rate_cost ,")" ) as rate_name'));
         $this->data['rate'] = $this->my_model->getinfo('tbl_rate');
         $this->data['rate'][''] = '-';
 
@@ -550,10 +563,19 @@ class Staff_Controller extends Subbie{
 
         ksort($this->data['kiwi']);
 
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_salary_type','tbl_salary_freq'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_wage_type.type','tbl_wage_type.frequency'),
+            'type' => 'left'
+        ));
         $this->my_model->setNormalized('description','id');
-        $this->my_model->setSelectFields(array('id','description'));
-        $this->my_model->setOrder('type');
-        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',array(1,2),'type');
+        $this->my_model->setSelectFields(array(
+            'tbl_wage_type.id',
+            'CONCAT(tbl_wage_type.description, " (", tbl_salary_type.code ," - ", tbl_salary_freq.code ,")" ) as description'
+        ));
+        $this->my_model->setOrder('tbl_wage_type.type');
+        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',array(1,2),'tbl_wage_type.type');
         $this->data['wage_type'][''] = '-';
 
         ksort($this->data['wage_type']);
@@ -657,15 +679,13 @@ class Staff_Controller extends Subbie{
                     $_POST['status_id'] = 3;
                     $_POST['date_employed'] = $_POST['date_employed'] ? date('Y-m-d') : '';
 
-                    $_POST['franchise_id'] = $this->session->userdata('franchise_id');
-
-                    if(isset($_POST['kiwi_id'])){
+                    if(isset($_POST['kiwi_id']) && !$_POST['kiwi_id']){
                         unset($_POST['kiwi_id']);
                     }
-                    if(isset($_POST['employeer_kiwi'])){
+                    if(isset($_POST['employeer_kiwi']) && !$_POST['employeer_kiwi']){
                         unset($_POST['employeer_kiwi']);
                     }
-                    if(isset($_POST['esct_rate_id'])){
+                    if(isset($_POST['esct_rate_id']) && !$_POST['esct_rate_id']){
                         unset($_POST['esct_rate_id']);
                     }
                     $id = $this->my_model->insert('tbl_staff',$_POST,false);
@@ -739,14 +759,20 @@ class Staff_Controller extends Subbie{
 
                     unset($_POST['rate']);
                     unset($_POST['start_use']);
-                    if(isset($_POST['kiwi_id'])){
+                    if(isset($_POST['kiwi_id']) && !$_POST['kiwi_id']){
                         unset($_POST['kiwi_id']);
+                        $mysql_str = 'UPDATE tbl_staff SET  kiwi_id = NULL WHERE  id ='. $id ;
+                        $this->db->query($mysql_str);
                     }
-                    if(isset($_POST['employeer_kiwi'])){
+                    if(isset($_POST['employeer_kiwi']) && !$_POST['employeer_kiwi']){
                         unset($_POST['employeer_kiwi']);
+                        $mysql_str = 'UPDATE tbl_staff SET  employeer_kiwi = NULL WHERE  id ='. $id ;
+                        $this->db->query($mysql_str);
                     }
-                    if(isset($_POST['esct_rate_id'])){
+                    if(isset($_POST['esct_rate_id']) && !$_POST['esct_rate_id']){
                         unset($_POST['esct_rate_id']);
+                        $mysql_str = 'UPDATE tbl_staff SET  esct_rate_id = NULL WHERE  id ='. $id ;
+                        $this->db->query($mysql_str);
                     }
                     $_POST['bank_account'] = json_encode($_POST['bank_account']);
                     $_POST['has_loans'] = $_POST['balance'] != '' ? true : false;
@@ -1084,7 +1110,7 @@ class Staff_Controller extends Subbie{
 
                         $sv->gross = $sv->hours * $sv->rate_cost;
                         $sv->gross_ = $sv->gross != 0 ? number_format($sv->gross,2,'.','') : '0.00';
-                        $sv->gross = $sv->gross != 0 ? number_format($sv->gross,0,'.','') : '0.00';
+                        //$sv->gross = $sv->gross != 0 ? number_format($sv->gross,0,'.','') : '0.00';
 
                         $sv->gross = floatval($sv->gross);
 
@@ -1541,8 +1567,14 @@ class Staff_Controller extends Subbie{
                         foreach($monthly_details[$id] as $key=>$val){
                             $year = date('Y',strtotime($key));
                             $month = date('F',strtotime($key));
-                            $monthly_total_array[$key] = $val['distribution'];
-                            $total_array[$year][$month][] = $val['distribution'];
+                            $monthly_total_array[$key] = array(
+                                'distribution' => $val['distribution'],
+                                'gross' => $val['gross']
+                            );
+                            $total_array[$year][$month][] =  array(
+                                'distribution' => $val['distribution'],
+                                'gross' => $val['gross']
+                            );
                         }
                     }
                     if(count($set_wage_date) > 0){
@@ -1569,17 +1601,7 @@ class Staff_Controller extends Subbie{
                     $this->data['current_month'] = $current_month;
                     $this->load->view('main_view',$this->data);
                     break;
-                case 'details':
-                    $page_name = 'Details of All Months Pay';
-                    $this->data['page_name'] = '<strong>'.$staff_name->fname.' '.$staff_name->lname.'</strong> '.$page_name;
-                    $this->data['page_load'] = 'backend/staff/year_to_date_details';
-                    $this->load->view('main_view',$this->data);
-                    break;
                 default:
-                    $page_name = 'Current Month for all Pay Periods';
-                    $this->data['page_name'] = '<strong>'.$staff_name->fname.' '.$staff_name->lname.'</strong> '.$page_name;
-                    $this->data['page_load'] = 'backend/staff/year_to_date_pay_period_view';
-                    $this->load->view('main_view',$this->data);
                     break;
             }
         }else{
@@ -1591,15 +1613,18 @@ class Staff_Controller extends Subbie{
             if(count($this->data['staff']) > 0){
                 foreach($this->data['staff'] as $row){
                     $pay = @$total_paid[$row->id];
-                    $earn = 0;
+                    $earn_nett = 0;
+                    $earn_gross = 0;
                     $fin_year = '';
                     if(count($pay) > 0){
                         foreach($pay as $val){
-                            $earn = $val['distribution'];
+                            $earn_nett = $val['distribution'];
+                            $earn_gross = $val['gross'];
                             $fin_year = $val['financial_year'];
                         }
                     }
-                    $row->pay_earn = $earn > 0 ? $earn : 0;
+                    $row->earn_nett = $earn_nett > 0 ? $earn_nett : 0;
+                    $row->earn_gross = $earn_gross > 0 ? $earn_gross : 0;
                     $row->financial_year = $fin_year;
                 }
             }

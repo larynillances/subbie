@@ -126,16 +126,41 @@ class Subbie extends CI_Controller{
         $this->data['user'] = (Object)$this->my_model->getInfo('tbl_user',$this->session->userdata('user_id'));
 
 
-        $this->data['notification'] = $this->getInvoiceNotification();
+        $this->data['notification'] = $this->getInvoiceNotification(1);
         $this->data['count_msg'] = count($this->data['notification']);
 
         $this->data['notification_dp'] = array(
             '1' => 'New',
-            '2' => 'Open'
+            '2' => 'Active',
+            '3' => 'Archived'
         );
 
         $this->my_model->setShift();
         $this->data['user_data'] = (Object)$this->my_model->getInfo('tbl_user',3);
+
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_downloadable_form','tbl_account_type'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_user_download_form.form_id','tbl_user_download_form.account_type_id'),
+            'type' => 'left'
+        ));
+        $this->my_model->setSelectFields(array(
+            'tbl_user_download_form.id',
+            'tbl_downloadable_form.menu_name',
+            'tbl_downloadable_form.file_name',
+            'tbl_account_type.account_type'
+        ));
+        $form_links = $this->my_model->getInfo('tbl_user_download_form',$this->data['account_type'],'account_type_id');
+
+        $links_array = array();
+        if(count($form_links) > 0){
+            foreach($form_links as $row){
+                $links = 'uploads/form/'.$row->file_name;
+                $links_array[$links] = $row->menu_name;
+            }
+        }
+
+        $this->data['form_links'] = $links_array;
 
         if($has_return){
             return $this->data;
@@ -326,6 +351,81 @@ class Subbie extends CI_Controller{
                 break;
         }
 
+        //$minutes = (int)(@$totalHours[$id]/60);
+        $hoursValue = number_format((@$totalHours[$id]/3600),2);
+        //$minutesValue = $minutes - ($hoursValue * 60);
+        //$secondsValue = $v->hours - (($hoursValue * 3600) + ($minutesValue * 60));
+        //$hours = str_pad($hoursValue, 2, '0', STR_PAD_LEFT) . "." . str_pad($minutesValue, 2, '0', STR_PAD_LEFT);
+        return $hoursValue;
+    }
+
+    function getTotalHoursInMonth($date,$id,$action = 'weekly'){
+        $totalHours = array();
+        $hours_gain = array();
+        $_date = new DateTime($date);
+        $week = $_date->format('W');
+        $year = date('Y',strtotime($date));
+        $month = date('m',strtotime($date));
+
+        $start_fin_month = $year.'-04-01';
+        $start_fin_day = date('N',strtotime($start_fin_month));
+        $end_fin_month = $year.'-03-31';
+        $end_fin_day = date('N',strtotime($end_fin_month));
+        $last_day_of_march = $this->last_day_of_month($year);
+
+        $week_data = StartWeekNumber($week,$year);
+        $dt = new DateTime;
+        $num = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+
+        $this->my_model->setSelectFields(array(
+            'IF(time_out != "" AND time_in != "", TIMESTAMPDIFF(SECOND, time_in, time_out) , 0) as hours',
+            'time_in','time_out','staff_id','date',
+            'id as dtr_id','working_type_id'
+        ));
+
+        $dtr = $this->my_model->getinfo('tbl_login_sheet', $id,'staff_id');
+        if(count($dtr) >0){
+            foreach($dtr as $dv){
+                $hours_gain[$dv->staff_id][$dv->date] = $dv->hours;
+            }
+        }
+
+        $_start_day = $start_fin_month == $date ? $start_fin_day : $week_data['start_day'];
+
+        $_end_day = $date == $last_day_of_march ? $end_fin_day : $week_data['end_day'];
+        switch($action){
+            case 'weekly':
+                for($whatDay=$_start_day; $whatDay<=$_end_day; $whatDay++){
+                    $getDate =  $dt->setISODate($year, $week , $whatDay)->format('Y-m-d');
+                    $day = date('Y-m-d', strtotime($getDate));
+
+                    $thisDtr = array_key_exists($id, $hours_gain) ? $hours_gain[$id] : array();
+                    if(count($thisDtr) > 0){
+                        $hasInfo = array_key_exists($day, $thisDtr);
+
+                        if($hasInfo){
+                            $thisTime = $thisDtr[$day];
+                            @$totalHours[$id] += @$thisTime;
+                        }
+                    }
+                }
+                break;
+            default:
+                for($whatDay=1; $whatDay<=$num; $whatDay++){
+                    //$whatDate = $year.'-'.$month.'-'.$whatDay;
+                    $date = mktime(0, 0, 0, $month,$whatDay,$year);
+                    $thisDate = date('Y-m-d',$date);
+                    $thisDtr = array_key_exists($id, $hours_gain) ? $hours_gain[$id] : array();
+                    if(count($thisDtr) > 0){
+                        $hasInfo = array_key_exists($thisDate, $thisDtr);
+                        if($hasInfo){
+                            $thisTime = $thisDtr[$thisDate];
+                            @$totalHours[$id] += @$thisTime;
+                        }
+                    }
+                }
+                break;
+        }
         //$minutes = (int)(@$totalHours[$id]/60);
         $hoursValue = number_format((@$totalHours[$id]/3600),2);
         //$minutesValue = $minutes - ($hoursValue * 60);
@@ -568,7 +668,7 @@ class Subbie extends CI_Controller{
         $end = $end->modify( '+1 day' );
 
         $interval = DateInterval::createFromDateString('next '.$day);
-        $daterange = new DatePeriod($begin, $interval ,$end);
+        $date_range = new DatePeriod($begin, $interval ,$end);
 
         $date = array();
         $year = date('Y');
@@ -593,8 +693,8 @@ class Subbie extends CI_Controller{
             }
         }
 
-        if(count($daterange) > 0){
-            foreach($daterange as $dv){
+        if(count($date_range) > 0){
+            foreach($date_range as $dv){
                 $this_date = $dv->format('Y-m-d');
                 $week_num = $dv->format('W');
                 $date[$week_num] = $this_date;
@@ -612,20 +712,35 @@ class Subbie extends CI_Controller{
 
     function getPaymentStartDate($year,$month = 'April',$day = 'tuesday',$start = 2){
 
-        $month_day = $this->first_day_of_month($year,$month,$day);
-
+        $month_day = $year.'-04-01';
+        $next_day = $this->first_day_of_month($year,$month,$day);
+        $next_day = date('Y-m-d',strtotime('-1 day '.$next_day));
         $date = new DateTime($month_day);
         $week = $date->format("W");
 
         $end_year = $year + 1;
-        $end_month_day = $this->first_day_of_month($end_year,$month,$day);
-        $this_month = date('m',strtotime($end_month_day));
-        $this_day = date('d',strtotime('-2 days '.$end_month_day));
+        $end_month_day = $end_year.'-03-31';//$this->first_day_of_month($end_year,$month,$day);
+        //$this_month = date('m',strtotime($end_month_day));
+        //$this_day = date('d',strtotime($end_month_day));
+        $whatDay = date('N',strtotime($month_day));
         $year_week = array();
 
         if($year == 2015){
+
+            $start_week =  new DatePeriod(
+                new DateTime("$year-W$week-$whatDay"),
+                new DateInterval('P1W'),
+                new DateTime("$next_day T23:59:59Z")
+            );
+            foreach ($start_week as $week => $monday) {
+                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+            }
+
+            $_date = new DateTime($next_day);
+            $_week = $_date->format("W");
+
             $weeksPeriod = new DatePeriod(
-                new DateTime("$year-W$week-$start"),
+                new DateTime("$year-W$_week-$start"),
                 new DateInterval('P1W'),
                 new DateTime("2015-07-26T23:59:59Z")
             );
@@ -636,19 +751,31 @@ class Subbie extends CI_Controller{
             $weeksPeriod = new DatePeriod(
                 new DateTime("$year-W31-$start"),
                 new DateInterval('P1W'),
-                new DateTime("$end_year-$this_month-$this_day T23:59:59Z")
+                new DateTime("$end_month_day T23:59:59Z")
             );
             foreach ($weeksPeriod as $week => $monday) {
                 $year_week[$monday->format('Y-m-d')] = $monday->format('W');
             }
         }else if($year > 2015){
             $start = 1;
-            $weeksPeriod = new DatePeriod(
-                new DateTime("$year-W$week-$start"),
+            $start_week =  new DatePeriod(
+                new DateTime("$year-W$week-$whatDay"),
                 new DateInterval('P1W'),
-                new DateTime("$end_year-$this_month-$this_day T23:59:59Z")
+                new DateTime("$next_day T23:59:59Z")
             );
-            $year_week = array();
+            foreach ($start_week as $week => $monday) {
+                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+            }
+
+            $_date = new DateTime($next_day);
+            $_week = $_date->format("W");
+
+            $weeksPeriod = new DatePeriod(
+                new DateTime("$year-W$_week-$start"),
+                new DateInterval('P1W'),
+                new DateTime("2015-07-26T23:59:59Z")
+            );
+
             foreach ($weeksPeriod as $week => $monday) {
                 $year_week[$monday->format('Y-m-d')] = $monday->format('W');
             }
@@ -656,7 +783,7 @@ class Subbie extends CI_Controller{
             $weeksPeriod = new DatePeriod(
                 new DateTime("$year-W$week-$start"),
                 new DateInterval('P1W'),
-                new DateTime("$end_year-$this_month-$this_day T23:59:59Z")
+                new DateTime("$end_year-03-31T23:59:59Z")
             );
             $year_week = array();
             foreach ($weeksPeriod as $week => $monday) {
@@ -670,6 +797,12 @@ class Subbie extends CI_Controller{
     function first_day_of_month($year,$month = 'April',$day="Tuesday"){
         $_day = $year > 2015 ? 'Monday' : $day;
         $day = new DateTime(sprintf("First $_day of $month %s", $year));
+        return $day->format('Y-m-d');
+    }
+
+    function last_day_of_month($year,$month = 'March',$day="Tuesday"){
+        $_day = $year > 2015 ? 'Monday' : $day;
+        $day = new DateTime(sprintf("Last $_day of $month %s", $year));
         return $day->format('Y-m-d');
     }
 
@@ -856,7 +989,7 @@ class Subbie extends CI_Controller{
     function getOverAllWageTotalPay($date,$id = '',$is_details = false){
 
         $this_year = date('Y',strtotime($date));
-        $first_tuesday_in_month = $this->first_day_of_month($this_year);
+        $first_tuesday_in_month = $this_year.'-04-01';//$this->first_day_of_month($this_year);
         $year = strtotime($first_tuesday_in_month) > strtotime($date) ? date('Y-m-d',strtotime('-1 year'.$date)) : date('Y-m-d',strtotime($date));
 
         $this->getYearTotalBalance($this_year);
@@ -948,16 +1081,16 @@ class Subbie extends CI_Controller{
 
 
                             $ev->tax = 0;
-                            $hours = $ev->wage_type != 1 ? $this->getTotalHours($key,$ev->employee) : 1;
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key,$ev->employee) : 1;
                             $ev->gross = $ev->rate_cost * $hours;
                             $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
-                            $ev->gross = $ev->gross != 0 ? floatval(number_format($ev->gross,0,'.','')):'0.00';
+                            //$ev->gross = $ev->gross != 0 ? floatval(number_format($ev->gross,0,'.','')):'0.00';
                             $ev->kiwi_ = 0;
                             $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
 
                             $data_ = $this->getPayeValue($ev->frequency_id,$key,$ev->gross,$kiwi);
                             if(count($data_) > 0){
-                                $ev->tax = $data_['tax'];
+                                $ev->tax = number_format($data_['tax'],2,'.','');
                                 $ev->m_paye = $data_['m_paye'];
                                 $ev->me_paye = $data_['me_paye'];
                                 $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
@@ -986,14 +1119,15 @@ class Subbie extends CI_Controller{
                             $ev->installment = $ev->balance > 0 ?
                                 ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
 
-                            $ev->recruit = $ev->visa_deduct ? $ev->gross * 0.03 : 0;
-                            $ev->admin = $ev->visa_deduct ? $ev->gross * 0.01 : 0;
-                            $ev->nett = $ev->gross - ($ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+                            $ev->recruit = $ev->visa_deduct ? $ev->gross_ * 0.03 : 0;
+                            $ev->admin = $ev->visa_deduct ? $ev->gross_ * 0.01 : 0;
+                            $ev->nett = $ev->gross_ - ($ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
 
                             $ev->distribution = $ev->nett - $ev->installment;
                             $ev->account_one = $ev->distribution - ($ev->nz_account + $ev->account_two);
                             if($ev->gross > 0){
                                 @$ev->total_distribution +=  floatval($ev->distribution);
+                                @$ev->total_gross +=  floatval($ev->gross_);
                                 @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
                                 @$ev->total_account_two +=  floatval($ev->account_two);
                                 @$ev->total_nz_account +=  floatval($ev->nz_account);
@@ -1001,6 +1135,7 @@ class Subbie extends CI_Controller{
                                 if($is_details){
                                     $wage_total_data[$ev->employee][$key] = array(
                                         'distribution' => floatval($ev->distribution),
+                                        'gross' => floatval($ev->gross_),
                                         'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
                                         'account_one' => $ev->account_one > 0 ? floatval($ev->account_one) : 0,
                                         'account_two' => floatval($ev->account_two),
@@ -1009,6 +1144,7 @@ class Subbie extends CI_Controller{
                                 }else{
                                     $wage_total_data[$ev->employee][$key] = array(
                                         'distribution' => $ev->total_distribution,
+                                        'gross' => floatval($ev->total_gross),
                                         'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
                                         'account_one' => $ev->total_account_one,
                                         'account_two' => $ev->total_account_two,
@@ -1195,7 +1331,7 @@ class Subbie extends CI_Controller{
                                 $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->staff_id) : 1;
                                 $ev->gross = $ev->rate_cost * $hours;
                                 $ev->gross_ = number_format($ev->gross,2,'.','');
-                                $ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.00';
+                                //$ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.000';
 
                                 $ev->kiwi_ = 0;
                                 $ev->st_loan = 0;
@@ -1209,9 +1345,9 @@ class Subbie extends CI_Controller{
 
                                 $ev->nz_account = $ev->nz_account_ ? $ev->nz_account_ + ($hours * $ev->hourly_rate) : 0;
 
-                                $data_ = $this->getPayeValue($ev->frequency_id,$dv,$ev->gross,$kiwi,$emp_kiwi,$cec,$esct);
+                                $data_ = $this->getPayeValue($ev->frequency_id,$dv,$ev->gross_,$kiwi,$emp_kiwi,$cec,$esct);
                                 if(count($data_) > 0){
-                                    $ev->tax = $data_['tax'];
+                                    $ev->tax = number_format($data_['tax'],2,'.','');
                                     $ev->m_paye = $data_['m_paye'];
                                     $ev->me_paye = $data_['me_paye'];
                                     $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
@@ -1322,7 +1458,7 @@ class Subbie extends CI_Controller{
 
                                     $mv->hours = $monthly_hours;
                                     $mv->gross_ = number_format($mv->hours * $mv->rate_cost,2,'.','');
-                                    $mv->gross = number_format($mv->hours * $mv->rate_cost,0,'.','');
+                                    $mv->gross = $mv->hours * $mv->rate_cost;
                                     $mv->weekly_gross = number_format($weekly_hours * $mv->rate_cost,0,'.','');
 
                                     $mv->nz_account = $mv->nz_account_ ? ($mv->nz_account_ + ($mv->hours * $mv->hourly_rate)) : 0;
@@ -1535,7 +1671,7 @@ class Subbie extends CI_Controller{
                 $v->nz_account = $v->nz_account ? ($v->nz_account + ($v->hours * $v->hourly_rate)) : 0;
                 $v->gross = $v->rate_cost * $v->hours;
                 $v->gross_ = $v->gross != 0 ? number_format($v->gross,2,'.',''):'0.00';
-                $v->gross = $v->gross != 0 ? number_format($v->gross,0,'.',''):'0.00';
+                //$v->gross = $v->gross != 0 ? number_format($v->gross,0,'.',''):'0.00';
 
                 $v->flight_debt = @$this->data['total_bal'][$date][$v->id]['flight_debt'];
                 $v->flight = $v->flight_debt > 0 ? $v->flight : 0;
@@ -1689,7 +1825,7 @@ class Subbie extends CI_Controller{
                         if($monthly_hours != 0){
                             $mv->hours = $monthly_hours;
                             $mv->gross_ = number_format($mv->hours * $mv->rate_cost,2,'.','');
-                            $mv->gross = number_format($mv->hours * $mv->rate_cost,0,'.','');
+                            $mv->gross = $mv->hours * $mv->rate_cost;
                             $mv->total_hours += $mv->hours;
                             $mv->total_gross += floatval($mv->gross_);
                             if(!$mv->gross){
@@ -1817,7 +1953,7 @@ class Subbie extends CI_Controller{
         $whatFld = 'staff_id';
 
         if($date){
-            $whatVal = 'start_use <= "' . $date . '" AND staff_id = "' . $id . '"';
+            $whatVal = '(start_use <= "' . $date . '" OR start_use <= "'. date('Y-m-d',strtotime('+6 days '.$date)) .'" ) AND staff_id = "' . $id . '"';
             $whatFld = '';
         }
 
@@ -1841,7 +1977,7 @@ class Subbie extends CI_Controller{
         $whatFld = 'staff_id';
 
         if($date){
-            $whatVal = 'date_used <= "' . $date . '" AND staff_id = "' . $id . '"';
+            $whatVal = '(date_used <= "' . $date . '" OR date_used <= "' . date('Y-m-d',strtotime('+6 days '.$date)) . '") AND staff_id = "' . $id . '"';
             $whatFld = '';
         }
 
@@ -2112,8 +2248,13 @@ class Subbie extends CI_Controller{
             set_time_limit(90000);
             header("Content-type: application/json");
             echo json_encode($this->data['count_msg']);
+        }else if(isset($_GET['read_all']) && $_GET['read_all'] == 1){
+            $this->data['page_name'] = 'Read All Archived Messages';
+            $this->data['page_load'] = 'backend/notification/notification_read_all_view';
+            $this->data['notification'] = $this->getInvoiceNotification(3);
+            $this->load->view('main_view',$this->data);
         }else{
-            if(isset($_GET['open'])){
+            if(isset($_GET['active'])){
                 $id = $this->uri->segment(2);
 
                 if(!$id){
@@ -2153,7 +2294,7 @@ class Subbie extends CI_Controller{
         ));
         $fields = $this->arrayWalk(
             array(
-                'id','your_ref','job_id','meter','date','job_name','is_archive','is_open'
+                'id','your_ref','job_id','meter','date','job_name','is_archive','is_open','is_new'
             ),
             'tbl_invoice.'
         );
@@ -2177,11 +2318,18 @@ class Subbie extends CI_Controller{
         if($type){
             switch($type){
                 case 1:
+                    $this->my_model->setOrder(array('is_archive','is_open','is_new'));
                     $whatVal = array(true,false,false);
                     $whatFld = array('tbl_invoice.is_new','tbl_invoice.is_open','tbl_invoice.is_archive');
                     break;
                 case 2:
-                    $whatVal = array(true,true,false);
+                    $this->my_model->setOrder(array('is_archive','is_open','is_new'));
+                    $whatVal = '(tbl_invoice.is_new = 1 OR tbl_invoice.is_open = 1) AND tbl_invoice.is_archive = 0';
+                    $whatFld = '';
+                    break;
+                case 3:
+                    $this->my_model->setOrder('date','DESC');
+                    $whatVal = array(true,true,true);
                     $whatFld = array('tbl_invoice.is_new','tbl_invoice.is_open','tbl_invoice.is_archive');
                     break;
                 default:
@@ -2316,7 +2464,7 @@ class Subbie extends CI_Controller{
 
         return $debugResult;
     }
-    
+
     function getPayeValue($frequency_id,$date,$gross,$kiwi = '',$emp_kiwi='',$cec = '',$esct = ''){
         $earnings = $this->data['earnings'];
         $m_paye = $this->data['m_paye'];
@@ -2335,11 +2483,36 @@ class Subbie extends CI_Controller{
                 if($gross > $earnings['fortnightly']){
                     $data['tax'] = ((floatval($gross) - $earnings['fortnightly']) * 0.33) + $m_paye['fortnightly'];
                 }else{
-                    $is_even = $gross % 2;
-                    $_gross = $gross;
-                    //$gross = !$is_even ? $_gross : $_gross + 1;
-                    if($is_even){
-                        //$lower_gross = $_gross - 1;
+                    if($this->is_decimal($gross)){
+                        $is_even = $gross % 2;
+                        $_gross_val = number_format($gross,0,'.','');
+                        if($is_even){
+                            $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                            $this->my_model->setShift();
+                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            $lower_sql_str = $this->db->last_query();
+
+                            $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+
+                            $this->my_model->setShift();
+                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            $higher_sql_str = $this->db->last_query();
+
+                        }else{
+                            $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                            $this->my_model->setShift();
+                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            $lower_sql_str = $this->db->last_query();
+
+                            $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+
+                            $this->my_model->setShift();
+                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            $higher_sql_str = $this->db->last_query();
+                        }
+
+                        $_paye_table = $this->my_model->mysqlString($higher_sql_str.' UNION '.$lower_sql_str);
+
                         $lower_tax = 0;
                         $l_m_paye = 0;
                         $l_me_paye = 0;
@@ -2358,19 +2531,6 @@ class Subbie extends CI_Controller{
                         $h_cec = 0;
                         $h_esct = 0;
 
-
-                        $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$gross.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                        $this->my_model->setShift();
-                        $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                        $lower_sql_str = $this->db->last_query();
-
-                        $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$gross.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-
-                        $this->my_model->setShift();
-                        $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                        $higher_sql_str = $this->db->last_query();
-
-                        $_paye_table = $this->my_model->mysqlString($higher_sql_str.' UNION '.$lower_sql_str);
 
                         if(count($_paye_table) > 0){
                             foreach($_paye_table as $key=>$paye){
@@ -2404,9 +2564,99 @@ class Subbie extends CI_Controller{
                         $data['cec'] = $l_cec + (($h_cec - $l_cec)/2);
                         $data['esct'] = $l_esct + (($h_esct - $l_esct)/2);
                         $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)/2);
-
                     }else{
-                        $whatVal = 'earnings ="'.$gross.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                        $_gross_val = number_format($gross,0,'.','');
+                        $whatVal = 'earnings ="'.$_gross_val.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                        $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                        if(count($tax)>0){
+                            foreach($tax as $tv){
+                                $data['tax'] = $tv->m_paye;
+                                $data['m_paye'] = $tv->m_paye;
+                                $data['me_paye'] = $tv->me_paye;
+                                $data['kiwi'] = $kiwi ? $tv->$kiwi : 0;
+                                $data['st_loan'] = $tv->sl_loan_ded;
+                                $data['cec'] = $cec ? $tv->$cec : 0;
+                                $data['esct'] = $esct ? $tv->$esct : 0;
+                                $data['emp_kiwi'] = $emp_kiwi ? $tv->$emp_kiwi : 0;
+                            }
+                        }
+                    }
+                }
+            }else if($frequency_id == 1){
+                if($gross > $earnings['weekly']){
+                    $data['tax'] = ((floatval($gross) - $earnings['weekly']) * 0.33) + $m_paye['weekly'];
+                }else{
+                    if($this->is_decimal($gross)){
+                        $_gross = number_format($gross,0,'.','');
+                        $l_gross = $_gross - 1;
+                        $lower_tax = 0;
+                        $l_m_paye = 0;
+                        $l_me_paye = 0;
+                        $l_kiwi = 0;
+                        $l_st_loan = 0;
+                        $l_emp_kiwi = 0;
+                        $l_cec = 0;
+                        $l_esct = 0;
+
+                        $higher_tax = 0;
+                        $h_m_paye = 0;
+                        $h_me_paye = 0;
+                        $h_kiwi = 0;
+                        $h_st_loan = 0;
+                        $h_emp_kiwi = 0;
+                        $h_cec = 0;
+                        $h_esct = 0;
+
+
+                        $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings = '.$l_gross.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                        $this->my_model->setShift();
+                        $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                        $lower_sql_str = $this->db->last_query();
+
+                        $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings = '.$_gross.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+
+                        $this->my_model->setShift();
+                        $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                        $higher_sql_str = $this->db->last_query();
+
+                        $_paye_table = $this->my_model->mysqlString($higher_sql_str.' UNION '.$lower_sql_str);
+
+                        if(count($_paye_table) > 0){
+                            foreach($_paye_table as $key=>$paye){
+                                if($key == 0){
+                                    $lower_tax = $paye->m_paye;
+                                    $l_m_paye = $paye->m_paye;
+                                    $l_me_paye = $paye->me_paye;
+                                    $l_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                    $l_st_loan = $paye->sl_loan_ded;
+                                    $l_cec = $cec ? $paye->$cec : 0;
+                                    $l_esct = $esct ? $paye->$esct : 0;
+                                    $l_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                }else{
+                                    $higher_tax = $paye->m_paye;
+                                    $h_m_paye = $paye->m_paye;
+                                    $h_me_paye = $paye->me_paye;
+                                    $h_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                    $h_st_loan = $paye->sl_loan_ded;
+                                    $h_cec = $cec ? $paye->$cec : 0;
+                                    $h_esct = $esct ? $paye->$esct : 0;
+                                    $h_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                }
+                            }
+                        }
+
+                        $data['data'] = $_paye_table;
+                        $data['tax'] = $lower_tax + (($higher_tax - $lower_tax)/2);
+                        $data['m_paye'] = $l_m_paye + (($h_m_paye - $l_m_paye)/2);
+                        $data['me_paye'] = $l_me_paye + (($h_me_paye - $l_me_paye)/2);
+                        $data['kiwi'] = $l_kiwi + (($h_kiwi - $l_kiwi)/2);
+                        $data['st_loan'] = $l_st_loan + (($h_st_loan - $l_st_loan)/2);
+                        $data['cec'] = $l_cec + (($h_cec - $l_cec)/2);
+                        $data['esct'] = $l_esct + (($h_esct - $l_esct)/2);
+                        $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)/2);
+                    }else{
+                        $_gross = number_format($gross,0,'.','');
+                        $whatVal = 'earnings ="'.$_gross.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
                         $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
                         if(count($tax)>0){
                             foreach($tax as $tv){
@@ -2423,24 +2673,7 @@ class Subbie extends CI_Controller{
                     }
                 }
             }else{
-                if($gross > $earnings['weekly']){
-                    $data['tax'] = ((floatval($gross) - $earnings['weekly']) * 0.33) + $m_paye['weekly'];
-                }else{
-                    $whatVal = 'earnings ="'.$gross.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                    $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                    if(count($tax)>0){
-                        foreach($tax as $tv){
-                            $data['tax'] = $tv->m_paye;
-                            $data['m_paye'] = $tv->m_paye;
-                            $data['me_paye'] = $tv->me_paye;
-                            $data['kiwi'] = $kiwi ? $tv->$kiwi : 0;
-                            $data['st_loan'] = $tv->sl_loan_ded;
-                            $data['cec'] = $cec ? $tv->$cec : 0;
-                            $data['esct'] = $esct ? $tv->$esct : 0;
-                            $data['emp_kiwi'] = $emp_kiwi ? $tv->$emp_kiwi : 0;
-                        }
-                    }
-                }
+
             }
         }
         return $data;
@@ -2523,7 +2756,7 @@ class Subbie extends CI_Controller{
                     }
 
                     $v->hours = $this->getWageTypeHoursValue($v->id,$v->wage_type,$v->frequency,$date);
-                    $v->gross = number_format($v->rate_cost * $v->hours,0,'.','');
+                    $v->gross = $v->rate_cost * $v->hours;
                     $v->gross_ = number_format($v->rate_cost * $v->hours,2,'.','');
                     $v->balance = @$this->data['total_bal'][$date][$v->id]['balance'];
                     $v->installment = $v->balance > 0 ? $v->installment : 0;
@@ -2557,5 +2790,10 @@ class Subbie extends CI_Controller{
         $data['wage_total'] = $wage_;
         $data['paye_total'] = $paye_;
         return $data;
+    }
+
+    function is_decimal( $val )
+    {
+        return is_numeric( $val ) && floor( $val ) != $val;
     }
 }

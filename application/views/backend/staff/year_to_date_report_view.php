@@ -20,10 +20,14 @@ echo form_close();
         <table class="table table-colored-header table-responsive">
             <thead>
             <tr>
-                <th>Name</th>
-                <th>Pay Earned</th>
-                <th>Financial Year</th>
-                <th>Option</th>
+                <th rowspan="2" style="vertical-align: middle;">Name</th>
+                <th colspan="2">Pay Earned</th>
+                <th rowspan="2" style="vertical-align: middle;">Financial Year</th>
+                <th rowspan="2" style="vertical-align: middle;">Option</th>
+            </tr>
+            <tr>
+                <th>Gross</th>
+                <th>Nett</th>
             </tr>
             </thead>
             <tbody>
@@ -34,7 +38,8 @@ echo form_close();
                     ?>
                     <tr>
                         <td style="text-align: left!important;"><?php echo $row->fname.' '.$row->lname;?></td>
-                        <td><?php echo '$ '.number_format($row->pay_earn,2);?></td>
+                        <td><?php echo '$ '.number_format($row->earn_gross,2);?></td>
+                        <td><?php echo '$ '.number_format($row->earn_nett,2);?></td>
                         <td><?php echo $row->financial_year;?></td>
                         <td style="white-space: nowrap;width: 15%;">
                             <a href="<?php echo base_url('yearToDateReport/summary/'.$row->id)?>" class="tooltip-class" title="Show All Summary" data-placement="left">Summary</a>

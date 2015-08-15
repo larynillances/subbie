@@ -17,7 +17,7 @@
             $data = @$job_list[$v->id];
             ?>
             <tr>
-                <td rowspan="<?php echo count($data);?>" style="vertical-align: middle"><?php echo $v->client_name?></td>
+                <td <?php echo count($data) > 0 ? 'rowspan="'.count($data).'"' : '';?> style="vertical-align: middle"><?php echo $v->client_name?></td>
                 <?php
                 $ref = 0;
                 if(count($data) >0):
@@ -38,7 +38,7 @@
                     endforeach;
                 else:
                 ?>
-                        <td colspan="8" class="grey-background">No data has found.</td>
+                        <td colspan="8" class="grey-background">No data has been found.</td>
                     </tr>
                 <?php
                 endif;

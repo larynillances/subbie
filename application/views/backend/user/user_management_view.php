@@ -261,7 +261,7 @@
                 <?php echo form_dropdown('account_type',$account_type,'','class="form-control input-sm account-type"')?>
             </div>
         </div>
-        <div class="pull-left" style="margin-left: -50px;">
+        <div class="pull-left" style="margin-left: -30px;">
             <div class="col-lg-12">
                 <?php echo form_dropdown('status',$status,'','class="form-control input-sm status"')?>
             </div>

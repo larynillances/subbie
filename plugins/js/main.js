@@ -106,12 +106,22 @@ $(function(){
         var notification = $('.notification-class');
         var ele = '<img src="'+ bu + 'images/loading_(2).gif" class="loading-img" style="height: 30px;margin:0 155px;">';
         var loading = $('.loading-img');
+        var read_all_msg = $('.read-all-message');
+        var filter_val = $('.filter_msg').val();
         notification.html(ele);
-        notification.load(bu + 'updateNotification/'+ $('.filter_msg').val() +'?is_view=true',
+        notification.load(bu + 'updateNotification/'+ filter_val +'?is_view=true',
             function(){
                 loading.css({
                     'display' : 'none'
-                })
+                });
+                read_all_msg.css({
+                    'display' : 'none'
+                });
+                if(filter_val == 3){
+                    read_all_msg.css({
+                        'display' : 'inline'
+                    });
+                }
             }
         );
     });

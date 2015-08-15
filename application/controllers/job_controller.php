@@ -58,7 +58,7 @@ class Job_Controller extends Subbie{
         $fields[] = 'tbl_tracking_log.notes';
 
         $this->my_model->setSelectFields($fields,false);
-
+        $this->my_model->setGroupBy('id');
         $this->data['job_data'] = $this->my_model->getinfo('tbl_registration');
         if(count($this->data['job_data']) >0){
             foreach($this->data['job_data'] as $jv){
@@ -1163,7 +1163,7 @@ class Job_Controller extends Subbie{
         $this->my_model->setSelectFields($fields,false);
         $job_list = $this->my_model->getInfo('tbl_registration');
         $this->data['job_list'] = array();
-        $this->data['client'] = $this->my_model->getInfo('tbl_client');
+        $this->data['client'] = $this->my_model->getInfo('tbl_client',true,'is_exclude !=');
         if(count($job_list) > 0){
             foreach($job_list as $v){
                 $address = (object)json_decode($v->address);
@@ -1317,18 +1317,19 @@ class Job_Controller extends Subbie{
                 $this->my_model->setSelectFields(array(
                     'TIMESTAMPDIFF(SECOND, tbl_login_sheet.time_in, tbl_login_sheet.time_out) as hours',
                     'tbl_login_sheet.time_in','tbl_login_sheet.time_out','tbl_login_sheet.date',
-                    'tbl_login_sheet.id','tbl_job_assign.job_id','tbl_rate.rate_cost','tbl_staff.staff_id'
+                    'tbl_login_sheet.id','tbl_job_assign.job_id','tbl_rate.rate_cost','tbl_staff.id as staff_id'
                 ));
                 $this->my_model->setOrder('date');
                 $dtr = $this->my_model->getinfo('tbl_job_assign',$v->id,'tbl_job_assign.job_id');
-
+                $_hours = array();
                 if(count($dtr) > 0){
                     foreach($dtr as $dv){
                         $minutes = (int)($dv->hours/60);
                         $hoursValue = (int)($minutes/60);
                         $minutesValue = $minutes - ($hoursValue * 60);
                         $hours = str_pad($hoursValue, 2, '0', STR_PAD_LEFT) . "." . str_pad($minutesValue, 2, '0', STR_PAD_LEFT);
-                        $this->data['hours'][$dv->date][$dv->job_id] += $hours;
+                        @$_hours[$dv->date][$dv->job_id] += floatval($hours);
+                        $this->data['hours'] = $_hours;
 
                         $rate = $this->getStaffRate($dv->staff_id,$dv->date);
                         if(count($rate) > 0){

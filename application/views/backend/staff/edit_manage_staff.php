@@ -21,7 +21,7 @@ echo form_open('','class="form-horizontal" role="form"');
             <div class="form-group">
                 <label class="col-sm-3 control-label" for="company">Project:</label>
                 <div class="col-sm-8">
-                    <input type="text" name="company" id="company" class="form-control input-sm required" value="<?php echo $v->company;?>">
+                    <input type="text" name="company" id="company" class="form-control input-sm" value="<?php echo $v->company;?>">
                 </div>
             </div>
             <div class="form-group">
@@ -117,9 +117,9 @@ echo form_open('','class="form-horizontal" role="form"');
                     <label class="col-sm-3 control-label" for="kiwi_id">Kiwi Saver:</label>
                     <label class="col-sm-1 control-label" for="kiwi_id">Employee:</label>
                     <div class="col-sm-2" style="margin-left: 15px;">
-                        <?php echo form_dropdown('kiwi_id',$kiwi,$v->kiwi_id,'class="form-control input-sm kiwi-class" id="kiwi_id" style="width:134%"');?>
+                        <?php echo form_dropdown('kiwi_id',$kiwi,$v->kiwi_id,'class="form-control input-sm kiwi-class" id="kiwi_id" style="width:120%"');?>
                     </div>
-                    <label class="col-sm-1 control-label" for="kiwi_id">Employeer:</label>
+                    <label class="col-sm-1 control-label" for="kiwi_id">Employer:</label>
                     <div class="col-sm-2" style="margin-left: 20px;">
                         <?php echo form_dropdown('employeer_kiwi',$kiwi,$v->employeer_kiwi,'class="form-control input-sm kiwi-class" id="kiwi_id" style="width:134%"');?>
                     </div>
