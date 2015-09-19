@@ -14,14 +14,14 @@
             </div>
             <div class="col-sm-1">
                 <span style="font-size: 18px;margin: 2px 0 0 -58px;">
-                    <a href="#" class="add-staff-btn"><i class="glyphicon glyphicon-plus"></i></a>
+                    <a href="<?php echo base_url('manageStaff/add')?>" class="add-staff-btn"><i class="glyphicon glyphicon-plus"></i></a>
                 </span>
             </div>
         </div>
         <?php
         echo form_close();
         ?>
-        <table class="table table-colored-header table-responsive">
+        <table class="table table-colored-header table-responsive table-hover">
             <thead>
             <tr>
                 <th rowspan="2">Name</th>
@@ -33,6 +33,7 @@
                 <th colspan="2">Kiwi</th>
                 <th rowspan="2">ESCT</th>
                 <th rowspan="2">CPR<br/>Start Date</th>
+                <th rowspan="2">&nbsp;</th>
                 <th rowspan="2">Bank Account</th>
                 <th colspan="2">Loans</th>
                 <th rowspan="2">Status</th>
@@ -62,15 +63,17 @@
                         <td><?php echo $v->employeer_kiwi ? $v->employeer_kiwi.'%' : '';?></td>
                         <td><?php echo $v->esct_rate ? $v->esct_rate : '';?></td>
                         <td><?php echo $v->start_use ? date('d/m/Y',strtotime($v->start_use)) : '';?></td>
+                        <td><a href="#" class="tooltip-class pay-rate-list-btn" id="<?php echo $v->id;?>" data-value="<?php echo $v->name.' Pay Rate List';?>" title="Pay Rate List"><i class="glyphicon glyphicon-list"></i></a></td>
                         <td><?php echo $v->bank_account;?></td>
                         <td><?php echo $v->installment ? '$'.number_format($v->installment,2) : ''?></td>
                         <td><?php echo $v->balance ? '$'.number_format($v->balance,2) : ''?></td>
                         <td <?php echo $v->staff_status ? 'style="background:'.$v->color.'"' : ''?> ><?php echo $v->staff_status;?></td>
                         <td>
+                            <a href="<?php echo base_url().'kiwiPayLetter/'.$v->id?>" target="_blank" class="tooltip-class" title="Print Kiwisaver Letter">Kiwi</a>
                             <?php
                             if($v->status_id == 3){
                                 ?>
-                                <a href="#" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
+                                <a href="<?php echo base_url('manageStaff/edit/'.$v->id)?>" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
                                 <a href="<?php echo base_url().'manageStaff/delete/'.$v->id;?>" class="delete-staff-btn"><span class="glyphicon glyphicon-arrow-right"></a>
                             <?php
                             }else if($v->status_id == 2){
@@ -80,7 +83,7 @@
                             <?php
                             }else{
                                 ?>
-                                <a href="#" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
+                                <a href="<?php echo base_url('manageStaff/edit/'.$v->id)?>" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
                                 <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?current=1';?>" class="move-to-current-btn move-btn tooltip-class" data-value="Move to Current" data-placement="left" title="Move to Current">Cur.</a>&nbsp;
                             <?php
                             }
@@ -103,7 +106,7 @@
 </div>
 <script>
     $(function(e){
-        $('.add-staff-btn').click(function(e){
+        /*$('.add-staff-btn').click(function(e){
             var url = bu + 'manageStaff/add';
             $(this).modifiedModal({
                 url: url,
@@ -115,6 +118,13 @@
             $(this).modifiedModal({
                 url: url,
                 title: 'Edit Staff'
+            });
+        });*/
+        $('.pay-rate-list-btn').click(function(e){
+            var url = bu + 'payRatePeriods?id=' + this.id;
+            $(this).modifiedModal({
+                url: url,
+                title: $(this).data('value')
             });
         });
         $('.delete-staff-btn').click(function(e){
@@ -128,8 +138,8 @@
                     '</div>' +
                 '</div>' +
                 '<div class="modal-footer">' +
-                    '<button type="button" class="btn btn-success yesBtn-confirm" data-dismiss="modal">Yes</button>' +
-                    '<button type="button" class="btn btn-default" data-dismiss="modal">No</button>' +
+                    '<button type="button" class="btn btn-success btn-sm yesBtn-confirm" data-dismiss="modal">Yes</button>' +
+                    '<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">No</button>' +
                 '</div>';
             $(this).modifiedModal({
                 html:ele,

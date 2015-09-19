@@ -27,13 +27,13 @@ echo form_open('','class="form-horizontal" role="form"');
         </div>
     </div>
     <div class="form-group">
-        <label class="col-sm-4 control-label" for="enderly_name">Enderly's Project Admin:</label>
+        <label class="col-sm-4 control-label" for="enderly_name">Wage Clerk Admin:</label>
         <div class="col-sm-7">
             <input type="text" name="enderly_name" id="enderly_name" class="form-control input-sm" value="<?php echo @$pay_setup->enderly_name?>">
         </div>
     </div>
     <div class="form-group">
-        <label class="col-sm-4 control-label" for="enderly_email">Enderly's Project Email:</label>
+        <label class="col-sm-4 control-label" for="enderly_email">Wage Clerk Email:</label>
         <div class="col-sm-7">
             <input type="email" name="enderly_email" id="enderly_email" class="form-control input-sm" value="<?php echo @$pay_setup->enderly_email?>">
         </div>

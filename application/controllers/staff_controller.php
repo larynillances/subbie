@@ -31,6 +31,19 @@ class Staff_Controller extends Subbie{
 
         $this->getWageData($this->data['thisYear'],$this->data['thisMonth']);
 
+        $id = array();
+        $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$this->data['thisYear'].'" AND (MONTH(date_last_pay) ="'.(int)$this->data['thisMonth'].'" OR MONTH(date_last_pay) ="'.(int)($this->data['thisMonth'] - 1).'")';
+        $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+
+        $week_data = array();
+        if(count($staff_) > 0){
+            foreach($staff_ as $row){
+                $id[] = $row->id;
+                $week_data[$row->id] = $row->last_week_pay;
+            }
+        }
+        $this->data['last_pay_data'] = count($id) > 0 ? $this->getStaffLastPay($id,$this->data['thisYear'],$week_data) : array();
+
         $this->data['page_load'] = 'backend/staff/wage_summary_view';
         $this->load->view('main_view',$this->data);
     }
@@ -78,8 +91,7 @@ class Staff_Controller extends Subbie{
     }
 
     function wageManage(){
-
-        $this->data['total_bal'] = $this->getYearTotalBalance(date('Y'));
+        $staff_data = new Staff_Helper();
         $week = $this->getWeekInYear(date('Y'));
 
         $this->my_model->setNormalized('staff_status','id');
@@ -88,78 +100,6 @@ class Staff_Controller extends Subbie{
         $this->data['staff_status'][''] = 'All';
 
         ksort($this->data['staff_status']);
-
-
-        $this->my_model->setJoin(array(
-            'table' => array(
-                'tbl_rate',
-                'tbl_wage_type',
-                'tbl_salary_freq',
-                'tbl_salary_type',
-                'tbl_currency',
-                'tbl_tax_codes',
-                //'tbl_staff_rate',
-                'tbl_kiwi as employee',
-                'tbl_kiwi as employeer',
-                'tbl_esct_rate',
-                'tbl_staff_status'
-            ),
-            'join_field' => array(
-                'id','id','id','id','id', 'id'/*,'staff_id'*/,'id','id','id','id','id'
-            ),
-            'source_field' => array(
-                'tbl_staff.rate',
-                'tbl_staff.wage_type',
-                'tbl_wage_type.frequency',
-                'tbl_wage_type.type',
-                'tbl_staff.currency',
-                'tbl_staff.tax_code_id',
-                /*'tbl_staff.id',*/
-                'tbl_staff.kiwi_id',
-                'tbl_staff.employeer_kiwi',
-                'tbl_staff.esct_rate_id',
-                'tbl_staff.status_id'
-            ),
-            'type' => 'left',
-            'join_append' => array(
-                'tbl_rate',
-                'tbl_wage_type',
-                'tbl_salary_freq',
-                'tbl_salary_type',
-                'tbl_currency',
-                'tbl_tax_codes',
-                'employee',
-                'employeer',
-                'tbl_esct_rate',
-                'tbl_staff_status'
-            )
-        ));
-        $this->my_model->setSelectFields(array(
-            'tbl_staff.id',
-            'tbl_wage_type.description',
-            'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name',
-            'tbl_staff.tax_number',
-            'tbl_currency.currency_code',
-            'CONCAT("$",tbl_rate.rate_cost) as rate_cost',
-            'tbl_staff.balance',
-            'tbl_staff.installment',
-            'tbl_currency.symbols',
-            'IF(tbl_staff.nz_account != "", CONCAT("$",tbl_staff.nz_account), "") as nz_account',
-            'IF(tbl_staff.account_two != "", CONCAT("$",tbl_staff.account_two), "") as account_two',
-            'IF(tbl_tax_codes.tax_code !="",tbl_tax_codes.tax_code,"") as tax_code',
-            'IF('.'tbl_staff.ird_num != "-" ,LPAD('.'tbl_staff.ird_num,11,"0"),'.'tbl_staff.ird_num) as ird_num',
-            'CONCAT(FORMAT('.'tbl_esct_rate.esct_rate,2),"%") as esct_rate',
-            'CONCAT('.'tbl_salary_freq.frequency," (",'.'tbl_salary_freq.code,")") as frequency',
-            'CONCAT('.'tbl_salary_type.type," (",'.'tbl_salary_type.code,")") as salary_type',
-            'tbl_salary_type.code as salary_code',
-            'tbl_staff.bank_account',
-            'employee.kiwi',
-            'employeer.kiwi as employeer_kiwi',
-            'tbl_staff_status.color',
-            'tbl_staff.status_id',
-            'tbl_staff_status.staff_status'
-        ));
-
 
         if(isset($_POST['go'])){
             if(!$_POST['staff_status']){
@@ -170,22 +110,32 @@ class Staff_Controller extends Subbie{
         }
         $this->data['status'] = $this->session->userdata('status_selected') ? $this->session->userdata('status_selected') : 3;
 
-        $whatVal = array($this->data['status']);
-        $whatFld = array('status_id');
+        $whatVal = array($this->data['status'],1);
+        $whatFld = array('status_id','project_id');
 
         if($this->session->userdata('status_selected') == 4){
-            $whatVal = '';
-            $whatFld = '';
+            $whatVal = 1;
+            $whatFld = 'project_id';
         }
 
-        $this->my_model->setOrder(array('tbl_staff.lname','tbl_staff.fname'));
-        $this->my_model->setGroupBy('tbl_staff.id');
-        $this->data['employee'] = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+        $this->data['employee'] = $staff_data->staff_details($whatVal,$whatFld);
+
         $date = $this->getFirstNextLastDay(date('Y'),date('m'),'tuesday');
+        $wage_data = new Wage_Controller();
+        $this->data['total_bal'] = $wage_data->get_year_total_balance();
+        $staff_data = new Staff_Helper();
+        $rate = $staff_data->staff_rate();
+
         if(count($this->data['employee']) > 0){
             foreach($this->data['employee'] as $v){
                 $whatWeek = date('W');
-                $balance = @$this->data['total_bal'][$week[$whatWeek]][$v->id]['balance'];
+                $balance = 0;
+
+                if($v->has_loans){
+                    $this->data['total_bal'] = $wage_data->get_year_total_balance($v->id);
+                    $balance = @$this->data['total_bal'][$week[$whatWeek]][$v->id]['balance'];
+                }
+
                 $v->balance = $balance ? $balance : '';
                 if($v->bank_account){
                     $bank_number = json_decode($v->bank_account);
@@ -198,11 +148,10 @@ class Staff_Controller extends Subbie{
                 }
                 $salary_type = explode(' ',$v->description);
                 $v->description = end($salary_type).' ('.$v->salary_code.')';
-                $rate = $this->getStaffRate($v->id);
                 $v->start_use = '';
                 $v->rate_name_ = '';
-                if(count($rate) > 0){
-                    foreach($rate as $row){
+                if(count(@$rate[$v->id]) > 0){
+                    foreach(@$rate[$v->id] as $row){
                         $rate_name = explode(' ',$row->rate_name);
                         $v->rate_name = $row->rate_name;
                         $v->rate_cost = '$'.$row->rate;
@@ -252,6 +201,7 @@ class Staff_Controller extends Subbie{
         $this->my_model->setSelectFields(array('MIN(start_use) as start_use'));
         $start_date = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
         $this->data['start_date'] = '';
+        $this->data['is_download'] = false;
         if(count($start_date) > 0){
             foreach($start_date as $sv){
                 $this->data['start_date'] = date('d/m/Y',strtotime($sv->start_use));
@@ -261,7 +211,7 @@ class Staff_Controller extends Subbie{
             mkdir($this->data['dir'], 0777, TRUE);
         }
 
-        $filename = date('Ymd',strtotime($this_date)).'_Payslip_' .str_replace(' ','',$payslip['staff_name']);
+        $filename = date('Ymd',strtotime('+6 days '.$this_date)).'_Payslip_' .str_replace(' ','',$payslip['staff_name']);
         $staff_id = $id;
         $this->data['has_email'] = $payslip['has_email'];
         $this->data['staff'] = $payslip['staff'];
@@ -272,7 +222,7 @@ class Staff_Controller extends Subbie{
             $this->load->view('main_view',$this->data);
         }
         else{
-            $has_value = $this->my_model->getInfo('tbl_pdf_archive',array($filename,$staff_id),array('file_name','staff_id'));
+            $has_value = $this->my_model->getInfo('tbl_pdf_archive',array($filename.'.pdf',$staff_id),array('file_name','staff_id'));
             $post = array(
                 'staff_id' => $id,
                 'file_name' => $filename.'.pdf',
@@ -281,7 +231,7 @@ class Staff_Controller extends Subbie{
             );
 
             if(count($has_value) > 0){
-                $this->my_model->update('tbl_pdf_archive',$post,array($filename,$staff_id),array('file_name','staff_id'));
+                $this->my_model->update('tbl_pdf_archive',$post,array($filename.'.pdf',$staff_id),array('file_name','staff_id'));
             }else{
                 $this->my_model->insert('tbl_pdf_archive',$post);
             }
@@ -290,70 +240,139 @@ class Staff_Controller extends Subbie{
         }
     }
 
+    function generateStaffPaySlip(){
+        if(isset($_GET['generate'])){
+            $week = $this->uri->segment(2);
+            $month = $this->uri->segment(3);
+            $year = $this->uri->segment(4);
+
+            $whatVal = 'project_id = "1" AND (date_employed != "0000-00-00" AND status_id = "3") OR (last_week_pay >= "' . $week . '")';
+            $staff = $this->my_model->getInfo('tbl_staff',$whatVal,'');
+
+            $week = str_pad($week,2,'0',STR_PAD_LEFT);
+            $month = str_pad($month,2,'0',STR_PAD_LEFT);
+
+            if(count($staff) > 0){
+                foreach($staff as $row){
+                    $this->generatePaySlip($week,$month,$year,$row->id);
+                }
+            }
+            redirect('payPeriodSummaryReport?print=1&week=' . $week .'&month=' . $month.'&year='.$year);
+        }
+    }
+
     function sendStaffPaySlip(){
 
         $id = $this->uri->segment(2);
         $this_date = $this->uri->segment(3);
-
-        if(!$id && !$this_date){
+        $this_week = $this->uri->segment(4);
+        $type = isset($_GET['type']) ? $_GET['type'] : '';
+        if(!$id && !$this_date && !$this_week){
             exit;
         }
-        $this->my_model->setSelectFields(array('CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name','email'));
-        $staff = $this->my_model->getInfo('tbl_staff',$id);
-        $this->data['email'] = '';
-        $staff_name = '';
-        if(count($staff) > 0){
-            foreach($staff as $v){
-                $this->data['email'] = $v->email;
-                $staff_name = $v->name;
+        $this->data['details'] = array();
+        $this->my_model->setSelectFields(array('CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name','email','id'));
+
+        $whatVal = array($id);
+        $whatFld = array('tbl_staff.id');
+        $staff = $this->my_model->getInfo('tbl_staff',$whatVal,$whatFld);
+
+        $whatVal = array($id,$this_date);
+        $whatFld = array('staff_id','date');
+
+        $filename = $this->my_model->getInfo('tbl_pdf_archive',$whatVal,$whatFld);
+        $file = array();
+
+        if(count($filename) > 0){
+            foreach($filename as $fv){
+                $file[$fv->staff_id] = $fv->file_name;
             }
         }
 
+        $has_pay_setup = $this->my_model->getInfo('tbl_pay_setup');
+
+        $bcc = array();
+        $bcc_alias = array();
+
+        if(count($has_pay_setup) > 0) {
+            foreach ($has_pay_setup as $pay_setup) {
+                $bcc       = array(
+                    $pay_setup->director_email,
+                    $pay_setup->accountant_email,
+                    $pay_setup->enderly_email
+                );
+                $bcc_alias = array(
+                    $pay_setup->director_name,
+                    $pay_setup->accountant_name,
+                    $pay_setup->enderly_name
+                );
+            }
+        }
+
+        if(count($staff) > 0) {
+            foreach ($staff as $v) {
+                $this->data['details']['name']  = $v->name;
+                $this->data['details']['email'] = $v->email;
+            }
+        }
         if(isset($_POST['send_email'])){
-            $this->my_model->setLastId('file_name');
-            $filename = $this->my_model->getInfo('tbl_pdf_archive',array($this_date,$id),array('date','staff_id'));
-            $filename = $filename ? $filename : '';
-            $dir = realpath(APPPATH.'../pdf');
-            $path = 'payslip/'.date('Y/F',strtotime($this_date));
-            $_path = $dir.'/'.$path.'/'.$filename;
-            if(file_exists($_path)){
-                $this->data['dir'] = $dir.'/'.$path;
-                $file_to_save = $this->data['dir'].'/'.$filename;
-                //save the pdf file on the server
 
-                $sendMailSetting = array(
-                    'to' => $_POST['email'],
-                    'name' => $staff_name,
-                    'from' => 'admin@subbiesolution.co.nz',
-                    'subject' => 'Pay Slip for '.date('d-F-y',strtotime($this_date)),
-                    'url' => $file_to_save,
-                    'file_names' => $filename,
-                    'debug_type' => 2,
-                    'debug' => true
-                );
+            if(count($staff) > 0){
+                foreach($staff as $v){
+                    $dir = realpath(APPPATH.'../pdf');
+                    $path = 'payslip/'.date('Y/F',strtotime($this_date));
+                    $_path = $dir.'/'.$path.'/'.@$file[$v->id];
+                    if(file_exists($_path)) {
+                        $this->data['dir'] = $dir . '/' . $path;
+                        //save the pdf file on the server
 
-                $msg = 'Good day. <br/>Here is your attach pay slip for the Month of <strong>'.date('d-F-Y',strtotime($this_date)).'</strong>.';
+                        $sendMailSetting = array(
+                            'to' => $_POST['email'],
+                            'to_alias' => $_POST['name'],
+                            'name' => 'Subbie Solutions Administrator',
+                            'from' => 'no-reply@subbiesolutions.co.nz',
+                            'subject' => 'Pay Slip for Week '. $this_week . ' (ending ' . date('d/m/Y', strtotime('+6 days '.$this_date)).')',
+                            'bcc' => $bcc,
+                            'bcc_alias' => $bcc_alias,
+                            'url' => $_path,
+                            'file_names' => $file[$v->id],
+                            'debug_type' => 2,
+                            'debug' => true
+                        );
+                        /*$msg = 'Attached please find your Pay Slip for Week '.$this_week . '(Week Ending '.date('d/m/Y', strtotime($this_date)).')<br/><br/>';
+                        $msg .= 'Regards,<br/><br/>';
+                        $msg .= 'Subbie Solutions Admin';*/
 
-                $debugResult = $this->sendMail(
-                    $msg,
-                    $sendMailSetting
-                );
+                        $debugResult = (Object)array(
+                            'type' => 2,
+                            'debug' => 'Email needs to be review before sending'
+                        );
 
-                if($debugResult->type){
+                        /*$send_mail = new Send_Email_Controller();
+                        $debugResult = $send_mail->sendingEmail(
+                            $msg,
+                            $sendMailSetting
+                        );*/
 
-                    $post = array(
-                        'user_id' => $this->session->userdata('user_id'),
-                        'message' => json_encode($sendMailSetting),
-                        'email_type' => 2,
-                        'staff_id' => $id,
-                        'type' => $debugResult->type,
-                        'debug' => $debugResult->debug,
-                        'date' => date('Y-m-d H:i:s')
-                    );
+                        $post = array(
+                            'user_id' => $this->session->userdata('user_id'),
+                            'week_number' => $this_week,
+                            'pay_period' => $this_date,
+                            'message' => json_encode($sendMailSetting),
+                            'email_type_id' => 2,
+                            'staff_id' => $v->id,
+                            'type' => $debugResult->type,
+                            'debug' => $debugResult->debug,
+                            'date' => date('Y-m-d H:i:s')
+                        );
 
-                    $this->my_model->insert('tbl_email_export_log', $post, false);
-
-                    redirect('printPaySlip/'.$id.'/'.$this_date.'?view=1');
+                        $this->my_model->insert('tbl_email_export_log', $post, false);
+                        if($type == 2){
+                            redirect('printFinalPaySlip/'.$id.'/'.$this_date.'/'.$this_week.'?v=1&type='.$type);
+                        }else{
+                            redirect('printPaySlip/'.$id.'/'.$this_date.'/'.$this_week.'?view=1&type='.$type);
+                        }
+                    }
                 }
             }
         }else{
@@ -380,7 +399,6 @@ class Staff_Controller extends Subbie{
         $this->data['thisMonth'] = $this->session->userdata('month') != '' ? $this->session->userdata('month') : date('m');
 
         $this->getWageData($this->data['thisYear'],$this->data['thisMonth'],'monthly');
-        $this->getYearTotalBalance($this->data['thisYear'],'monthly');
 
         $this->data['page_load'] = 'backend/staff/monthly_pay_view';
         $this->load->view('main_view',$this->data);
@@ -391,16 +409,29 @@ class Staff_Controller extends Subbie{
         $type = $this->uri->segment(2);
         $month = $this->uri->segment(3);
         $year = $this->uri->segment(4);
+        $wage_data = new Wage_Controller();
 
         if(!$type && !$month && !$year){
             exit;
         }
 
+        $id = array();
+        $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$year.'" AND (MONTH(date_last_pay) ="'.(int)$month.'" OR MONTH(date_last_pay) ="'.(int)($month - 1).'")';
+        $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+
+        $week_data = array();
+        if(count($staff_) > 0){
+            foreach($staff_ as $row){
+                $id[] = $row->id;
+                $week_data[$row->id] = $row->last_week_pay;
+            }
+        }
+        $this->data['last_pay_data'] = count($id) > 0 ? $this->getStaffLastPay($id,$year,$week_data) : array();
         $this->data['this_month_year'] = date('F Y',strtotime($year.'-'.$month.'-01'));
         switch($type){
             case 'wage':
                 $this->getWageData($year,$month);
-                $this->getYearTotalBalance($year);
+                $this->data['total_bal'] = $wage_data->get_year_total_balance();
 
                 $this->data['dir'] = 'pdf/summary/wage/'.date('Y').'/'.date('F');
                 if(!is_dir($this->data['dir'])){
@@ -416,7 +447,7 @@ class Staff_Controller extends Subbie{
                 break;
             default:
                 $this->getWageData($year,$month,'monthly');
-                $this->getYearTotalBalance($year,'monthly');
+                $this->data['total_bal'] = $wage_data->get_year_total_balance();
                 $this->data['dir'] = 'pdf/summary/monthly/'.date('Y').'/'.date('F');
                 if(!is_dir($this->data['dir'])){
                     mkdir($this->data['dir'], 0777, TRUE);
@@ -543,11 +574,18 @@ class Staff_Controller extends Subbie{
         ksort($this->data['esct_rate']);
 
         $this->my_model->setNormalized('rate_name','id');
-        $this->my_model->setSelectFields(array('id','CONCAT(rate_name," ($" ,rate_cost ,")" ) as rate_name'));
+        $this->my_model->setSelectFields(array('id','CONCAT(REPLACE(REPLACE(rate_name,"Rate Type",""),"Rate","")," ($" ,rate_cost ,")" ) as rate_name'));
         $this->data['rate'] = $this->my_model->getinfo('tbl_rate');
         $this->data['rate'][''] = '-';
 
         ksort($this->data['rate']);
+
+        $this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project'] = $this->my_model->getinfo('tbl_project_type');
+        $this->data['project'][''] = '-';
+
+        ksort($this->data['project']);
 
         $this->my_model->setNormalized('hourly_rate','id');
         $this->my_model->setSelectFields(array('id','hourly_rate'));
@@ -572,7 +610,7 @@ class Staff_Controller extends Subbie{
         $this->my_model->setNormalized('description','id');
         $this->my_model->setSelectFields(array(
             'tbl_wage_type.id',
-            'CONCAT(tbl_wage_type.description, " (", tbl_salary_type.code ," - ", tbl_salary_freq.code ,")" ) as description'
+            'CONCAT(REPLACE(tbl_wage_type.description,"Wage Type",""), " (", tbl_salary_type.code ," - ", tbl_salary_freq.code ,")" ) as description'
         ));
         $this->my_model->setOrder('tbl_wage_type.type');
         $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',array(1,2),'tbl_wage_type.type');
@@ -609,7 +647,8 @@ class Staff_Controller extends Subbie{
 
         switch($action){
             case 'add':
-                $this->load->view('backend/staff/add_manage_staff',$this->data);
+                $this->data['page_load'] = 'backend/staff/add_manage_staff';
+                $this->load->view('main_view',$this->data);
                 break;
             case 'edit':
                 $this->data['staff'] = $this->my_model->getinfo('tbl_staff',$id);
@@ -624,7 +663,8 @@ class Staff_Controller extends Subbie{
                         $row->start_use = $rate ? date('d-m-Y',strtotime($start_use)) : date('d-m-Y');
                     }
                 }
-                $this->load->view('backend/staff/edit_manage_staff',$this->data);
+                $this->data['page_load'] = 'backend/staff/edit_manage_staff';
+                $this->load->view('main_view',$this->data);
                 break;
             case 'fixed':
 
@@ -646,16 +686,20 @@ class Staff_Controller extends Subbie{
                 if(isset($_GET['archive'])){
                     $post = array(
                         'is_unemployed' => true,
+                        'archive_date' => date('Y-m-d'),
                         'status_id' => 1
                     );
                 }else if(isset($_GET['current'])){
                     $post = array(
                         'is_unemployed' => false,
+                        'unemployed_date' => '',
+                        'archive_date' => '',
                         'status_id' => 3
                     );
                 }else{
                     $post = array(
                         'is_unemployed' => true,
+                        'unemployed_date' => date('Y-m-d'),
                         'status_id' => 2
                     );
                 }
@@ -688,7 +732,20 @@ class Staff_Controller extends Subbie{
                     if(isset($_POST['esct_rate_id']) && !$_POST['esct_rate_id']){
                         unset($_POST['esct_rate_id']);
                     }
+
                     $id = $this->my_model->insert('tbl_staff',$_POST,false);
+
+                    /*if($_POST['kiwi_id']){
+                        $post_kiwi = array(
+                            'staff_id' => $id,
+                            'kiwi_id' => $_POST['kiwi_id'],
+                            'employer_kiwi' => $_POST['employeer_kiwi'],
+                            'esct_rate_id' => $_POST['esct_rate_id'],
+                            'date_start' => date('Y-m-d',strtotime($start_use)),
+                        );
+
+                        $this->my_model->insert('tbl_staff_kiwi',$post_kiwi,false);
+                    }*/
 
                     $this->my_model->setLastId('rate_cost');
                     @$rate_value = $this->my_model->getInfo('tbl_rate',$_POST['rate']);
@@ -774,7 +831,28 @@ class Staff_Controller extends Subbie{
                         $mysql_str = 'UPDATE tbl_staff SET  esct_rate_id = NULL WHERE  id ='. $id ;
                         $this->db->query($mysql_str);
                     }
+
+                    /*if($_POST['kiwi_id']){
+                        $post_kiwi = array(
+                            'staff_id' => $id,
+                            'kiwi_id' => $_POST['kiwi_id'],
+                            'employer_kiwi' => $_POST['employeer_kiwi'],
+                            'esct_rate_id' => $_POST['esct_rate_id'],
+                            'date_start' => date('Y-m-d'),
+                        );
+
+                        $has_kiwi = $this->my_model->getInfo('tbl_staff_kiwi',array($id,$_POST['kiwi_id']),array('staff_id','kiwi_id'));
+                        if(count($has_kiwi) > 0){
+                            foreach($has_kiwi as $val){
+                                $this->my_model->update('tbl_staff_kiwi',$post_kiwi,$val->id);
+                            }
+                        }else{
+                            $this->my_model->insert('tbl_staff_kiwi',$post_kiwi,false);
+                        }
+                    }*/
+
                     $_POST['bank_account'] = json_encode($_POST['bank_account']);
+                    $_POST['is_email_payslip'] = $_POST['is_email_payslip'] ? 1 : 0;
                     $_POST['has_loans'] = $_POST['balance'] != '' ? true : false;
                     $_POST['date_employed'] = $_POST['date_employed'] ? date('Y-m-d',strtotime($_POST['date_employed'])) : '';
                     $this->my_model->update('tbl_staff',$_POST,$id,'id',false);
@@ -790,6 +868,7 @@ class Staff_Controller extends Subbie{
         if(!$action){
             exit;
         }
+        $id = 0;
         if($action == 'edit'){
             $id = $this->uri->segment(3);
             if(!$id){
@@ -929,13 +1008,15 @@ class Staff_Controller extends Subbie{
             'tbl_staff.team_id','tbl_team.code as team_code','tbl_team.team'
         ));
         $this->my_model->setOrder('tbl_staff.id');
-        $this->data['employee'] = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
-
+        $whatVal = array(false,1);
+        $whatFld = array('tbl_staff.is_unemployed','project_id');
+        $this->data['employee'] = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+        $staff_data = new Staff_Helper();
+        $rate = $staff_data->staff_rate();
         if(count($this->data['employee']) > 0){
             foreach($this->data['employee'] as $row){
-                $rate = $this->getStaffRate($row->id);
-                if(count($rate) > 0){
-                    foreach($rate as $val){
+                if(count(@$rate[$row->id]) > 0){
+                    foreach(@$rate[$row->id] as $val){
                         $row->rate_name = $val->rate_name;
                         $row->rate_cost = '$'.$val->rate;
                     }
@@ -1028,58 +1109,16 @@ class Staff_Controller extends Subbie{
         }
 
         $this->data['staff'] = array();
-        $this->data['name'] = $this->my_model->getinfo('tbl_staff',$id);
 
-        $this->my_model->setJoin(array(
-            'table' => array(
-                'tbl_currency','tbl_rate',
-                'tbl_deductions','tbl_wage_type',
-                'tbl_kiwi as employee','tbl_kiwi as employeer',
-                'tbl_esct_rate',
-                'tbl_tax_codes'
-            ),
-            'join_field' => array('id','id','staff_id','id','id','id','id','id','id'),
-            'source_field' => array(
-                'tbl_staff.currency','tbl_staff.rate',
-                'tbl_staff.id','tbl_staff.wage_type',
-                'tbl_staff.kiwi_id','tbl_staff.employeer_kiwi',
-                'tbl_staff.esct_rate_id',
-                'tbl_staff.tax_code_id'
-            ),
-            'type' => 'left',
-            'join_append' => array(
-                'tbl_currency','tbl_rate',
-                'tbl_deductions','tbl_wage_type',
-                'employee','employeer',
-                'tbl_esct_rate',
-                'tbl_tax_codes'
-            )
-        ));
-        $this->my_model->setSelectFields(array(
-            'tbl_staff.id',
-            'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name',
-            'tbl_staff.tax_number','tbl_currency.currency_code',
-            'tbl_staff.balance',
-            'tbl_staff.installment',
-            'tbl_rate.rate_cost',
-            'tbl_deductions.flight_debt',
-            'tbl_deductions.flight_deduct',
-            'tbl_deductions.visa_debt','tbl_deductions.visa_deduct',
-            'tbl_deductions.accommodation','tbl_deductions.transport',
-            'tbl_currency.symbols',
-            'tbl_staff.nz_account',
-            'tbl_wage_type.type as wage_type',
-            'tbl_wage_type.frequency as frequency_id',
-            'tbl_staff.account_two',
-            'employee.kiwi',
-            'employeer.kiwi as emp_kiwi',
-            'tbl_esct_rate.field_name',
-            'tbl_esct_rate.cec_name',
-            'tbl_tax_codes.has_st_loan'
-        ));
-        $staff_history = $this->my_model->getinfo('tbl_staff',$id,'tbl_staff.id');
+        $wage_data = new Wage_Controller();
+        $staff_data = new Staff_Helper();
+        $staff_history = $staff_data->staff_details(array($id),array('tbl_staff.id'));
 
-        $this->getYearTotalBalance($this->data['year_val']);
+        $rate = $staff_data->staff_rate();
+        $hourly_rate = $staff_data->staff_hourly_rate();
+
+        $this->data['name'] = $staff_history;
+        $this->data['total_bal'] = $wage_data->get_year_total_balance($id);
 
         $this->data['balance'] = array();
         $this->data['start_week'] = '';
@@ -1089,22 +1128,27 @@ class Staff_Controller extends Subbie{
                     foreach($staff_history as $sv){
                         $this->data['balance'][$sv->id] = $sv->balance;
                         $sv->hours = $sv->wage_type != 1 ? $this->getTotalHours($dv,$sv->id) : 1;
-
-                        $rate = $this->getStaffRate($sv->id,$dv);
                         $sv->start_use = '';
-                        if(count($rate) > 0){
-                            foreach($rate as $val){
-                                $sv->rate_name = $val->rate_name;
-                                $sv->rate_cost = $val->rate;
-                                $sv->start_use = $val->start_use;
+
+                        if(count(@$rate[$sv->id]) > 0){
+                            foreach(@$rate[$sv->id] as $start_use=>$val){
+                                if(strtotime($start_use) <= strtotime($dv) ||
+                                    strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                    $sv->rate_name = $val->rate_name;
+                                    $sv->rate_cost = $val->rate;
+                                    $sv->start_use = $val->start_use;
+                                }
                             }
                         }
 
-                        $hourly_rate = $this->getStaffHourlyRate($sv->id);
                         $sv->hourly_rate = 0;
-                        if(count($hourly_rate) > 0){
-                            foreach($hourly_rate as $val){
+                        if(count(@$hourly_rate[$sv->id]) > 0){
+                            foreach(@$hourly_rate[$sv->id] as $start_use=>$val){
                                 $sv->hourly_rate = $val->hourly_rate;
+                                if(strtotime($start_use) <= strtotime($dv) ||
+                                    strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                    $sv->hourly_rate = $val->hourly_rate;
+                                }
                             }
                         }
 
@@ -1128,7 +1172,7 @@ class Staff_Controller extends Subbie{
                         $emp_kiwi = $sv->emp_kiwi ? 'kiwi_saver_'.$sv->emp_kiwi : '';
                         $cec = $sv->cec_name ? $sv->cec_name : '';
                         $esct = $sv->field_name ? $sv->field_name : '';
-                        $data_ = $this->getPayeValue($sv->frequency_id,$dv,$sv->gross,$kiwi,$emp_kiwi,$cec,$esct);
+                        $data_ = $this->getPayeValue($sv->field_code,$sv->frequency_id,$dv,$sv->gross,$kiwi,$emp_kiwi,$cec,$esct);
                         if(count($data_) > 0){
                             $sv->tax = $data_['tax'];
                             $sv->m_paye = $data_['m_paye'];
@@ -1140,7 +1184,7 @@ class Staff_Controller extends Subbie{
                             $sv->esct = $esct ? $data_['esct'] : 0;
                         }
 
-                        $sv->nett = $sv->gross - ($sv->kiwi_ + $sv->tax + $sv->flight_deduct + $sv->visa_deduct + $sv->accommodation + $sv->transport + $sv->recruit + $sv->admin);
+                        $sv->nett = $sv->gross - ($sv->st_loan + $sv->kiwi_ + $sv->tax + $sv->flight_deduct + $sv->visa_deduct + $sv->accommodation + $sv->transport + $sv->recruit + $sv->admin);
                         $this->data['staff'][$dv] = array(
                             'hours' => $sv->wage_type != 1 ? $sv->hours : 40,
                             'flight' => $sv->flight_deduct != '' ? '$'.number_format($sv->flight_deduct,2,'.','') : '',
@@ -1246,26 +1290,41 @@ class Staff_Controller extends Subbie{
             $this->data['thisMonth'] = $_POST['month'];
             $this->data['thisWeek'] = $_POST['week'];
             $this->session->set_userdata(array(
-                '_year' => $_POST['year'],
-                '_month' => $_POST['month'],
-                '_week' => $_POST['week']
+                '$_year' => $_POST['year'],
+                '$_month' => $_POST['month'],
+                '$_week' => $_POST['week']
             ));
             redirect('payPeriodSummaryReport');
         }
         $_this_date = new DateTime();
-        $this->data['thisYear'] = $this->session->userdata('_year') != '' ? $this->session->userdata('_year') : date('Y');
-        $this->data['thisMonth'] = $this->session->userdata('_month') != '' ? $this->session->userdata('_month') : date('m');
-        $this->data['thisWeek'] = $this->session->userdata('_week') != '' ? $this->session->userdata('_week') : $_this_date->format('W');
+        $this->data['thisYear'] = $this->session->userdata('$_year') != '' ? $this->session->userdata('$_year') : date('Y');
+        $this->data['thisMonth'] = $this->session->userdata('$_month') != '' ? $this->session->userdata('$_month') : date('m');
+        $this->data['thisWeek'] = $this->session->userdata('$_week') != '' ? $this->session->userdata('$_week') : $_this_date->format('W');
         $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
 
-        $week_ = isset($_GET['week']) ? $_GET['week'] : $this->data['thisWeek'];
         $year_ = isset($_GET['year']) ? $_GET['year'] : $this->data['thisYear'];
         $month_ = isset($_GET['month']) ? $_GET['month'] : $this->data['thisMonth'];
 
         $this->getWageData($year_,$month_);
+
         $week = $this->getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
+
         $date = @$week[$this->data['thisWeek']];
         $this->data['thisDate'] = $date;
+
+        $what_month_ = date('m',strtotime($date));
+        $id = array();
+        $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$year_.'" AND MONTH(date_last_pay) ="'.(int)$what_month_.'"';
+        $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+
+        $week_data = array();
+        if(count($staff_) > 0){
+            foreach($staff_ as $row){
+                $id[] = $row->id;
+                $week_data[$row->id] = $row->last_week_pay;
+            }
+        }
+        $this->data['last_pay_data'] = count($id) > 0 ? $this->getStaffLastPay($id,$year_,$week_data) : array();
 
         $dir = realpath(APPPATH.'../pdf');
         $path = 'pay period/'.date('Y/F',strtotime($date));
@@ -1276,8 +1335,28 @@ class Staff_Controller extends Subbie{
         }
 
         if(isset($_GET['print']) && $_GET['print'] == 1){
+
+            $week_ = isset($_GET['week']) ? $_GET['week'] : $this->data['thisWeek'];
+            $year_ = isset($_GET['year']) ? $_GET['year'] : $this->data['thisYear'];
+            $month_ = isset($_GET['month']) ? $_GET['month'] : $this->data['thisMonth'];
+
+            $week = $this->getWeekDateInMonth($year_,$month_);
             $date = $week[$week_];
-            $this->getWageData($year_,$month_);
+            $this->data['thisWeek'] = $week_;
+
+            $what_month_ = date('m',strtotime($date));
+            $id = array();
+            $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$year_.'" AND MONTH(date_last_pay) ="'.(int)$what_month_.'"';
+            $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+
+            $week_data = array();
+            if(count($staff_) > 0){
+                foreach($staff_ as $row){
+                    $id[] = $row->id;
+                    $week_data[$row->id] = $row->last_week_pay;
+                }
+            }
+            $this->data['last_pay_data'] = count($id) > 0 ? $this->getStaffLastPay($id,$year_,$week_data) : array();
 
             $_date = new DateTime($date);
             $week = $_date->format("W");
@@ -1373,6 +1452,7 @@ class Staff_Controller extends Subbie{
     }
 
     function paySetup(){
+        $staff_data = new Staff_Helper();
         $page = $this->uri->segment(2);
 
         $this->my_model->setSelectFields(array(
@@ -1415,100 +1495,15 @@ class Staff_Controller extends Subbie{
         $this->my_model->setShift();
         $this->data['pay_setup'] = (Object)$this->my_model->getInfo('tbl_pay_setup');
 
-        $this->my_model->setJoin(array(
-            'table' => array(
-                'tbl_rate',
-                'tbl_wage_type',
-                'tbl_currency',
-                'tbl_tax_codes',
-                'tbl_staff_rate',
-                'tbl_staff_nz_rate',
-                'tbl_hourly_nz_rate'
-            ),
-            'join_field' => array('id','id','id','id','staff_id','staff_id','id'),
-            'source_field' => array(
-                'tbl_staff.rate',
-                'tbl_staff.wage_type',
-                'tbl_staff.currency',
-                'tbl_staff.tax_code_id',
-                'tbl_staff.id',
-                'tbl_staff.id',
-                'tbl_staff_nz_rate.hourly_nz_rate_id',
-            ),
-            'type' => 'left'
-        ));
-        $this->my_model->setSelectFields(array(
-            'tbl_staff.id',
-            'tbl_rate.rate_name',
-            'tbl_wage_type.description',
-            'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name',
-            'tbl_staff.tax_number',
-            'tbl_currency.currency_code',
-            'CONCAT("$",tbl_rate.rate_cost) as rate_cost',
-            'tbl_staff.balance',
-            'tbl_staff.installment',
-            'tbl_currency.symbols',
-            'IF(tbl_staff.nz_account != "", CONCAT("$",tbl_staff.nz_account), "") as nz_account',
-            'IF(tbl_staff.account_two != "", CONCAT("$",tbl_staff.account_two), "") as account_two',
-            'IF(tbl_tax_codes.tax_code !="",tbl_tax_codes.tax_code,"") as tax_code',
-            'IF('.'tbl_staff.ird_num != "-" ,LPAD('.'tbl_staff.ird_num,11,"0"),'.'tbl_staff.ird_num) as ird_num',
-            'tbl_staff_rate.start_use',
-            'tbl_staff.bank_account',
-            'tbl_staff.is_unemployed',
-            'tbl_hourly_nz_rate.hourly_rate'
-        ));
-        $whatVal = false;
-        $whatFld = 'is_unemployed';
+        $whatVal = array(false);
+        $whatFld = array('is_unemployed');
+        $this->data['employee'] = $staff_data->staff_details($whatVal,$whatFld);
+        $this->data['deductions'] = $staff_data->staff_details(array(false),array('is_unemployed'));
 
-        $this->my_model->setGroupBy('tbl_staff.id');
-        $this->my_model->setOrder(array('lname','fname'));
-        $this->data['employee'] = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
-
-        $this->my_model->setJoin(array(
-            'table' => array('tbl_deductions'),
-            'join_field' => array('staff_id'),
-            'source_field' => array('tbl_staff.id'),
-            'type' => 'left'
-        ));
-        $this->my_model->setSelectFields(array(
-            'tbl_deductions.id',
-            'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name',
-            'tbl_staff.id as employee',
-            'IF(tbl_deductions.flight_deduct != "", CONCAT("$",FORMAT(tbl_deductions.flight_deduct,2)),"") as flight_deduct',
-            'IF(tbl_deductions.flight_debt != "", CONCAT("$ ",FORMAT(tbl_deductions.flight_debt,2)),"") as flight_debt',
-            'IF(tbl_deductions.accommodation != "", CONCAT("$",FORMAT(tbl_deductions.accommodation,2)),"") as accommodation',
-            'IF(tbl_deductions.visa_deduct != "", CONCAT("$",FORMAT(tbl_deductions.visa_deduct,2)),"") as visa_deduct',
-            'IF(tbl_deductions.visa_debt != "", CONCAT("$",FORMAT(tbl_deductions.visa_debt,2)),"") as visa_debt',
-            'IF(tbl_deductions.transport != "", CONCAT("$",FORMAT(tbl_deductions.transport,2)),"") as transport'
-        ));
-        $this->my_model->setOrder('tbl_staff.id');
-        $this->data['deductions'] = $this->my_model->getinfo('tbl_staff',array(false),array('is_unemployed'));
-
-        if(count($this->data['employee'])>0){
-            foreach($this->data['employee'] as $v){
-                $rate = $this->getStaffRate($v->id);
-                if(count($rate) > 0){
-                    foreach($rate as $row){
-                        $v->rate_name = $row->rate_name;
-                        $v->rate_cost = '$'.$row->rate;;
-                    }
-                }
-
-                switch($v->currency_code){
-                    case 'NZD':
-                        $v->rate = '$1';
-                        break;
-                    default:
-                        $converted_amount = CurrencyConverter($v->currency_code);
-                        $v->rate = $v->symbols.' '.$converted_amount;
-                        break;
-                }
-            }
-        }
 
         if(isset($_POST['submit'])){
             unset($_POST['submit']);
-            $is_exist = $this->my_model->getInfo('tbl_pay_setup','franchise_id');
+            $is_exist = $this->my_model->getInfo('tbl_pay_setup');
             if(count($is_exist) == 1){
                 foreach($is_exist as $val){
                     $this->my_model->update('tbl_pay_setup',$_POST,$val->id);
@@ -1530,12 +1525,14 @@ class Staff_Controller extends Subbie{
 
     function monthWeeks(){
         if(isset($_POST['month'])){
-            $week = $this->getWeeksNumberInMonth($_POST['year'],$_POST['month']);
+            $_month = str_pad($_POST['month'],2,'0',STR_PAD_LEFT);
+            $week = $this->getWeeksNumberInMonth($_POST['year'],$_month);
             echo json_encode($week);
         }
     }
 
     function yearToDateReport(){
+        //$this->output->enable_profiler();
         $page = $this->uri->segment(2);
 
         if(isset($_POST['submit'])){
@@ -1606,10 +1603,11 @@ class Staff_Controller extends Subbie{
             }
         }else{
             $this->my_model->setOrder(array('lname','fname'));
-            $this->data['staff'] = $this->my_model->getInfo('tbl_staff',array('false'),array('is_unemployed'));
+            $this->data['staff'] = $this->my_model->getInfo('tbl_staff',array('false',1),array('is_unemployed','project_id'));
             $this->data['year'] = $this->getYear();
 
             $total_paid = $this->getOverAllWageTotalPay($this_date);
+
             if(count($this->data['staff']) > 0){
                 foreach($this->data['staff'] as $row){
                     $pay = @$total_paid[$row->id];
@@ -1631,6 +1629,334 @@ class Staff_Controller extends Subbie{
 
             $this->data['page_load'] = 'backend/staff/year_to_date_report_view';
             $this->load->view('main_view',$this->data);
+        }
+    }
+
+    function employeeFinalPay(){
+        $this->my_model->setNormalized('bank_name','id');
+        $this->my_model->setSelectFields(array('id','CONCAT(bank_prefix," - ",bank_name) as bank_name','bank_prefix'));
+        $this->my_model->setOrder(array('bank_prefix','bank_name'));
+        $this->data['bank_number'] = $this->my_model->getinfo('tbl_bank_account_number');
+        $this->data['bank_number'][''] = '-';
+
+        $this->my_model->setNormalized('esct_rate','id');
+        $this->my_model->setSelectFields(array('id','CONCAT(FORMAT(esct_rate,2)," %") as esct_rate'));
+        $this->data['esct_rate'] = $this->my_model->getinfo('tbl_esct_rate');
+        $this->data['esct_rate'][''] = '-';
+
+        ksort($this->data['esct_rate']);
+
+        $this->my_model->setNormalized('rate_name','id');
+        $this->my_model->setSelectFields(array('id','CONCAT(rate_name," ($" ,rate_cost ,")" ) as rate_name'));
+        $this->data['rate'] = $this->my_model->getinfo('tbl_rate');
+        $this->data['rate'][''] = '-';
+
+        ksort($this->data['rate']);
+
+        $this->my_model->setNormalized('kiwi','id');
+        $this->my_model->setSelectFields(array('id','CONCAT(kiwi," %") as kiwi'));
+        $this->data['kiwi'] = $this->my_model->getinfo('tbl_kiwi');
+        $this->data['kiwi'][''] = 'Opt. Out';
+
+        ksort($this->data['kiwi']);
+
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_salary_type','tbl_salary_freq'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_wage_type.type','tbl_wage_type.frequency'),
+            'type' => 'left'
+        ));
+        $this->my_model->setNormalized('description','id');
+        $this->my_model->setSelectFields(array(
+            'tbl_wage_type.id',
+            'CONCAT(tbl_wage_type.description, " (", tbl_salary_type.code ," - ", tbl_salary_freq.code ,")" ) as description'
+        ));
+        $this->my_model->setOrder('tbl_wage_type.type');
+        $this->data['wage_type'] = $this->my_model->getinfo('tbl_wage_type',array(1,2),'tbl_wage_type.type');
+        $this->data['wage_type'][''] = '-';
+
+        ksort($this->data['wage_type']);
+
+        $this->my_model->setNormalized('tax_code','id');
+        $this->my_model->setSelectFields(array('id','tax_code'));
+        $this->data['tax_code'] = $this->my_model->getinfo('tbl_tax_codes');
+        $this->data['tax_code'][''] = '-';
+
+        ksort($this->data['tax_code']);
+
+        $this->my_model->setNormalized('termination_type','id');
+        $this->my_model->setSelectFields(array('id','termination_type'));
+        $this->data['termination_pay'] = $this->my_model->getInfo('tbl_termination_type');
+
+        ksort($this->data['termination_pay']);
+
+        $this->my_model->setNormalized('tax_code','id');
+        $this->my_model->setSelectFields(array('id','tax_code'));
+        $has_st_loan = (Object)$this->my_model->getinfo('tbl_tax_codes',1,'has_st_loan');
+        $this->data['has_st_loan'] = json_encode($has_st_loan);
+
+        $this->my_model->setNormalized('currency_code','id');
+        $this->my_model->setSelectFields(array('id','currency_code'));
+        $this->data['currency'] = $this->my_model->getinfo('tbl_currency');
+
+        ksort($this->data['currency']);
+
+        $this->my_model->setNormalized('name','id');
+        $this->my_model->setSelectFields(array('id','CONCAT(fname," ",lname) as name'));
+        $this->data['staff_list'] = $this->my_model->getinfo('tbl_staff',3,'status_id');
+        $this->data['staff_list'][''] = '-';
+
+        ksort($this->data['staff_list']);
+
+        if(isset($_POST['search'])){
+            $this->session->set_userdata(array('staff_id' => $_POST['staff_id']));
+            redirect('employeeFinalPay');
+        }
+
+        $staff_id = $this->session->userdata('staff_id');
+        $this->data['staff'] = $staff_id ? $this->my_model->getInfo('tbl_staff',$staff_id) : array();
+        $this->data['staff_id'] = $staff_id;
+
+        $staff = $this->my_model->getInfo('tbl_staff',array(true,3),array('has_final_pay','status_id'));
+        $this->data['staff_has_final_pay'] = array();
+        $_week_number = array();
+        if(count($staff) > 0){
+            foreach($staff as $row){
+                $this->data['staff_has_final_pay'][$row->id] = json_decode($row->termination_type);
+                $_week_number[$row->id] = $row->last_week_pay;
+            }
+        }
+
+        $staff_data = new Staff_Helper();
+        $rate = $staff_data->staff_rate();
+
+        if(count($this->data['staff']) > 0){
+            foreach($this->data['staff'] as $val){
+                $val->start_use = '';
+                if(count(@$rate[$val->id]) > 0){
+                    foreach(@$rate[$val->id] as $row){
+                        $val->start_use = $row->start_use;
+                    }
+                }
+            }
+        }
+        $_data = $this->session->userdata('termination_type');
+        $termination_type = @$_data[$staff_id];
+        $has_termination = @$this->data['staff_has_final_pay'][$staff_id];
+
+        if(isset($_POST['submit'])){
+            unset($_POST['submit']);
+            $_POST['unemployed_date'] = date('Y-m-d',strtotime($_POST['date_last_pay']));
+            $_POST['date_last_pay'] = date('Y-m-d',strtotime($_POST['date_last_pay']));
+            $_POST['has_final_pay'] = 1;
+            //$_POST['status_id'] = 2;
+            $_POST['termination_type'] = json_encode($termination_type);
+            $this->my_model->update('tbl_staff',$_POST,$staff_id,'id',false);
+            $this->session->unset_userdata('staff_id');
+            $this->session->unset_userdata('termination_type');
+            redirect('employeeFinalPay');
+        }
+
+        $this->my_model->setOrder('date');
+        $this->my_model->setLastId('date');
+        $last_period = $this->my_model->getInfo('tbl_login_sheet',$staff_id,'staff_id');
+        $this->data['last_period'] = $last_period ? $last_period : date('Y-m-d');
+        $year_ = date('Y',strtotime($this->data['last_period']));
+        $this->data['last_pay_data'] = count($termination_type) > 0 || count($has_termination) > 0 ? $this->getStaffLastPay($staff_id,$year_,@$_week_number[$staff_id]) : array();
+        $this->data['page_load'] = 'backend/staff/final_pay/staff_final_pay_view';
+        $this->load->view('main_view',$this->data);
+    }
+
+    function selectTerminationPay(){
+        $id = $this->uri->segment(2);
+
+        if(!$id){
+            exit;
+        }
+        $_data = $this->session->userdata('termination_type');
+        $data = array();
+        if(isset($_POST['select'])){
+            if(count(@$_data) > 0){
+                foreach(@$_data as $key=>$val){
+                    $data[$key] = $val;
+                }
+            }
+
+            $data[$id] = $_POST['termination_type_id'];
+            $this->session->set_userdata(array(
+                'termination_type' => $data
+            ));
+            redirect('employeeFinalPay');
+        } else{
+
+            $staff = $this->my_model->getInfo('tbl_staff',array(true,3),array('has_final_pay','status_id'));
+            if(count($staff) > 0){
+                foreach($staff as $row){
+                    $_data[$row->id] = json_decode($row->termination_type);
+                }
+            }
+
+            $this->data['termination_type'] = @$_data[$id];
+            $this->data['termination_pay_list'] = $this->my_model->getInfo('tbl_termination_type');
+            $this->load->view('backend/staff/final_pay/termination_type_view',$this->data);
+        }
+    }
+
+    function printFinalPaySlip(){
+
+        $id = $this->uri->segment(2);
+        $this_date = $this->uri->segment(3);
+        if(!$id && !$this_date){
+            exit;
+        }
+        $this->data['total_paid'] = $this->getOverAllWageTotalPay($this_date,$id);
+        $this->data['last_pay'] = $this->getStaffLastPay($id,date('Y',strtotime($this_date)));
+        $payslip = $this->getPaySlipData($id,$this_date);
+        $dir = realpath(APPPATH.'../pdf');
+        $path = 'payslip/'.date('Y/F',strtotime($this_date));
+        $this->data['dir'] = $dir.'/'.$path;
+        $this->data['total_holiday_leave'] = $this->getAnnualLeave($id,$this_date);
+        $this->data['total_sick_leave'] = $this->getSickLeave($id,$this_date);
+
+        $this->my_model->setSelectFields(array('MIN(start_use) as start_use'));
+        $start_date = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
+        $this->data['start_date'] = '';
+        $this->data['is_download'] = false;
+        if(count($start_date) > 0){
+            foreach($start_date as $sv){
+                $this->data['start_date'] = date('d/m/Y',strtotime($sv->start_use));
+            }
+        }
+        if(!is_dir($this->data['dir'])){
+            mkdir($this->data['dir'], 0777, TRUE);
+        }
+
+        $filename = date('Ymd',strtotime('+6 days '.$this_date)).'_Payslip_' .str_replace(' ','',$payslip['staff_name']);
+        $staff_id = $id;
+        $this->data['has_email'] = $payslip['has_email'];
+        $this->data['staff'] = $payslip['staff'];
+        $this->data['file_name'] = $filename;
+
+        if(isset($_GET['v']) && $_GET['v'] == 1){
+            $this->data['page_name'] .= ' for <strong>'.$payslip['staff_name'].'</strong>';
+            $this->data['page_load'] = 'backend/staff/final_pay/final_payslip_view';
+            $this->load->view('main_view',$this->data);
+        }
+        else{
+            $has_value = $this->my_model->getInfo('tbl_pdf_archive',array($filename,$staff_id),array('file_name','staff_id'));
+            $post = array(
+                'staff_id' => $id,
+                'file_name' => $filename.'.pdf',
+                'type' => 'payslip',
+                'date' => date('Y-m-d',strtotime($this_date))
+            );
+
+            if(count($has_value) > 0){
+                $this->my_model->update('tbl_pdf_archive',$post,array($filename.'.pdf',$staff_id),array('file_name','staff_id'));
+            }else{
+                $this->my_model->insert('tbl_pdf_archive',$post);
+            }
+
+            $this->load->view('backend/staff/final_pay/print_pdf_final_payslip',$this->data);
+        }
+    }
+
+    function kiwiPayLetter(){
+        $id = $this->uri->segment(2);
+
+        if(!$id){
+            exit;
+        }
+
+        $this->my_model->setShift();
+        $this->data['subbie_info'] = (Object)$this->my_model->getInfo('tbl_invoice_info');
+
+        $staff_data = new Staff_Helper();
+        $whatVal = $id;
+        $whatFld = 'tbl_staff.id';
+        $this->data['staff_info'] = $staff_data->staff_details($whatVal,$whatFld);
+        $kiwi_rate = $id == 8 ? 4 : 3;
+        $this->data['kiwi_rate'] = $kiwi_rate;
+        $this->data['kiwi_list'] = $this->employeeKiwiSaver($id,$kiwi_rate);
+        $this->data['kiwi_diff'] = $id == 8 ? $this->employeeKiwiSaver($id,3) : array();
+        $this->load->view('backend/staff/kiwi_saver_letter_view',$this->data);
+    }
+
+    function payRatePeriods(){
+        $id = $this->uri->segment(2);
+        if($id){
+            $this->my_model->setShift();
+            $this->data['staff_rate'] = (Object)$this->my_model->getInfo('tbl_staff_rate',$id);
+
+            $this->my_model->setNormalized('rate_name','id');
+            $this->my_model->setSelectFields(array('id','CONCAT(rate_name," ($" ,rate_cost ,")" ) as rate_name'));
+            $this->data['rate'] = $this->my_model->getinfo('tbl_rate');
+            $this->data['rate'][''] = '-';
+
+            ksort($this->data['rate']);
+
+            if(isset($_POST['submit'])){
+                unset($_POST['submit']);
+
+                $_POST['rate'] = $this->data['rate'][$_POST['rate_id']];
+                $_POST['start_use'] = date('Y-m-d',strtotime($_POST['start_use']));
+                $_POST['end_use'] = date('Y-m-d',strtotime($_POST['end_use']));
+                $this->my_model->update('tbl_staff_rate',$_POST,$id);
+                redirect('payRatePeriods');
+            }
+
+            $this->load->view('backend/staff/pay_rate/edit_rate_view',$this->data);
+        }else{
+            $this->my_model->setNormalized('staff_status','id');
+            $this->my_model->setSelectFields(array('id','staff_status'));
+            $this->data['staff_status'] = $this->my_model->getinfo('tbl_staff_status');
+            $this->data['staff_status'][''] = 'All';
+
+            ksort($this->data['staff_status']);
+
+            if(isset($_POST['go'])){
+                if(!$_POST['staff_status']){
+                    $_POST['staff_status'] = 4;
+                }
+                $this->session->set_userdata(array('status_'=>$_POST['staff_status']));
+                redirect('payRatePeriods');
+            }
+            $this->data['status'] = $this->session->userdata('status_') ? $this->session->userdata('status_') : 4;
+
+            if(isset($_GET['id']) && $_GET['id']){
+                $whatVal = array($_GET['id']);
+                $whatFld = array('tbl_staff.id');
+            }else{
+                if($this->data['status'] == 4){
+                    $whatVal = array(1);
+                    $whatFld = array('project_id');
+                }else{
+                    $whatVal = array($this->data['status'],1);
+                    $whatFld = array('status_id','project_id');
+                }
+
+            }
+
+            $staff_data = new Staff_Helper();
+            $this->data['staff_list'] = $staff_data->staff_details($whatVal,$whatFld);
+            $this->data['staff_rate'] = $staff_data->staff_rate();
+
+
+            if(isset($_GET['p']) && $_GET['p'] == 1){
+                if(isset($_GET['id']) && $_GET['id']){
+                    $this->data['staff_data'] = array_shift($this->data['staff_list']);
+                    $this->load->view('backend/staff/pay_rate/print_pay_rate_list_view',$this->data);
+                }else{
+                    $this->load->view('backend/staff/pay_rate/print_pay_rate_periods_view',$this->data);
+                }
+            }else{
+                if(isset($_GET['id']) && $_GET['id']){
+                    $this->load->view('backend/staff/pay_rate/pay_rate_list_view',$this->data);
+                }else{
+                    $this->data['page_load'] = 'backend/staff/pay_rate/pay_rate_periods_view';
+                    $this->load->view('main_view',$this->data);
+                }
+            }
         }
     }
 }

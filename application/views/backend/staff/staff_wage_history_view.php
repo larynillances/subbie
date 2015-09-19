@@ -7,8 +7,8 @@ $uri2 = $this->uri->segment(2);
         <div class="col-sm-2">
             <select id="type" name="type" class="form-control input-sm">
                 <option value="1" <?php echo $type == 1 ? 'selected' : ''?> >Monthly</option>
-                <option value="2" <?php echo $type == 2 ? 'selected' : ''?>>Yearly</option>
-                <option value="3" <?php echo $type == 3 ? 'selected' : ''?>>Customize</option>
+                <option value="2" <?php echo $type == 2 ? 'selected' : ''?> >Yearly</option>
+                <option value="3" <?php echo $type == 3 ? 'selected' : ''?> >Customize</option>
             </select>
         </div>
         <label class="col-sm-1 control-label date-label">Date:</label>
@@ -33,9 +33,9 @@ $uri2 = $this->uri->segment(2);
             </div>
         </div>
         <div class="col-sm-4">
-            <input type="submit" name="submit" class="btn btn-primary" value="Go">
-            <a href="<?php echo base_url().'staffList'?>" class="btn btn-success"><span class="glyphicon glyphicon-arrow-left"></span> Back</a>
-            <a href="<?php echo base_url().'staffWageHistory/'.$uri2.'/'.$type.'/'.$year_val.'/'.$month_val.'/'.$start.'/'.$end.'?print=1'?>" class="btn btn-success" target="_blank"><span class="glyphicon glyphicon-print"></span> Print</a>
+            <input type="submit" name="submit" class="btn btn-primary btn-sm" value="Go">
+            <a href="<?php echo base_url().'staffList'?>" class="btn btn-success btn-sm"><span class="glyphicon glyphicon-arrow-left"></span> Back</a>
+            <a href="<?php echo base_url().'staffWageHistory/'.$uri2.'/'.$type.'/'.$year_val.'/'.$month_val.'/'.$start.'/'.$end.'?print=1'?>" class="btn btn-success btn-sm" target="_blank"><span class="glyphicon glyphicon-print"></span> Print</a>
         </div>
     </div>
     <div class="row">

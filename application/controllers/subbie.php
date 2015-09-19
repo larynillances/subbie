@@ -3,6 +3,8 @@
 /**
  * @property My_Model $my_model Optional description
  */
+include('wage_controller.php');
+include('staff_helper.php');
 include('send_email_controller.php');
 
 class Subbie extends CI_Controller{
@@ -20,7 +22,7 @@ class Subbie extends CI_Controller{
             redirect('trackingLog');
         }
 
-        $this->load->view('login_view',$this->data);
+        $this->load->view('frontend/login_view',$this->data);
     }
 
     function validate(){
@@ -54,14 +56,14 @@ class Subbie extends CI_Controller{
                     Error! Email/Password did not match.
                     </div>'
                 ));
-                redirect('');
+                redirect('?page=login');
             }
 
             if($data['is_logged_in']){
                 $this->session->set_userdata($data);
                 switch($data['account_type']){
                     case 1:
-                        redirect('timeSheetEdit');
+                        redirect('timeSheetDefault');
                         break;
                     case 2:
                         redirect('trackingLog');
@@ -84,7 +86,7 @@ class Subbie extends CI_Controller{
         $this->session->set_userdata(array('is_logged_in' => false));
         $this->session->sess_destroy();
 
-        redirect('');
+        redirect('?page=login');
     }
 
     function getUserInfo($has_return = false){
@@ -167,64 +169,6 @@ class Subbie extends CI_Controller{
         }
     }
 
-    function getSubPages($parent_id, $parent_per_ids){
-        $sub_pages = array();
-
-        if($parent_id && count($parent_per_ids)>0){
-            $whatField = array('parent_id', 'id');
-            $whatVal = array($parent_id, $parent_per_ids);
-            $pages = $this->my_model->getinfo('tbl_pages', $whatVal, $whatField);
-
-            if(count($pages)>0){
-                $this_link = "";
-                foreach($pages as $k=>$v){
-                    $this->my_model->setLastId("link");
-                    $this_link = $this->my_model->getinfo('tbl_page_title', $v->page_title_id);
-
-                    $whatToSearch = $v->is_parent ? $v->page : $this_link;
-                    if($v->page_title_wildcard){
-                        $whatToSearch .= "/" . $v->page_title_wildcard;
-                    }
-
-                    if(!$this->isSubLinkExist($whatToSearch, $this->data['header_links'])){
-                        if($v->is_parent){
-                            $sub_pages[$v->page] = $this->getSubPages($v->id, $parent_per_ids);
-                        }else{
-                            if($this_link){
-                                $sub_pages[$whatToSearch] = $v->page;
-                            }else{
-                                $sub_pages[] = $v->page;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return $sub_pages;
-    }
-
-    function isSubLinkExist($whatLink, $this_array){
-        $itExist = false;
-
-        if($whatLink){
-            if(count($this_array)>0){
-                foreach($this_array as $k=>$v){
-                    if(is_array($v)){
-                        $itExist = $this->isSubLinkExist($whatLink, $v);
-                    }
-
-                    $itExist = $itExist ? $itExist : $k == $whatLink;
-                    if($itExist){
-                        break;
-                    }
-                }
-            }
-        }
-
-        return $itExist;
-    }
-
     function getWorkingHours($date,$id,$working = 1,$action = 'weekly',$start_date = 2){
         $totalHours = array();
         $hours_gain = array();
@@ -236,18 +180,45 @@ class Subbie extends CI_Controller{
         $dt = new DateTime;
         $num = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_holiday_type as tbl_holiday_leave','tbl_holiday_type as tbl_sick_leave'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_login_sheet.holiday_type_id','tbl_login_sheet.sick_leave_type_id'),
+            'type' => 'left',
+            'join_append' => array('tbl_holiday_leave','tbl_sick_leave')
+        ));
         $this->my_model->setSelectFields(array(
             'TIMESTAMPDIFF(SECOND, time_in, time_out) as hours',
             'time_in','time_out','staff_id','date',
-            'id as dtr_id','working_type_id'
+            'tbl_login_sheet.id as dtr_id','working_type_id','tbl_holiday_leave.hours as holiday_hours',
+            'tbl_holiday_leave.day_number as holiday_day_number', 'tbl_sick_leave.hours as sick_hours',
+            'tbl_sick_leave.day_number as sick_day_number'
+
         ));
 
         $dtr = $this->my_model->getinfo('tbl_login_sheet', $id,'staff_id');
+
         if(count($dtr) >0){
             foreach($dtr as $dv){
-                $hours_gain[$dv->staff_id][$dv->working_type_id][$dv->date] = $dv->hours;
+                $time_in = strtotime(date('g:i a',strtotime($dv->time_in)));
+                $time_out = strtotime(date('g:i a',strtotime($dv->time_out)));
+                $break_time_deduction = 0;
+                $hours = 0;
+
+                if($dv->working_type_id == 2){
+                    $total_leave = $dv->holiday_hours + $dv->sick_hours;
+                    $hours += $total_leave;
+                }else{
+                    if($time_in > 0 && $time_out > 0){
+                        $break_time_deduction = BreakTimeDeduction($dv->time_in,$dv->time_out,true);
+                        $hours = $dv->hours;
+                    }
+                }
+
+                $hours_gain[$dv->staff_id][$dv->working_type_id][$dv->date] = $hours > 0 ? ($hours - $break_time_deduction) : 0;
             }
         }
+
         $_start_day = $week_data['start_day'];
         $_end_day = $week_data['end_day'];
         switch($action){
@@ -292,7 +263,7 @@ class Subbie extends CI_Controller{
         return $hoursValue;
     }
 
-    function getTotalHours($date,$id,$action = 'weekly',$start_date = 2){
+    function getTotalHours($date,$id,$action = 'weekly'){
         $totalHours = array();
         $hours_gain = array();
         $_date = new DateTime($date);
@@ -312,7 +283,16 @@ class Subbie extends CI_Controller{
         $dtr = $this->my_model->getinfo('tbl_login_sheet', $id,'staff_id');
         if(count($dtr) >0){
             foreach($dtr as $dv){
-                $hours_gain[$dv->staff_id][$dv->date] = $dv->hours;
+                $time_in = strtotime(date('g:i a',strtotime($dv->time_in)));
+                $time_out = strtotime(date('g:i a',strtotime($dv->time_out)));
+                $break_time_deduction = 0;
+                $hours = 0;
+                if($time_in > 0 && $time_out > 0){
+                    $break_time_deduction = BreakTimeDeduction($dv->time_in,$dv->time_out,true);
+                    $hours = $dv->hours;
+                }
+
+                $hours_gain[$dv->staff_id][$dv->date] = $hours > 0 ? ($hours - $break_time_deduction) : 0;
             }
         }
         $_start_day = $week_data['start_day'];
@@ -386,7 +366,16 @@ class Subbie extends CI_Controller{
         $dtr = $this->my_model->getinfo('tbl_login_sheet', $id,'staff_id');
         if(count($dtr) >0){
             foreach($dtr as $dv){
-                $hours_gain[$dv->staff_id][$dv->date] = $dv->hours;
+                $time_in = strtotime(date('g:i a',strtotime($dv->time_in)));
+                $time_out = strtotime(date('g:i a',strtotime($dv->time_out)));
+                $break_time_deduction = 0;
+                $hours = 0;
+                if($time_in > 0 && $time_out > 0){
+                    $break_time_deduction = BreakTimeDeduction($dv->time_in,$dv->time_out,true);
+                    $hours = $dv->hours;
+                }
+
+                $hours_gain[$dv->staff_id][$dv->date] = $hours > 0 ? ($hours - $break_time_deduction) : 0;
             }
         }
 
@@ -567,10 +556,14 @@ class Subbie extends CI_Controller{
                 new DateTime("$end_year-12-31T23:59:59Z")
             );
             foreach ($first_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                }
             }
             foreach ($second_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                }
             }
         }else if($end_year < 2015){
             $endYearWeeksPeriod = new DatePeriod(
@@ -579,7 +572,9 @@ class Subbie extends CI_Controller{
                 new DateTime("$end_year-12-31T23:59:59Z")
             );
             foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                }
             }
             $second_year_week_period = new DatePeriod(
                 new DateTime("$start_year-W31-1"),
@@ -587,7 +582,9 @@ class Subbie extends CI_Controller{
                 new DateTime("$end_year-12-31T23:59:59Z")
             );
             foreach ($second_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                }
             }
         }else{
             $endYearWeeksPeriod = new DatePeriod(
@@ -596,7 +593,9 @@ class Subbie extends CI_Controller{
                 new DateTime("$end_year-12-31T23:59:59Z")
             );
             foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
+                }
             }
         }
 
@@ -604,17 +603,6 @@ class Subbie extends CI_Controller{
     }
 
     function getYearNumWeek($year,$start = 2){
-
-        /*$weeksPeriod = new DatePeriod(
-            new DateTime("$year-W01-$start"),
-            new DateInterval('P1W'),
-            new DateTime("$year-12-31T23:59:59Z")
-        );
-        $year_week = array();
-        foreach ($weeksPeriod as $week => $monday) {
-            $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-        }*/
-        //$this->displayarray($this->data['year_week']);
         $year_week = array();
         if($year == 2015){
             $first_year_week_period = new DatePeriod(
@@ -629,10 +617,14 @@ class Subbie extends CI_Controller{
                 new DateTime("$year-12-31T23:59:59Z")
             );
             foreach ($first_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                }
             }
             foreach ($second_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                }
             }
         }else if($year < 2015){
             $endYearWeeksPeriod = new DatePeriod(
@@ -641,7 +633,9 @@ class Subbie extends CI_Controller{
                 new DateTime("$year-12-31T23:59:59Z")
             );
             foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                }
             }
         }else{
             $endYearWeeksPeriod = new DatePeriod(
@@ -650,18 +644,21 @@ class Subbie extends CI_Controller{
                 new DateTime("$year-12-31T23:59:59Z")
             );
             foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
+                }
             }
         }
 
         return $year_week;
     }
 
-    function getFirstNextLastDay($y, $m, $day = 'tuesday')
+    function getFirstNextLastDay($y, $m)
     {
         $start_date = $y.'-'.$m.'-01';
         $start_day = date('l',strtotime($start_date));
 
+        $day = strtotime($start_date) > strtotime('2015-07-26') ? 'monday' : 'tuesday';
         $begin = new DateTime("first $day of $y-$m");
 
         $end = new DateTime("last $day of $y-$m");
@@ -669,7 +666,6 @@ class Subbie extends CI_Controller{
 
         $interval = DateInterval::createFromDateString('next '.$day);
         $date_range = new DatePeriod($begin, $interval ,$end);
-
         $date = array();
         $year = date('Y');
         $week_number = date('W');
@@ -678,18 +674,14 @@ class Subbie extends CI_Controller{
         {
             $days[strtolower(date('l',strtotime($year."W".$week_number.$day_)))] = $day_;
         }
-
         if(strtolower($start_day) != $day){
 
             if($days[strtolower($start_day)] > $days[$day]){
-                $week_num = date('W',strtotime($start_date));
-                if(strtotime($start_date) > strtotime('2015-07-26')){
-                    $next_day = date('Y-m-d',strtotime('last monday '.$start_date));
-                    $date[$week_num] = $next_day;
-                }else{
-                    $next_day = date('Y-m-d',strtotime('last '. $day .' '.$start_date));
-                    $date[$week_num] = $next_day;
-                }
+
+                $date_ = new DateTime($start_date);
+                $week_num = $date_->format('W');
+                $next_day = date('Y-m-d',strtotime('last '. $day .' '.$start_date));
+                $date[$week_num] = $next_day;
             }
         }
 
@@ -698,13 +690,6 @@ class Subbie extends CI_Controller{
                 $this_date = $dv->format('Y-m-d');
                 $week_num = $dv->format('W');
                 $date[$week_num] = $this_date;
-
-                if(strtotime($this_date) > strtotime('2015-07-26')){
-                    $next_day = date('Y-m-d',strtotime('last monday '.$this_date));
-                    $date[$week_num] = $next_day;
-                }else{
-                    $date[$week_num] = $this_date;
-                }
             }
         }
         return $date;
@@ -733,7 +718,10 @@ class Subbie extends CI_Controller{
                 new DateTime("$next_day T23:59:59Z")
             );
             foreach ($start_week as $week => $monday) {
-                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                if($monday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                }
+
             }
 
             $_date = new DateTime($next_day);
@@ -745,7 +733,9 @@ class Subbie extends CI_Controller{
                 new DateTime("2015-07-26T23:59:59Z")
             );
             foreach ($weeksPeriod as $week => $monday) {
-                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                if($monday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                }
             }
             $start = 1;
             $weeksPeriod = new DatePeriod(
@@ -754,7 +744,9 @@ class Subbie extends CI_Controller{
                 new DateTime("$end_month_day T23:59:59Z")
             );
             foreach ($weeksPeriod as $week => $monday) {
-                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                if($monday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                }
             }
         }else if($year > 2015){
             $start = 1;
@@ -764,7 +756,9 @@ class Subbie extends CI_Controller{
                 new DateTime("$next_day T23:59:59Z")
             );
             foreach ($start_week as $week => $monday) {
-                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                if($monday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                }
             }
 
             $_date = new DateTime($next_day);
@@ -777,7 +771,9 @@ class Subbie extends CI_Controller{
             );
 
             foreach ($weeksPeriod as $week => $monday) {
-                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                if($monday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                }
             }
         }else{
             $weeksPeriod = new DatePeriod(
@@ -787,7 +783,9 @@ class Subbie extends CI_Controller{
             );
             $year_week = array();
             foreach ($weeksPeriod as $week => $monday) {
-                $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                if($monday->format('Y-m-d') <= date('Y-m-d')){
+                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
+                }
             }
         }
 
@@ -847,7 +845,7 @@ class Subbie extends CI_Controller{
         $days = array();
         $year = date('Y');
         $week_number = date('W');
-        for($day=2; $day<=8; $day++)
+        for($day=1; $day<=7; $day++)
         {
             $days[$day] = date('l',strtotime($year."W".$week_number.$day));
         }
@@ -855,58 +853,29 @@ class Subbie extends CI_Controller{
         return $days;
     }
 
-    function getWeeksNumberInMonth($year, $month, $start = 2){
-        $date = $year.'-'.$month.'-01';
-        $start_day = date('N',strtotime($date));
-
-        //$days_in_week = $this->getDaysInWeek();
-
+    function getWeeksNumberInMonth($year, $month){
         $days = $this->getFirstNextLastDay($year,$month);
         $thisDays = array();
-        if($start_day != $start){
-            if($start_day > $start){
-                $week_num = date('W',strtotime($date));
-                //$next_day = date('Y-m-d',strtotime('last '. $days_in_week[$start].' '.$date));
-                $thisDays[$week_num] = $week_num;
-            }
-
-        }
 
         if(count($days) > 0){
-            foreach($days as $v){
-                $week = date('W',strtotime($v));
-
-                $thisDays[$week] = $week;
+            foreach($days as $key=>$v){
+                $thisDays[$key] = $key;
             }
         }
         $days_array = $thisDays;
         return $days_array;
     }
 
-    function getWeekDateInMonth($year, $month, $start = 2){
-        $date = $year.'-'.$month.'-01';
-        $start_day = date('N',strtotime($date));
-
-        $days_in_week = $this->getDaysInWeek();
-
+    function getWeekDateInMonth($year, $month){
         $days = $this->getFirstNextLastDay($year,$month);
         $thisDays = array();
-        if($start_day != $start){
-            if($start_day > $start){
-                $week_num = date('W',strtotime($date));
-                $next_day = date('Y-m-d',strtotime('last '. $days_in_week[$start].' '.$date));
-                $thisDays[$week_num] = $next_day;
-            }
-
-        }
 
         if(count($days) > 0){
-            foreach($days as $v){
-                $week = date('W',strtotime($v));
-
-                $thisDays[$week] = $v;
+            foreach($days as $key=>$v){
+                $thisDays[$key] = $v;
             }
         }
+
         $days_array = $thisDays;
         return $days_array;
     }
@@ -986,169 +955,198 @@ class Subbie extends CI_Controller{
         return $month;
     }
 
-    function getOverAllWageTotalPay($date,$id = '',$is_details = false){
-
-        $this_year = date('Y',strtotime($date));
-        $first_tuesday_in_month = $this_year.'-04-01';//$this->first_day_of_month($this_year);
-        $year = strtotime($first_tuesday_in_month) > strtotime($date) ? date('Y-m-d',strtotime('-1 year'.$date)) : date('Y-m-d',strtotime($date));
-
-        $this->getYearTotalBalance($this_year);
-
-        $this->my_model->setJoin(array(
-            'table' => array(
-                'tbl_rate',
-                'tbl_currency',
-                'tbl_deductions',
-                'tbl_wage_type',
-                'tbl_kiwi as employee',
-                'tbl_kiwi as employeer',
-                'tbl_esct_rate',
-                'tbl_tax_codes'
-            ),
-            'join_field' => array(
-                'id','id','staff_id','id','id','id','id','id'
-            ),
-            'source_field' => array(
-                'tbl_staff.rate','tbl_staff.currency','tbl_staff.id','tbl_staff.wage_type',
-                'tbl_staff.kiwi_id','tbl_staff.employeer_kiwi','tbl_staff.esct_rate_id',
-                'tbl_staff.tax_code_id'
-            ),
-            'type' => 'left',
-            'join_append' => array(
-                'tbl_rate',
-                'tbl_currency',
-                'tbl_deductions',
-                'tbl_wage_type',
-                'employee',
-                'employeer',
-                'tbl_esct_rate',
-                'tbl_tax_codes'
-            )
-        ));
-        $deductions = $this->arrayWalk(array(
-            'flight_deduct','flight_debt',
-            'visa_deduct','visa_debt',
-            'accommodation','transport'
-        ),'tbl_deductions.');
-        $staff = $this->arrayWalk(array(
-            'tax_number','installment','balance',
-            'nz_account as nz_account_','account_two'
-        ),'tbl_staff.');
-
-        $fields = array_merge($deductions,$staff);
-        $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';
-        $fields[] = 'tbl_rate.rate_cost';
-        $fields[] = 'tbl_staff.id as employee';
-        $fields[] = 'tbl_currency.symbols';
-        $fields[] = 'tbl_currency.currency_code';
-        $fields[] = 'tbl_wage_type.type as wage_type';
-        $fields[] = 'tbl_wage_type.frequency as frequency_id';
-        $fields[] = 'employee.kiwi';
-        $fields[] = 'employeer.kiwi as emp_kiwi';
-        $fields[] = 'tbl_esct_rate.field_name';
-        $fields[] = 'tbl_esct_rate.cec_name';
-        $fields[] = 'tbl_tax_codes.has_st_loan';
-
-        $whatVal = false;
-        $whatFld = 'tbl_staff.is_unemployed';
-
-        if($id){
-            $whatVal = $id;
-            $whatFld = 'tbl_staff.id';
+    function getStaffLastPay($id = '',$year,$week = ''){
+        $whatVal = array(false);
+        $whatFld = array('is_unemployed');
+        if($id || count($id) > 0){
+            $whatVal = is_array($id) ? $id : array($id);
+            $whatFld = is_array($id) ?  'tbl_staff.id' : array('tbl_staff.id');
         }
 
-        $this->my_model->setSelectFields($fields);
-        $staff_list = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
 
-        $set_wage_date = $this->getPaymentStartDate(date('Y',strtotime($year)));
+        $staff_data = new Staff_Helper();
+        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
+        $set_wage_date = $this->getPaymentStartDate($year);
         $wage_total_data = array();
+        $wage_data = new Wage_Controller();
+        $this->data['total_bal'] = $wage_data->get_year_total_balance();
+        $rate = $staff_data->staff_rate();
+        $hourly_rate = $staff_data->staff_hourly_rate();
+        //$kiwi_data = $staff_data->staff_kiwi();
 
         if(count($set_wage_date) > 0){
             foreach($set_wage_date as $key=>$dv){
+                $_date = new DateTime($key);
+                $_year = $_date->format('Y');
+                $_week = $_date->format('W');
                 if(count($staff_list) > 0){
                     foreach($staff_list as $ev){
+
                         if(strtotime($key) <= strtotime(date('Y-m-d'))){
-                            $rate = $this->getStaffRate($ev->employee,$key);
                             $ev->start_use = '';
-                            $ev->nz_account = 0;
-                            if(count($rate) > 0){
-                                foreach($rate as $val){
-                                    $ev->rate_name = $val->rate_name;
-                                    $ev->rate_cost = $val->rate;
-                                    $ev->start_use = $val->start_use;
+                            //$ev->kiwi = '';
+
+                            if(count(@$rate[$ev->id]) > 0){
+                                foreach(@$rate[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($key) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
+                                        $ev->rate_name = $val->rate_name;
+                                        $ev->rate_cost = $val->rate;
+                                        $ev->start_use = $val->start_use;
+                                    }
                                 }
                             }
 
+                            /*if(count(@$kiwi_data[$ev->id]) > 0){
+                                foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($key) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
+                                        $ev->kiwi = $val->kiwi;
+                                        $ev->employer_kiwi = $val->employer_kiwi;
+                                        $ev->field_name = $val->field_name;
+                                        $ev->esct_rate = $val->esct_rate;
+                                    }
+                                }
+                            }*/
+
+                            $then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
+                            $then = new DateTime($then);
+
+                            $now = date('Y-m-d H:i:s',strtotime($key));
+                            $now = new DateTime($now);
+
+                            $sinceThen = $then->diff($now);
+
+                            $leave = $this->countLeaveTaken($ev->id,$key);
+
+                            $holiday_leave_taken = $leave['holiday_leave'];
+                            $sick_leave_taken = $leave['sick_leave'];
+
+                            $overall_holiday_leave = $this->getAnnualLeave($ev->id,$key);
+                            $overall_sick_leave = $this->getSickLeave($ev->id,$key);
+
+                            $total_holiday_leave = $overall_holiday_leave - $holiday_leave_taken;
+                            $total_sick_leave = $overall_sick_leave - $sick_leave_taken;
 
                             $ev->tax = 0;
-                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key,$ev->employee) : 1;
+                            $ev->m_paye = 0;
+                            $ev->me_paye = 0;
+                            $ev->kiwi_ = 0;
+                            $ev->st_loan = 0;
+
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key,$ev->id) : 1;
                             $ev->gross = $ev->rate_cost * $hours;
                             $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
                             //$ev->gross = $ev->gross != 0 ? floatval(number_format($ev->gross,0,'.','')):'0.00';
                             $ev->kiwi_ = 0;
                             $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
 
-                            $data_ = $this->getPayeValue($ev->frequency_id,$key,$ev->gross,$kiwi);
+                            $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key,$ev->gross,$kiwi);
                             if(count($data_) > 0){
-                                $ev->tax = number_format($data_['tax'],2,'.','');
+                                $ev->tax = $data_['tax'];
                                 $ev->m_paye = $data_['m_paye'];
                                 $ev->me_paye = $data_['me_paye'];
                                 $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
                                 $ev->st_loan = $ev->has_st_loan ? $data_['st_loan'] : 0;
                             }
 
-                            $hourly_rate = $this->getStaffHourlyRate($ev->employee,$date);
                             $ev->hourly_rate = 0;
-                            if(count($hourly_rate) > 0){
-                                foreach($hourly_rate as $val){
+                            if(count(@$hourly_rate[$ev->id]) > 0){
+                                foreach(@$hourly_rate[$ev->id] as $val){
                                     $ev->hourly_rate = $val->hourly_rate;
                                 }
                             }
 
-                            $ev->nz_account = $ev->nz_account_ ? $ev->nz_account_ + ($hours * $ev->hourly_rate) : 0;
-
-                            $ev->flight_debt = @$this->data['total_bal'][$key][$ev->employee]['flight_debt'];
+                            $ev->nz_account_ = $ev->nz_account ? $ev->nz_account + ($hours * $ev->hourly_rate) : 0;
+                            $ev->flight_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['flight_debt'];
                             $ev->flight_deduct = $ev->flight_debt > 0 ?
                                 ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
 
-                            $ev->visa_debt = @$this->data['total_bal'][$key][$ev->employee]['visa_debt'];
+                            $ev->visa_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['visa_debt'];
                             $ev->visa_deduct = $ev->visa_debt > 0 ?
                                 ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
 
-                            $ev->balance = @$this->data['total_bal'][$key][$ev->employee]['balance'];
+                            $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week]['balance'];
                             $ev->installment = $ev->balance > 0 ?
                                 ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
 
                             $ev->recruit = $ev->visa_deduct ? $ev->gross_ * 0.03 : 0;
                             $ev->admin = $ev->visa_deduct ? $ev->gross_ * 0.01 : 0;
-                            $ev->nett = $ev->gross_ - ($ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+                            $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
 
                             $ev->distribution = $ev->nett - $ev->installment;
-                            $ev->account_one = $ev->distribution - ($ev->nz_account + $ev->account_two);
+                            $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                            //$ev->annual_pay = $sinceThen->y == 0 ? ($ev->gross * 0.08) : ($sinceThen->y > 0 && $sinceThen->m > 0 ? ($ev->gross * 0.08) + ($ev->gross * $total_holiday_leave) : ($ev->gross * $total_holiday_leave));
+
                             if($ev->gross > 0){
                                 @$ev->total_distribution +=  floatval($ev->distribution);
                                 @$ev->total_gross +=  floatval($ev->gross_);
                                 @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
                                 @$ev->total_account_two +=  floatval($ev->account_two);
-                                @$ev->total_nz_account +=  floatval($ev->nz_account);
+                                @$ev->total_nz_account +=  floatval($ev->nz_account_);
 
-                                if($is_details){
-                                    $wage_total_data[$ev->employee][$key] = array(
-                                        'distribution' => floatval($ev->distribution),
-                                        'gross' => floatval($ev->gross_),
+                                $ev->annual_pay = $sinceThen->y == 0 ? (($ev->total_gross + $ev->gross_) * 0.08) : ($ev->gross_ * $total_holiday_leave);
+                                $annual_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key,$ev->annual_pay,'','','','',true);
+
+                                $ev->annual_tax = 0;
+                                if(count($annual_) > 0){
+                                    $ev->annual_tax = $annual_['tax'];
+                                }
+
+                                $options = is_array($week) ? count($week) > 0 && $week[$ev->id] == $_week : $week && $week == $_week;
+                                if($options){
+                                    $wage_total_data[$ev->id] = array(
+                                        'total_distribution' => $ev->total_distribution,
+                                        'total_gross' => floatval($ev->total_gross + $ev->gross_),
                                         'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
+                                        'total_account_one' => $ev->total_account_one,
+                                        'total_account_two' => $ev->total_account_two,
+                                        'total_nz_account' => $ev->total_nz_account,
+                                        'distribution' => floatval($ev->distribution),
+                                        'last_date_pay' => $key,
+                                        'hours' => floatval($hours),
+                                        'tax' => floatval($ev->tax),
+                                        'gross' => floatval($ev->gross_),
                                         'account_one' => $ev->account_one > 0 ? floatval($ev->account_one) : 0,
                                         'account_two' => floatval($ev->account_two),
-                                        'nz_account' => floatval($ev->nz_account)
+                                        'nz_account' => floatval($ev->nz_account_),
+                                        'annual_leave_pay' => floatval($ev->annual_pay),
+                                        'annual_tax' => $ev->annual_tax,
+                                        'last_week' => $_week,
+                                        'calculation_type' => $sinceThen->y == 0 ? '8%' : 'Avg. Weekly',
+                                        'total_holiday_leave' => $total_holiday_leave,
+                                        'holiday_leave_taken' => $holiday_leave_taken,
+                                        'total_sick_leave' => $total_sick_leave,
+                                        'sick_leave_taken' => $sick_leave_taken,
+                                        'overall_holiday_leave' => $overall_holiday_leave,
+                                        'overall_sick_leave' => $overall_sick_leave,
                                     );
                                 }else{
-                                    $wage_total_data[$ev->employee][$key] = array(
-                                        'distribution' => $ev->total_distribution,
-                                        'gross' => floatval($ev->total_gross),
+                                    $wage_total_data[$ev->id] = array(
+                                        'total_distribution' => $ev->total_distribution,
+                                        'total_gross' => floatval($ev->total_gross + $ev->gross_),
                                         'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
-                                        'account_one' => $ev->total_account_one,
-                                        'account_two' => $ev->total_account_two,
-                                        'nz_account' => $ev->total_nz_account
+                                        'total_account_one' => $ev->total_account_one,
+                                        'total_account_two' => $ev->total_account_two,
+                                        'total_nz_account' => $ev->total_nz_account,
+                                        'distribution' => floatval($ev->distribution),
+                                        'last_date_pay' => $key,
+                                        'hours' => floatval($hours),
+                                        'tax' => floatval($ev->tax),
+                                        'gross' => floatval($ev->gross_),
+                                        'account_one' => $ev->account_one > 0 ? floatval($ev->account_one) : 0,
+                                        'account_two' => floatval($ev->account_two),
+                                        'nz_account' => floatval($ev->nz_account_),
+                                        'annual_leave_pay' => floatval($ev->annual_pay),
+                                        'annual_tax' => $ev->annual_tax,
+                                        'last_week' => $_week,
+                                        'calculation_type' => $sinceThen->y == 0 ? '8%' : 'Avg. Weekly',
+                                        'total_holiday_leave' => $total_holiday_leave,
+                                        'holiday_leave_taken' => $holiday_leave_taken,
+                                        'total_sick_leave' => $total_sick_leave,
+                                        'sick_leave_taken' => $sick_leave_taken,
+                                        'overall_holiday_leave' => $overall_holiday_leave,
+                                        'overall_sick_leave' => $overall_sick_leave,
                                     );
                                 }
                             }
@@ -1157,7 +1155,197 @@ class Subbie extends CI_Controller{
                 }
             }
         }
+        return $wage_total_data;
+    }
 
+    function getOverAllWageTotalPay($date,$id = '',$is_details = false){
+
+        $this_year = date('Y',strtotime($date));
+        $first_tuesday_in_month = $this_year.'-04-01';//$this->first_day_of_month($this_year);
+        $year = strtotime($first_tuesday_in_month) > strtotime($date) ? date('Y-m-d',strtotime('-1 year'.$date)) : date('Y-m-d',strtotime($date));
+
+        $whatVal = array(false,1);
+        $whatFld = array('is_unemployed','project_id');
+
+        $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$this_year.'" AND has_final_pay =1';
+
+        if($id){
+            $whatVal = array($id);
+            $whatFld = array('tbl_staff.id');
+
+            $what_val = 'id ="'.$id.'" AND date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$this_year.'" AND has_final_pay =1';
+        }
+
+        $staff_data = new Staff_Helper();
+        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
+        $set_wage_date = $this->getPaymentStartDate(date('Y',strtotime($year)));
+        $wage_total_data = array();
+        $wage_data = new Wage_Controller();
+        $this->data['total_bal'] = $wage_data->get_year_total_balance();
+        $rate = $staff_data->staff_rate();
+        //$kiwi_data = $staff_data->staff_kiwi();
+        $hourly_rate = $staff_data->staff_hourly_rate();
+
+        $_id = array();
+        $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+
+        $week_data = array();
+        if(count($staff_) > 0){
+            foreach($staff_ as $row){
+                $_id[] = $row->id;
+                $week_data[$row->id] = $row->last_week_pay;
+            }
+        }
+        $last_pay_data = count($_id) > 0 ? $this->getStaffLastPay($_id,$this_year,$week_data) : array();
+        if(count($set_wage_date) > 0){
+            foreach($set_wage_date as $key=>$dv){
+                $_date = new DateTime($key);
+                $_year = $_date->format('Y');
+                $_week = $_date->format('W');
+                if(count($staff_list) > 0){
+                    foreach($staff_list as $ev){
+
+                        if(strtotime($key) <= strtotime(date('Y-m-d'))){
+                            $ev->start_use = '';
+                            //$ev->kiwi = '';
+
+                            if(count(@$rate[$ev->id]) > 0){
+                                foreach(@$rate[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($key) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
+                                        $ev->rate_name = $val->rate_name;
+                                        $ev->rate_cost = $val->rate;
+                                        $ev->start_use = $val->start_use;
+                                    }
+                                }
+                            }
+
+                            /*if(count(@$kiwi_data[$ev->id]) > 0){
+                                foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($key) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
+                                        $ev->kiwi = $val->kiwi;
+                                        $ev->employer_kiwi = $val->employer_kiwi;
+                                        $ev->field_name = $val->field_name;
+                                        $ev->esct_rate = $val->esct_rate;
+                                    }
+                                }
+                            }*/
+
+                            $ev->tax = 0;
+                            $ev->m_paye = 0;
+                            $ev->me_paye = 0;
+                            $ev->kiwi_ = 0;
+                            $ev->st_loan = 0;
+
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key,$ev->id) : 1;
+                            $ev->gross = $ev->rate_cost * $hours;
+                            $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
+                            //$ev->gross = $ev->gross != 0 ? floatval(number_format($ev->gross,0,'.','')):'0.00';
+                            $ev->kiwi_ = 0;
+                            $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
+
+                            $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key,$ev->gross,$kiwi);
+                            if(count($data_) > 0){
+                                $ev->tax = number_format($data_['tax'],2,'.','');
+                                $ev->m_paye = $data_['m_paye'];
+                                $ev->me_paye = $data_['me_paye'];
+                                $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
+                                $ev->st_loan = $ev->has_st_loan ? $data_['st_loan'] : 0;
+                            }
+
+                            $ev->hourly_rate = 0;
+                            if(count(@$hourly_rate[$ev->id]) > 0){
+                                foreach(@$hourly_rate[$ev->id] as $val){
+                                    $ev->hourly_rate = $val->hourly_rate;
+                                }
+                            }
+
+                            $ev->nz_account_ = $ev->nz_account ? $ev->nz_account + ($hours * $ev->hourly_rate) : 0;
+                            $ev->flight_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['flight_debt'];
+                            $ev->flight_deduct = $ev->flight_debt > 0 ?
+                                ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
+
+                            $ev->visa_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['visa_debt'];
+                            $ev->visa_deduct = $ev->visa_debt > 0 ?
+                                ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
+
+                            $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week]['balance'];
+                            $ev->installment = $ev->balance > 0 ?
+                                ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
+
+                            $ev->recruit = $ev->visa_deduct ? $ev->gross_ * 0.03 : 0;
+                            $ev->admin = $ev->visa_deduct ? $ev->gross_ * 0.01 : 0;
+                            $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+
+                            $ev->distribution = $ev->nett - $ev->installment;
+                            $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+
+                            $pay_data = @$last_pay_data[$ev->id];
+                            $last_day = date('Y-m-d',strtotime('+6 days '.$pay_data['last_date_pay']));
+                            $final_pay = 0;
+                            $final_gross = 0;
+                            if($pay_data['last_week'] == $_week){
+                                $final_pay = ($pay_data['annual_leave_pay'] - $pay_data['annual_tax']) + $pay_data['distribution'];
+                                $final_gross = $pay_data['gross'];
+                            }
+
+                            if($ev->gross > 0){
+                                @$ev->total_distribution +=  floatval($ev->distribution + $final_pay);
+                                @$ev->total_gross +=  floatval($ev->gross_ + $final_gross);
+                                @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
+                                @$ev->total_account_two +=  floatval($ev->account_two);
+                                @$ev->total_nz_account +=  floatval($ev->nz_account_);
+
+                                if($is_details){
+                                    /*$wage_total_data[$ev->id][$last_day] = array(
+                                        'distribution' => floatval($final_pay),
+                                        'gross' => floatval($final_gross),
+                                        'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
+                                        'account_one' => $ev->account_one > 0 ? floatval($ev->account_one) : 0,
+                                        'account_two' => floatval($ev->account_two),
+                                        'nz_account' => floatval($ev->nz_account_),
+                                        'final_pay' => $final_pay
+                                    );*/
+
+                                    $wage_total_data[$ev->id][$key] = array(
+                                        'distribution' => $final_pay ? floatval($ev->distribution + $final_pay) : floatval($ev->distribution),
+                                        'gross' => $final_gross ? floatval($ev->gross_ + $final_gross) : floatval($ev->gross_),
+                                        'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
+                                        'account_one' => $ev->account_one > 0 ? floatval($ev->account_one) : 0,
+                                        'account_two' => floatval($ev->account_two),
+                                        'nz_account' => floatval($ev->nz_account_),
+                                        'final_pay' => $final_pay
+                                    );
+                                }else{
+
+                                    /*$wage_total_data[$ev->id][$key] = array(
+                                        'distribution' => $ev->total_distribution,
+                                        'gross' => floatval($ev->total_gross),
+                                        'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
+                                        'account_one' => $ev->total_account_one,
+                                        'account_two' => $ev->total_account_two,
+                                        'nz_account' => $ev->total_nz_account,
+                                        'final_pay' => $final_pay
+                                    );*/
+
+                                    $wage_total_data[$ev->id][$key] = array(
+                                        'distribution' => $ev->total_distribution,
+                                        'gross' => floatval($ev->total_gross),
+                                        'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
+                                        'account_one' => $ev->total_account_one,
+                                        'account_two' => $ev->total_account_two,
+                                        'nz_account' => $ev->total_nz_account,
+                                        'final_pay' => $final_pay
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        //DisplayArray($wage_total_data);
         return $wage_total_data;
     }
 
@@ -1182,7 +1370,7 @@ class Subbie extends CI_Controller{
             'type' => 'left'
         ));
 
-        $fields = $this->arrayWalk(array('product_name','price'),'tbl_product_list.');
+        $fields = ArrayWalk(array('product_name','price'),'tbl_product_list.');
         $fields[] = 'tbl_registration.address';
         $fields[] = 'CONCAT(tbl_client.client_code,LPAD(tbl_registration.id, 5,"0")) as job_ref';
         $fields[] = 'tbl_supplier.supplier_name';
@@ -1215,211 +1403,205 @@ class Subbie extends CI_Controller{
 
     function getWageData($year,$month,$type = 'weekly'){
         //automate wage
-        $this->data['total_bal'] = $this->getYearTotalBalance($year);
-        $this->my_model->setJoin(array(
-            'table' => array(
-                'tbl_rate',
-                'tbl_currency',
-                'tbl_deductions',
-                'tbl_wage_type',
-                'tbl_tax_codes',
-                'tbl_kiwi as kiwi',
-                'tbl_kiwi as emp_kiwi',
-                'tbl_esct_rate'
-            ),
-            'join_field' => array(
-                'id','id','staff_id','id','id','id','id','id'
-            ),
-            'source_field' => array(
-                'tbl_staff.rate',
-                'tbl_staff.currency',
-                'tbl_staff.id',
-                'tbl_staff.wage_type',
-                'tbl_staff.tax_code_id',
-                'tbl_staff.kiwi_id',
-                'tbl_staff.employeer_kiwi',
-                'tbl_staff.esct_rate_id'
-            ),
-            'type' => 'left',
-            'join_append' => array(
-                'tbl_rate',
-                'tbl_currency',
-                'tbl_deductions',
-                'tbl_wage_type',
-                'tbl_tax_codes',
-                'kiwi',
-                'emp_kiwi',
-                'tbl_esct_rate'
-            )
-        ));
-        $deductions = $this->arrayWalk(array(
-            'flight_deduct','flight_debt',
-            'visa_deduct','visa_debt',
-            'accommodation','transport'
-        ),'tbl_deductions.');
-        $staff = $this->arrayWalk(array(
-            'tax_number','installment','balance',
-            'nz_account','nz_account as nz_account_','account_two'
-        ),'tbl_staff.');
+        $wage_data = new Wage_Controller();
+        $staff_data = new Staff_Helper();
 
-        $fields = array_merge($deductions,$staff);
-        $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';
-        $fields[] = 'tbl_rate.rate_cost';
-        $fields[] = 'tbl_staff.id as staff_id';
-        $fields[] = 'tbl_staff.email';
-        $fields[] = 'tbl_currency.symbols';
-        $fields[] = 'tbl_currency.currency_code';
-        $fields[] = 'tbl_wage_type.type as wage_type';
-        $fields[] = 'tbl_wage_type.frequency';
-        $fields[] = 'tbl_tax_codes.tax_code';
-        $fields[] = 'IF(tbl_staff.ird_num != "-" ,LPAD(tbl_staff.ird_num,11,"0"),tbl_staff.ird_num) as ird_num';
-        $fields[] = 'kiwi.kiwi';
-        $fields[] = 'emp_kiwi.kiwi as emp_kiwi';
-        $fields[] = 'tbl_esct_rate.field_name';
-        $fields[] = 'tbl_esct_rate.cec_name';
-        $fields[] = 'tbl_wage_type.frequency as frequency_id';
-        $fields[] = 'tbl_tax_codes.has_st_loan';
+        //$whatVal = array('0000-00-00',3);
+        //$whatFld = array('date_employed !=','status_id');
 
-        $this->my_model->setSelectFields($fields);
-        $this->my_model->setOrder(array('lname','fname'));
-        $whatVal = array(false,3);
-        $whatFld = array('is_unemployed','status_id');
-        $staff_list = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+        $whatVal = '(date_employed != "0000-00-00" AND project_id ="1")';
+        $whatFld = '';
+
+        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
+
+        $this->data['total_bal'] = $wage_data->get_year_total_balance();
+        $rate = $staff_data->staff_rate();
+        $hourly_rate = $staff_data->staff_hourly_rate();
+        //$kiwi_data = $staff_data->staff_kiwi();
+
         switch($type){
             case 'weekly':
                 $this->data['balance'] = array();
                 $this->data['wage_data'] = array();
 
-                $this->data['date'] = $this->getFirstNextLastDay($year,$month,'tuesday');
+                $this->data['date'] = $this->getFirstNextLastDay($year,$month);
                 $this->data['wage_total_data'] = array();
                 $phpCurrency = CurrencyConverter('PHP');
+
                 if(count($this->data['date']) > 0){
                     foreach($this->data['date'] as $dv){
+                        $_date = new DateTime($dv);
+                        $_year = $_date->format('Y');
+                        $_week = (int)$_date->format('W');
+                        $week_num = $_date->format('W');
                         if(count($staff_list) > 0){
                             foreach($staff_list as $ev){
-                                $ev->total_holiday_leave = $this->getAnnualLeave($ev->staff_id,$dv);
-                                $ev->total_sick_leave = $this->getSickLeave($ev->staff_id,$dv);
-                                $rate = $this->getStaffRate($ev->staff_id,$dv);
-                                $ev->start_use = '';
-                                if(count($rate) > 0){
-                                    foreach($rate as $val){
-                                        $ev->rate_name = $val->rate_name;
-                                        $ev->rate_cost = $val->rate;
-                                        $ev->start_use = $val->start_use;
+                                if(($ev->date_employed != "0000-00-00" && $ev->status_id == 3)
+                                    || ($ev->last_week_pay && $ev->last_week_pay >= $week_num)){
+                                    $leave = $this->countLeaveTaken($ev->id,$dv);
+
+                                    $ev->holiday_leave_taken = $leave['holiday_leave'];
+                                    $ev->sick_leave_taken = $leave['sick_leave'];
+
+                                    $ev->overall_holiday_leave = $this->getAnnualLeave($ev->id,$dv);
+                                    $ev->overall_sick_leave = $this->getSickLeave($ev->id,$dv);
+
+                                    $ev->total_holiday_leave = $this->getAnnualLeave($ev->id,$dv) - $ev->holiday_leave_taken;
+                                    $ev->total_sick_leave = $this->getSickLeave($ev->id,$dv) - $ev->sick_leave_taken;
+
+                                    $ev->start_use = '';
+                                    /*$ev->kiwi = '';
+                                    $ev->emp_kiwi = '';
+                                    $ev->cec_name = '';
+                                    $ev->field_name = '';*/
+
+                                    if(count(@$rate[$ev->id]) > 0){
+                                        foreach(@$rate[$ev->id] as $used_date=>$val){
+                                            if(strtotime($used_date) <= strtotime($dv) ||
+                                                strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $ev->rate_name = $val->rate_name;
+                                                $ev->rate_cost = $val->rate;
+                                                $ev->start_use = $val->start_use;
+                                            }
+                                        }
                                     }
-                                }
 
-                                $hourly_rate = $this->getStaffHourlyRate($ev->staff_id,$dv);
-                                $ev->hourly_rate = 0;
-                                if(count($hourly_rate) > 0){
-                                    foreach($hourly_rate as $val){
-                                        $ev->hourly_rate = $val->hourly_rate;
+                                    /*if(count(@$kiwi_data[$ev->id]) > 0){
+                                        foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                                            if(strtotime($start_use) <= strtotime($dv) ||
+                                                strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $ev->kiwi = $val->kiwi;
+                                                $ev->employer_kiwi = $val->employer_kiwi;
+                                                $ev->field_name = $val->field_name;
+                                                $ev->esct_rate = $val->esct_rate;
+                                            }
+                                        }
+                                    }*/
+
+                                    $ev->hourly_rate = 0;
+                                    if(count(@$hourly_rate[$ev->id]) > 0){
+                                        foreach(@$hourly_rate[$ev->id] as $used_date=>$val){
+                                            //$ev->hourly_rate = $val->hourly_rate;
+                                            if(strtotime($used_date) <= strtotime($dv) ||
+                                                strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $ev->hourly_rate = $val->hourly_rate;
+                                            }
+                                        }
                                     }
+
+                                    $this->data['balance'][$ev->id] = array(
+                                        'balance' => $ev->balance,
+                                        'flight_debt' => $ev->flight_debt,
+                                        'visa_debt' => $ev->visa_debt
+                                    );
+                                    $code = $ev->currency_code != 'NZD' ? $ev->currency_code : 'PHP';
+                                    $symbols = $ev->currency_code != 'NZD' ? $ev->symbols : '₱';
+
+                                    $converted_amount = $ev->currency_code != 'NZD' ? 1 : $phpCurrency;
+
+                                    $ev->tax = 0;
+
+                                    $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->id) : 1;
+                                    $ev->gross = $hours ? $ev->rate_cost * $hours : 0;
+                                    $ev->gross_ = number_format($ev->gross,2,'.','');
+                                    //$ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.000';
+
+                                    $ev->kiwi_ = 0;
+                                    $ev->st_loan = 0;
+                                    $ev->emp_kiwi_ = 0;
+                                    $ev->cec = 0;
+                                    $ev->esct = 0;
+                                    $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
+                                    $emp_kiwi = $ev->emp_kiwi ? 'kiwi_saver_'.$ev->emp_kiwi : '';
+                                    $cec = $ev->cec_name ? $ev->cec_name : '';
+                                    $esct = $ev->field_name ? $ev->field_name : '';
+
+                                    $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$dv,$ev->gross,$kiwi,$emp_kiwi,$cec,$esct);
+
+                                    if(count($data_) > 0){
+                                        $ev->tax = number_format($data_['tax'],2,'.','');
+                                        $ev->m_paye = $data_['m_paye'];
+                                        $ev->me_paye = $data_['me_paye'];
+                                        $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
+                                        $ev->st_loan = $ev->has_st_loan ? $data_['st_loan'] : 0;
+                                        $ev->emp_kiwi_ = $emp_kiwi ? $data_['emp_kiwi'] : 0;
+                                        $ev->cec = $cec ? $data_['cec'] : 0;
+                                        $ev->esct = $esct ? $data_['esct'] : 0;
+                                    }
+
+                                    $ev->nz_account_ = $ev->nz_account ? $ev->nz_account + ($hours * $ev->hourly_rate) : 0;
+
+                                    $ev->flight_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['flight_debt'];
+                                    $ev->flight_deduct = $ev->flight_debt > 0 ?
+                                        ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
+
+                                    $ev->visa_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['visa_debt'];
+                                    $ev->visa_deduct = $ev->visa_debt > 0 ?
+                                        ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
+
+                                    $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week]['balance'];
+                                    $ev->installment = $ev->balance > 0 ?
+                                        ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
+
+                                    $ev->recruit = $ev->visa_deduct ? $ev->gross * 0.03 : 0;
+                                    $ev->admin = $ev->visa_deduct ? $ev->gross * 0.01 : 0;
+
+                                    $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+
+                                    $ev->distribution = $ev->nett - $ev->installment;
+                                    $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                                    $wage_data = array(
+                                        'id' => $ev->id,
+                                        'name' => $ev->name,
+                                        'ird_num' => $ev->ird_num,
+                                        'tax_number' => $ev->tax_number,
+                                        'tax_code' => $ev->tax_code,
+                                        'gross' => $ev->gross_,
+                                        'rate_cost' => $ev->rate_cost,
+                                        'hours' => $ev->wage_type != 1 ? $hours : 40,
+                                        'tax' => $ev->tax != 0 ? $ev->tax : 0,
+                                        'flight' => $ev->flight_deduct,
+                                        'visa' => $ev->visa_deduct,
+                                        'accommodation' => $ev->accommodation != '' ? $ev->accommodation: 0,
+                                        'transport' => $ev->transport ? $ev->transport : 0,
+                                        'deduction' => $ev->installment != '' || $ev->installment != 0 ? $ev->installment : 0,
+                                        'distribution' => $ev->distribution,
+                                        'date' => $dv,
+                                        'nett' => number_format($ev->nett,2,'.',''),
+                                        'recruit' => $ev->visa_deduct ? number_format($ev->recruit,2,'.','') : 0,
+                                        'admin' => $ev->visa_deduct ? number_format($ev->admin,2,'.','') : 0,
+                                        'currency' => $code,
+                                        'account_two' => $hours > 0 ? ($ev->nz_account ? $ev->account_two : 0) : 0,
+                                        'account_one' => $hours > 0 ? ($ev->nz_account ? $ev->account_one : 0) : 0,
+                                        'nz_account' => $hours > 0 ? $ev->nz_account_ : 0,
+                                        'has_nz_account' => $ev->nz_account ? 1 : 0,
+                                        'rate_value' => $converted_amount,
+                                        'week' => $this->getWeeks($dv),
+                                        'start_use' => $ev->start_use,
+                                        'wage_type' => $ev->wage_type,
+                                        'symbols' => $symbols,
+                                        'installment' => $ev->installment,
+                                        'email' => $ev->email,
+                                        'total_sick_leave' => $ev->total_sick_leave,
+                                        'total_holiday_leave' => $ev->total_holiday_leave,
+                                        'holiday_leave' => $ev->holiday_leave_taken,
+                                        'sick_leave' => $ev->sick_leave_taken,
+                                        'overall_holiday_leave' => $ev->overall_holiday_leave,
+                                        'overall_sick_leave' => $ev->overall_sick_leave,
+                                        'kiwi' => $ev->kiwi_,
+                                        'has_kiwi' => $ev->kiwi ? 1 : 0,
+                                        'emp_kiwi' => $ev->emp_kiwi_,
+                                        'cec' => $ev->cec,
+                                        'esct' => $ev->esct,
+                                        'st_loan' => $ev->st_loan,
+                                        'has_st_loan' => $ev->has_st_loan
+                                    );
+
+                                    $this->data['wage_data'][$dv][] = $wage_data;
+
+                                    $this->data['last_week'] = $this->getWeeks(date('Y-m-t',strtotime('-1 week '.$dv)));
+                                    $this->data['start_week'] = $this->getWeekNumberOfDateInYear($ev->start_use);
                                 }
-
-                                $this->data['balance'][$ev->staff_id] = array(
-                                    'balance' => $ev->balance,
-                                    'flight_debt' => $ev->flight_debt,
-                                    'visa_debt' => $ev->visa_debt
-                                );
-                                $code = $ev->currency_code != 'NZD' ? $ev->currency_code : 'PHP';
-                                $symbols = $ev->currency_code != 'NZD' ? $ev->symbols : '₱';
-
-                                $converted_amount = $ev->currency_code != 'NZD' ? 1 : $phpCurrency;
-
-                                $ev->tax = 0;
-                                $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->staff_id) : 1;
-                                $ev->gross = $ev->rate_cost * $hours;
-                                $ev->gross_ = number_format($ev->gross,2,'.','');
-                                //$ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.000';
-
-                                $ev->kiwi_ = 0;
-                                $ev->st_loan = 0;
-                                $ev->emp_kiwi_ = 0;
-                                $ev->cec = 0;
-                                $ev->esct = 0;
-                                $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
-                                $emp_kiwi = $ev->emp_kiwi ? 'kiwi_saver_'.$ev->emp_kiwi : '';
-                                $cec = $ev->cec_name ? $ev->cec_name : '';
-                                $esct = $ev->field_name ? $ev->field_name : '';
-
-                                $ev->nz_account = $ev->nz_account_ ? $ev->nz_account_ + ($hours * $ev->hourly_rate) : 0;
-
-                                $data_ = $this->getPayeValue($ev->frequency_id,$dv,$ev->gross_,$kiwi,$emp_kiwi,$cec,$esct);
-                                if(count($data_) > 0){
-                                    $ev->tax = number_format($data_['tax'],2,'.','');
-                                    $ev->m_paye = $data_['m_paye'];
-                                    $ev->me_paye = $data_['me_paye'];
-                                    $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
-                                    $ev->st_loan = $ev->has_st_loan ? $data_['st_loan'] : 0;
-                                    $ev->emp_kiwi_ = $emp_kiwi ? $data_['emp_kiwi'] : 0;
-                                    $ev->cec = $cec ? $data_['cec'] : 0;
-                                    $ev->esct = $esct ? $data_['esct'] : 0;
-                                }
-
-                                $ev->flight_debt = @$this->data['total_bal'][$dv][$ev->staff_id]['flight_debt'];
-                                $ev->flight_deduct = $ev->flight_debt > 0 ?
-                                    ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
-
-                                $ev->visa_debt = @$this->data['total_bal'][$dv][$ev->staff_id]['visa_debt'];
-                                $ev->visa_deduct = $ev->visa_debt > 0 ?
-                                    ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
-
-                                $ev->balance = @$this->data['total_bal'][$dv][$ev->staff_id]['balance'];
-                                $ev->installment = $ev->balance > 0 ?
-                                    ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
-
-                                $ev->recruit = $ev->visa_deduct ? $ev->gross * 0.03 : 0;
-                                $ev->admin = $ev->visa_deduct ? $ev->gross * 0.01 : 0;
-
-                                $ev->nett = $ev->gross_ - ($ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
-
-                                $ev->distribution = $ev->nett - $ev->installment;
-                                $ev->account_one = $ev->distribution - ($ev->nz_account + $ev->account_two);
-                                $this->data['wage_data'][$dv][] = array(
-                                    'id' => $ev->staff_id,
-                                    'name' => $ev->name,
-                                    'ird_num' => $ev->ird_num,
-                                    'tax_number' => $ev->tax_number,
-                                    'tax_code' => $ev->tax_code,
-                                    'gross' => $ev->gross_,
-                                    'rate_cost' => $ev->rate_cost,
-                                    'hours' => $ev->wage_type != 1 ? $hours : 40,
-                                    'tax' => $ev->tax != 0 ? $ev->tax : 0,
-                                    'flight' => $ev->flight_deduct,
-                                    'visa' => $ev->visa_deduct,
-                                    'accommodation' => $ev->accommodation != '' ? $ev->accommodation: 0,
-                                    'transport' => $ev->transport ? $ev->transport : 0,
-                                    'deduction' => $ev->installment != '' || $ev->installment != 0 ? $ev->installment : 0,
-                                    'distribution' => $ev->distribution,
-                                    'date' => $dv,
-                                    'nett' => number_format($ev->nett,2,'.',''),
-                                    'recruit' => $ev->visa_deduct ? number_format($ev->recruit,2,'.','') : 0,
-                                    'admin' => $ev->visa_deduct ? number_format($ev->admin,2,'.','') : 0,
-                                    'currency' => $code,
-                                    'account_two' => $hours > 0 ? ($ev->nz_account ? $ev->account_two : 0) : 0,
-                                    'account_one' => $hours > 0 ? ($ev->nz_account ? $ev->account_one : 0) : 0,
-                                    'nz_account' => $hours > 0 ? $ev->nz_account : 0,
-                                    'has_nz_account' => $ev->nz_account ? 1 : 0,
-                                    'rate_value' => $converted_amount,
-                                    'week' => $this->getWeeks($dv),
-                                    'start_use' => $ev->start_use,
-                                    'wage_type' => $ev->wage_type,
-                                    'symbols' => $symbols,
-                                    'installment' => $ev->installment,
-                                    'email' => $ev->email,
-                                    'total_sick_leave' => $ev->total_sick_leave,
-                                    'total_holiday_leave' => $ev->total_holiday_leave,
-                                    'kiwi' => $ev->kiwi_,
-                                    'has_kiwi' => $ev->kiwi ? 1 : 0,
-                                    'emp_kiwi' => $ev->emp_kiwi_,
-                                    'cec' => $ev->cec,
-                                    'esct' => $ev->esct,
-                                    'st_loan' => $ev->st_loan,
-                                    'has_st_loan' => $ev->has_st_loan
-                                );
-                                $this->data['last_week'] = $this->getWeeks(date('Y-m-t',strtotime('-1 week '.$dv)));
-                                $this->data['start_week'] = $this->getWeekNumberOfDateInYear($ev->start_use);
                             }
                         }
                     }
@@ -1434,44 +1616,70 @@ class Subbie extends CI_Controller{
                     foreach($staff_list as $mv){
                         if(count($date) >0){
                             foreach($date as $dv){
-                                $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id) : 1;
-                                $weekly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->staff_id) : 1;
+
+                                $_date = new DateTime($dv);
+                                $_year = $_date->format('Y');
+                                $_week = (int)$_date->format('W');
+
+                                $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->id) : 1;
+                                $weekly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->id) : 1;
 
                                 if($monthly_hours != 0){
-                                    $rate = $this->getStaffRate($mv->staff_id,$dv);
                                     $mv->start_use = '';
-                                    if(count($rate) > 0){
-                                        foreach($rate as $val){
-                                            $mv->rate_name = $val->rate_name;
-                                            $mv->rate_cost = $val->rate;
-                                            $mv->start_use = $val->start_use;
+                                    if(count(@$rate[$mv->id]) > 0){
+                                        foreach(@$rate[$mv->id] as $used_date=>$val){
+                                            if(strtotime($used_date) <= strtotime($dv) ||
+                                                strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $mv->rate_name = $val->rate_name;
+                                                $mv->rate_cost = $val->rate;
+                                                $mv->start_use = $val->start_use;
+                                            }
                                         }
                                     }
 
-                                    $hourly_rate = $this->getStaffHourlyRate($mv->staff_id,$dv);
                                     $mv->hourly_rate = 0;
-                                    if(count($hourly_rate) > 0){
-                                        foreach($hourly_rate as $val){
-                                            $mv->hourly_rate = $val->hourly_rate;
+                                    if(count(@$hourly_rate[$mv->id]) > 0){
+                                        foreach(@$hourly_rate[$mv->id] as $used_date=>$val){
+                                            if(strtotime($used_date) <= strtotime($dv) ||
+                                                strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $mv->hourly_rate = $val->hourly_rate;
+                                            }
                                         }
                                     }
+
+                                    /*$mv->kiwi = '';
+                                    $mv->emp_kiwi = '';
+                                    $mv->cec_name = '';
+                                    $mv->field_name = '';
+
+                                    if(count(@$kiwi_data[$mv->id]) > 0){
+                                        foreach(@$kiwi_data[$mv->id] as $start_use=>$val){
+                                            if(strtotime($start_use) <= strtotime($dv) ||
+                                                strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $mv->kiwi = $val->kiwi;
+                                                $mv->employer_kiwi = $val->employer_kiwi;
+                                                $mv->field_name = $val->field_name;
+                                                $mv->esct_rate = $val->esct_rate;
+                                            }
+                                        }
+                                    }*/
 
                                     $mv->hours = $monthly_hours;
                                     $mv->gross_ = number_format($mv->hours * $mv->rate_cost,2,'.','');
                                     $mv->gross = $mv->hours * $mv->rate_cost;
                                     $mv->weekly_gross = number_format($weekly_hours * $mv->rate_cost,0,'.','');
 
-                                    $mv->nz_account = $mv->nz_account_ ? ($mv->nz_account_ + ($mv->hours * $mv->hourly_rate)) : 0;
+                                    $mv->nz_account_ = $mv->nz_account ? ($mv->nz_account + ($mv->hours * $mv->hourly_rate)) : 0;
 
-                                    $mv->flight_debt = @$this->data['total_bal'][$dv][$mv->staff_id]['flight_debt'];
+                                    $mv->flight_debt = @$this->data['total_bal'][$mv->id][$_year][$_week]['flight_debt'];
                                     $mv->flight = $mv->flight_debt > 0 ?
                                         ($mv->flight_debt <= $mv->flight_deduct ? $mv->flight_debt : $mv->flight_deduct) : 0;
 
-                                    $mv->visa_debt = @$this->data['total_bal'][$dv][$mv->staff_id]['visa_debt'];
+                                    $mv->visa_debt = @$this->data['total_bal'][$mv->id][$_year][$_week]['visa_debt'];
                                     $mv->visa = $mv->visa_debt > 0 ?
                                         ($mv->visa_debt <= $mv->visa_deduct ? $mv->visa_debt : $mv->visa_deduct) : 0;
 
-                                    $mv->balance = @$this->data['total_bal'][$dv][$mv->staff_id]['balance'];
+                                    $mv->balance = @$this->data['total_bal'][$mv->id][$_year][$_week]['balance'];
                                     $mv->installment = $mv->balance > 0 ?
                                         ($mv->balance <= $mv->installment ? $mv->balance : $mv->installment) : 0;
 
@@ -1492,7 +1700,7 @@ class Subbie extends CI_Controller{
                                     $emp_kiwi = $mv->emp_kiwi ? 'kiwi_saver_'.$mv->emp_kiwi : '';
                                     $cec = $mv->cec_name ? $mv->cec_name : '';
                                     $esct = $mv->field_name ? $mv->field_name : '';
-                                    $data_ = $this->getPayeValue($mv->frequency_id,$dv,$mv->gross,$kiwi,$emp_kiwi,$cec,$esct);
+                                    $data_ = $this->getPayeValue($mv->field_code,$mv->frequency_id,$dv,$mv->gross,$kiwi,$emp_kiwi,$cec,$esct);
                                     if(count($data_) > 0){
                                         $mv->tax = $data_['tax'];
                                         $mv->m_paye = $data_['m_paye'];
@@ -1513,15 +1721,15 @@ class Subbie extends CI_Controller{
                                     @$mv->total_visa += $mv->visa;
                                     @$mv->total_flight += $mv->flight;
                                     @$mv->total_account_two += $mv->account_two;
-                                    @$mv->total_nz_account += $mv->nz_account;
+                                    @$mv->total_nz_account += $mv->nz_account_;
                                     @$mv->total_kiwi += $mv->kiwi_;
                                     @$mv->total_emp_kiwi += $mv->emp_kiwi_;
                                     @$mv->total_st_loan += $mv->st_loan;
                                     @$mv->total_cec += $mv->cec;
                                     @$mv->total_esct += $mv->esct;
 
-                                    $this->data['monthly_pay'][$mv->staff_id] = array(
-                                        'staff_id' => $mv->staff_id,
+                                    $this->data['monthly_pay'][$mv->id] = array(
+                                        'staff_id' => $mv->id,
                                         'symbols' => $symbols,
                                         'code' => $code,
                                         'flight' => $mv->total_flight,
@@ -1556,8 +1764,8 @@ class Subbie extends CI_Controller{
                         }
                     }
                 }
-                $whatVal = array(false,3);
-                $whatFld = array('is_unemployed','status_id');
+                $whatVal = array(false,3,1);
+                $whatFld = array('is_unemployed','status_id','project_id');
                 $this->data['staff'] = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
                 break;
             default:
@@ -1566,79 +1774,23 @@ class Subbie extends CI_Controller{
     }
 
     function getPaySlipData($id,$date){
-        $this->my_model->setJoin(array(
-            'table' => array(
-                'tbl_rate',
-                'tbl_currency',
-                'tbl_deductions',
-                'tbl_wage_type',
-                'tbl_kiwi as employee',
-                'tbl_kiwi as employeer',
-                'tbl_esct_rate',
-                'tbl_tax_codes'
-            ),
-            'join_field' => array(
-                'id', 'id',
-                'staff_id', 'id',
-                'id', 'id',
-                'id', 'id'
-            ),
-            'source_field' => array(
-                'tbl_staff.rate',
-                'tbl_staff.currency',
-                'tbl_staff.id',
-                'tbl_staff.wage_type',
-                'tbl_staff.kiwi_id',
-                'tbl_staff.employeer_kiwi',
-                'tbl_staff.esct_rate_id',
-                'tbl_staff.tax_code_id'
-            ),
-            'type' => 'left',
-            'join_append' => array(
-                'tbl_rate',
-                'tbl_currency',
-                'tbl_deductions',
-                'tbl_wage_type',
-                'employee',
-                'employeer',
-                'tbl_esct_rate',
-                'tbl_tax_codes'
-            )
-        ));
-        $this->my_model->setSelectFields(array(
-            'tbl_staff.id',
-            'tbl_staff.ird_num',
-            'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name',
-            'tbl_staff.tax_number','tbl_staff.company',
-            'tbl_currency.symbols',
-            'tbl_deductions.flight_deduct as flight',
-            'tbl_rate.rate_cost',
-            'tbl_deductions.flight_debt',
-            'tbl_deductions.visa_debt',
-            'tbl_deductions.visa_deduct as visa','tbl_deductions.accommodation',
-            'tbl_deductions.transport',
-            'tbl_staff.balance','tbl_staff.installment',
-            'tbl_currency.currency_code','tbl_staff.account_two',
-            'tbl_staff.nz_account',
-            'tbl_staff.position',
-            'tbl_wage_type.type as wage_type',
-            'tbl_wage_type.frequency as frequency_id',
-            'employee.kiwi',
-            'employeer.kiwi as emp_kiwi',
-            'tbl_esct_rate.field_name',
-            'tbl_esct_rate.cec_name',
-            'tbl_tax_codes.has_st_loan',
-            'tbl_staff.email',
-            'tbl_staff.is_email_payslip',
-            'IF(tbl_currency.symbols = "₱","Php",tbl_currency.symbols) as symbols'
-        ),false);
+        $wage_data = new Wage_Controller();
+        $staff_data = new Staff_Helper();
 
-        $data['staff'] = $this->my_model->getinfo('tbl_staff',$id,'tbl_staff.id');
+        $data['staff'] = $staff_data->staff_details(array($id),array('tbl_staff.id'));
 
-        $this->getYearTotalBalance(date('Y',strtotime($date)));
+        $this->data['total_bal'] = $wage_data->get_year_total_balance($id);
         $data['staff_name'] = '';
         $data['has_email'] = 0;
         $phpCurrency = CurrencyConverter('PHP');
+
+        $_date = new DateTime($date);
+        $_year = $_date->format('Y');
+        $_week = (int)$_date->format('W');
+        $rate = $staff_data->staff_rate();
+        $hourly_rate = $staff_data->staff_hourly_rate();
+        //$kiwi_data = $staff_data->staff_kiwi();
+
         if(count($data['staff'])>0){
             foreach($data['staff'] as $v){
                 $data['staff_name'] = $v->name;
@@ -1650,56 +1802,73 @@ class Subbie extends CI_Controller{
                 $v->currency_symbols = $v->symbols;
                 $v->symbols = $v->currency_code != 'NZD' ? $v->symbols : 'Php';
 
-                $rate = $this->getStaffRate($v->id,$date);
-                if(count($rate) > 0){
-                    foreach($rate as $val){
-                        $v->rate_name = $val->rate_name;
-                        $v->rate_cost = $val->rate;
+                if(count(@$rate[$v->id]) > 0){
+                    foreach(@$rate[$v->id] as $start_date=>$val){
+                        if(strtotime($start_date) <= strtotime($date) ||
+                            strtotime($start_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                            $v->rate_name = $val->rate_name;
+                            $v->rate_cost = $val->rate;
+                            $v->start_use = $val->start_use;
+                        }
                     }
                 }
 
-                $hourly_rate = $this->getStaffHourlyRate($v->id,$date);
                 $v->hourly_rate = 0;
-                if(count($hourly_rate) > 0){
-                    foreach($hourly_rate as $val){
+                if(count(@$hourly_rate[$v->id]) > 0){
+                    foreach(@$hourly_rate[$v->id] as $used_date=>$val){
                         $v->hourly_rate = $val->hourly_rate;
+                        if(strtotime($used_date) <= strtotime($date) ||
+                            strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                            $v->hourly_rate = $val->hourly_rate;
+                        }
                     }
                 }
+
+                /*$v->kiwi = '';
+                $v->emp_kiwi = '';
+                $v->cec_name = '';
+                $v->field_name = '';
+
+                if(count(@$kiwi_data[$v->id]) > 0){
+                    foreach(@$kiwi_data[$v->id] as $start_use=>$val){
+                        if(strtotime($start_use) <= strtotime($date) ||
+                            strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                            $v->kiwi = $val->kiwi;
+                            $v->employer_kiwi = $val->employer_kiwi;
+                            $v->field_name = $val->field_name;
+                            $v->esct_rate = $val->esct_rate;
+                        }
+                    }
+                }*/
 
                 $converted_amount = $v->currency_code != 'NZD' ? 1 : $phpCurrency;
                 $v->converted_amount = $converted_amount;
-                $v->nz_account = $v->nz_account ? ($v->nz_account + ($v->hours * $v->hourly_rate)) : 0;
+                $v->nz_account_ = $v->nz_account ? ($v->nz_account + ($v->hours * $v->hourly_rate)) : 0;
                 $v->gross = $v->rate_cost * $v->hours;
                 $v->gross_ = $v->gross != 0 ? number_format($v->gross,2,'.',''):'0.00';
                 //$v->gross = $v->gross != 0 ? number_format($v->gross,0,'.',''):'0.00';
 
-                $v->flight_debt = @$this->data['total_bal'][$date][$v->id]['flight_debt'];
+                $v->flight_debt = @$this->data['total_bal'][$v->id][$_year][$_week]['flight_debt'];
                 $v->flight = $v->flight_debt > 0 ? $v->flight : 0;
 
-                $v->visa_debt = @$this->data['total_bal'][$date][$v->id]['visa_debt'];
+                $v->visa_debt = @$this->data['total_bal'][$v->id][$_year][$_week]['visa_debt'];
                 $v->visa = $v->visa_debt > 0 ? $v->visa : 0;
 
-                $v->balance = @$this->data['total_bal'][$date][$v->id]['balance'];
-                $v->installment = $v->balance > 0 ? $v->installment : 0;
+                $v->balance_ = @$this->data['total_bal'][$v->id][$_year][$_week]['balance'];
+                $v->installment = $v->balance_ > 0 ? $v->installment : 0;
 
-                if(!$v->gross){
-                    $v->tax = 0;
-                    $v->kiwi_ = 0;
-                    $v->st_loan = 0;
-                }else{
-                    $v->tax = 0;
-                    $v->kiwi_ = 0;
-                    $v->st_loan = 0;
-                    $kiwi = $v->kiwi ? 'kiwi_saver_'.$v->kiwi : '';
+                $v->tax = 0;
+                $v->kiwi_ = 0;
+                $v->st_loan = 0;
+                $kiwi = $v->kiwi ? 'kiwi_saver_'.$v->kiwi : '';
 
-                    $data_ = $this->getPayeValue($v->frequency_id,$date,$v->gross,$kiwi);
-                    if(count($data_) > 0){
-                        $v->tax = $data_['tax'];
-                        $v->m_paye = $data_['m_paye'];
-                        $v->me_paye = $data_['me_paye'];
-                        $v->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
-                        $v->st_loan = $v->has_st_loan ? $data_['st_loan'] : 0;
-                    }
+                $data_ = $this->getPayeValue($v->field_code,$v->frequency_id,$date,$v->gross,$kiwi);
+                if(count($data_) > 0){
+                    $v->tax = $data_['tax'];
+                    $v->m_paye = $data_['m_paye'];
+                    $v->me_paye = $data_['me_paye'];
+                    $v->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
+                    $v->st_loan = $v->has_st_loan ? $data_['st_loan'] : 0;
                 }
 
 
@@ -1710,15 +1879,15 @@ class Subbie extends CI_Controller{
                 @$v->total_accom += $v->accommodation;
                 @$v->total_trans += $v->transport;
                 @$v->total_account_two += $v->account_two;
-                @$v->total_nz_account += $v->nz_account;
+                @$v->total_nz_account += $v->nz_account_;
                 @$v->total_kiwi += $v->kiwi_;
 
                 $v->recruit = $v->visa ? $v->gross * 0.03 : 0;
                 $v->admin = $v->visa ? $v->gross * 0.01 : 0;
-                $v->net = $v->gross - ($v->kiwi_ + $v->tax + $v->flight + $v->recruit + $v->admin + $v->visa + $v->accommodation + $v->transport);
+                $v->net = $v->gross - ($v->st_loan + $v->kiwi_ + $v->tax + $v->flight + $v->recruit + $v->admin + $v->visa + $v->accommodation + $v->transport);
                 $v->total = $v->total_kiwi + $v->tax_total + $v->total_install + $v->recruit + $v->admin + $v->total_flight + $v->total_visa + $v->total_accom + $v->total_trans;
                 $v->distribution = $v->net - $v->installment;
-                $v->account_one = $v->distribution - ($v->nz_account + $v->account_two);
+                $v->account_one = $v->distribution - ($v->nz_account_ + $v->account_two);
 
                 $v->account_one_ = $v->account_one > 0 ? $v->symbols.number_format($v->account_one * $converted_amount,2,'.',','):$v->symbols.' 0.00';
                 $v->account_two_ = $v->symbols.number_format($v->total_account_two * $converted_amount,2,'.',',');
@@ -1795,18 +1964,21 @@ class Subbie extends CI_Controller{
             'employee.kiwi',
             'employeer.kiwi as emp_kiwi',
             'tbl_tax_codes.has_st_loan',
+            'tbl_tax_codes.field_code_name as field_code',
             'IF(tbl_staff.date_employed != "0000-00-00" ,DATE_FORMAT(tbl_staff.date_employed,"%d-%m-%Y"),"") as date_employed'
         ),false);
         $this->my_model->setGroupBy('id');
-        $whatVal = 'tbl_staff_rate.start_use <= "'.$date_.'" AND tbl_staff.is_unemployed !=1';
+        $whatVal = 'tbl_staff_rate.start_use <= "'.$date_.'" AND tbl_staff.is_unemployed !=1 AND project_id ="1"';
         $this->my_model->setOrder(array('lname','fname'));
         $this->data['staff'] = $this->my_model->getinfo('tbl_staff',$whatVal,'');
+        $staff_data = new Staff_Helper();
+        $rate = $staff_data->staff_rate();
+        //$kiwi_data = $staff_data->staff_kiwi();
         if(count($date) >0){
             foreach($date as $dv){
                 if(count($this->data['staff'])>0){
                     foreach($this->data['staff'] as $mv){
                         $monthly_hours = $mv->wage_type != 1 ? $this->getTotalHours($dv,$mv->id) : 1;
-                        $rate = $this->getStaffRate($mv->id,$dv);
                         $mv->total_hours = 0;
                         $mv->total_gross = 0;
                         $mv->total_tax = 0;
@@ -1815,12 +1987,33 @@ class Subbie extends CI_Controller{
                         $mv->total_kiwi = 0;
                         $mv->total_esct = 0;
                         $mv->total_cec = 0;
-                        if(count($rate) > 0){
-                            foreach($rate as $val){
-                                $mv->rate_name = $val->rate_name;
-                                $mv->rate_cost = $val->rate;
+
+                        if(count(@$rate[$mv->id]) > 0){
+                            foreach(@$rate[$mv->id] as $start_use=>$val){
+                                if(strtotime($start_use) <= strtotime($dv) ||
+                                    strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                    $mv->rate_name = $val->rate_name;
+                                    $mv->rate_cost = $val->rate;
+                                }
                             }
                         }
+
+                        /*$mv->kiwi = '';
+                        $mv->emp_kiwi = '';
+                        $mv->cec_name = '';
+                        $mv->field_name = '';
+
+                        if(count(@$kiwi_data[$mv->id]) > 0){
+                            foreach(@$kiwi_data[$mv->id] as $start_use=>$val){
+                                if(strtotime($start_use) <= strtotime($date) ||
+                                    strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                    $mv->kiwi = $val->kiwi;
+                                    $mv->employer_kiwi = $val->employer_kiwi;
+                                    $mv->field_name = $val->field_name;
+                                    $mv->esct_rate = $val->esct_rate;
+                                }
+                            }
+                        }*/
 
                         if($monthly_hours != 0){
                             $mv->hours = $monthly_hours;
@@ -1843,7 +2036,7 @@ class Subbie extends CI_Controller{
                                 $emp_kiwi = $mv->emp_kiwi ? 'kiwi_saver_'.$mv->emp_kiwi : '';
                                 $cec = $mv->cec_name ? $mv->cec_name : '';
                                 $esct = $mv->field_name ? $mv->field_name : '';
-                                $data_ = $this->getPayeValue($mv->frequency_id,$dv,$mv->gross,$kiwi,$emp_kiwi,$cec,$esct);
+                                $data_ = $this->getPayeValue($mv->field_code,$mv->frequency_id,$dv,$mv->gross,$kiwi,$emp_kiwi,$cec,$esct);
                                 if(count($data_) > 0){
                                     $mv->tax = $data_['tax'];
                                     $mv->m_paye = $data_['m_paye'];
@@ -1862,7 +2055,7 @@ class Subbie extends CI_Controller{
                             $mv->total_emp_kiwi += $mv->emp_kiwi_;
                             $mv->total_esct += $mv->esct;
                             $mv->total_cec += $mv->cec;
-                            
+
                             $this->data['monthly_pay'][$mv->id] = array(
                                 'id' => $mv->id,
                                 'rate_cost' => $mv->rate_cost,
@@ -1883,354 +2076,7 @@ class Subbie extends CI_Controller{
             }
         }
     }
-
-    function getYearTotalBalance($year,$type = 'weekly',$set_range = false,$start = '',$end = ''){
-        $year_week = $set_range ? $this->getWeekBetweenDates($start,$end) : $this->getWeekInYearBetweenDates($year);
-
-        $this->my_model->setJoin(array(
-            'table' => array('tbl_deductions','tbl_wage_type'),
-            'join_field' => array('staff_id','id'),
-            'source_field' => array('tbl_staff.id','tbl_staff.wage_type'),
-            'type' => 'left'
-        ));
-        $deductions = $this->arrayWalk(array(
-            'flight_deduct','flight_debt',
-            'visa_deduct','visa_debt',
-            'accommodation','transport'
-        ),'tbl_deductions.');
-        $staff = $this->arrayWalk(array(
-            'id','tax_number','installment','balance',
-            'nz_account','account_two','date_employed'
-        ),'tbl_staff.');
-
-        $fields = array_merge($deductions,$staff);
-        $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';
-        $fields[] = 'tbl_wage_type.type as wage_type';
-
-        $this->my_model->setSelectFields($fields);
-        $staff_list = $this->my_model->getinfo('tbl_staff',true,'tbl_staff.is_unemployed !=');
-
-        $total_bal = array();
-
-        if(count($year_week)>0){
-            foreach($year_week as $y){
-                if(count($staff_list) > 0){
-                    foreach($staff_list as $ev){
-                        $hours = $ev->wage_type != 1 ? $this->getTotalHours($y,$ev->id) : 1;
-                        if($hours != 0){
-                            $ev->balance -= $ev->installment;
-                            $ev->visa_debt -= $ev->visa_deduct;
-                            $ev->flight_debt -= $ev->flight_deduct;
-                            switch($type){
-                                case 'weekly':
-                                    $total_bal[$y][$ev->id] = array(
-                                        'visa_debt' => $ev->visa_debt > 0 ? $ev->visa_debt : '',
-                                        'flight_debt' => $ev->flight_debt > 0 ? $ev->flight_debt : '',
-                                        'balance' => $ev->balance > 0 ? $ev->balance : ''
-                                    );
-                                    break;
-                                case 'monthly':
-                                    $total_bal[date('Y-m',strtotime($y))][$ev->id] = array(
-                                        'visa_debt' => $ev->visa_debt > 0 ? $ev->visa_debt : '',
-                                        'flight_debt' => $ev->flight_debt > 0 ? $ev->flight_debt : '',
-                                        'balance' => $ev->balance > 0 ? $ev->balance : ''
-                                    );
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return $total_bal;
-    }
-
-    function getStaffRate($id,$date = ''){
-        $whatVal = $id;
-        $whatFld = 'staff_id';
-
-        if($date){
-            $whatVal = '(start_use <= "' . $date . '" OR start_use <= "'. date('Y-m-d',strtotime('+6 days '.$date)) .'" ) AND staff_id = "' . $id . '"';
-            $whatFld = '';
-        }
-
-        $this->my_model->setJoin(array(
-            'table' => array('tbl_rate'),
-            'join_field' => array('id'),
-            'source_field' => array('tbl_staff_rate.rate_id'),
-            'type' => 'left'
-        ));
-        $fields = $this->arrayWalk($this->my_model->getFields('tbl_staff_rate',array('id')),'tbl_staff_rate.');
-        $fields[] = 'tbl_rate.rate_cost';
-        $fields[] = 'tbl_rate.rate_name';
-        $this->my_model->setSelectFields($fields);
-        $rate = $this->my_model->getInfo('tbl_staff_rate',$whatVal,$whatFld);
-
-        return $rate;
-    }
-
-    function getStaffHourlyRate($id,$date = ''){
-        $whatVal = $id;
-        $whatFld = 'staff_id';
-
-        if($date){
-            $whatVal = '(date_used <= "' . $date . '" OR date_used <= "' . date('Y-m-d',strtotime('+6 days '.$date)) . '") AND staff_id = "' . $id . '"';
-            $whatFld = '';
-        }
-
-        $this->my_model->setJoin(array(
-            'table' => array('tbl_hourly_nz_rate'),
-            'join_field' => array('id'),
-            'source_field' => array('tbl_staff_nz_rate.hourly_nz_rate_id'),
-            'type' => 'left'
-        ));
-        $fields = $this->arrayWalk($this->my_model->getFields('tbl_staff_nz_rate',array('id')),'tbl_staff_nz_rate.');
-        $fields[] = 'tbl_hourly_nz_rate.hourly_rate';
-        $this->my_model->setSelectFields($fields);
-        $rate = $this->my_model->getInfo('tbl_staff_nz_rate',$whatVal,$whatFld);
-
-        return $rate;
-    }
-
-    function arrayWalk($array, $append, $type = 'front', $as = ''){
-        $ar = array();
-        if(count($array)>0){
-            foreach($array as $k=>$v){
-                switch($type){
-                    case 'back':
-                        $ar[$k] = $v . $append;
-                        break;
-                    case 'as':
-                        $ar[$k] = $append . $v . ' as ' . $as . $v;
-                        break;
-                    default:
-                        $ar[$k] = $append . $v;
-                }
-            }
-        }
-
-        return $ar;
-    }
-
-    function arrayHtmlEncode($data, $isObject = true) {
-        if (is_array($data)) {
-            return array_map(array($this,'arrayHtmlEncode'), $data);
-        }
-
-        if (is_object($data)) {
-            $tmp = clone $data; // avoid modifying original object
-            foreach ($data as $k => $var){
-                $tmp->{$k} = $this->arrayHtmlEncode($var, $isObject);
-            }
-
-            $tmp = $isObject ? $tmp : (array)$tmp;
-
-            return $tmp;
-        }
-
-        return htmlentities($data, ENT_QUOTES, "UTF-8");
-    }
-
-    function arrayHtmlDecode($data, $isObject = true) {
-        if (is_array($data)) {
-            return array_map(array($this,'arrayHtmlDecode'), $data);
-        }
-
-        if (is_object($data)) {
-            $tmp = clone $data; // avoid modifying original object
-            foreach ( $data as $k => $var ){
-                $tmp->{$k} = $this->arrayHtmlDecode($var, $isObject);
-            }
-
-            $tmp = $isObject ? $tmp : (array)$tmp;
-
-            return $tmp;
-        }
-
-        return html_entity_decode($data, ENT_QUOTES, "UTF-8");
-    }
-
-    function arraySort (&$array, $key, $isAsc = true){
-        $sorter = array();
-        $ret = array();
-        reset($array);
-        foreach ($array as $ii=>$va) {
-            $sorter[$ii] = $va->$key;
-        }
-
-        if($isAsc){
-            uasort($sorter, array($this,'arraySortCompareAsc'));
-            //asort($sorter);
-        }else{
-            uasort($sorter, array($this,'arraySortCompareDesc'));
-            //arsort($sorter);
-        }
-
-        foreach ($sorter as $ii=>$va) {
-            $ret[] = $array[$ii];
-        }
-
-        $array = $ret;
-    }
-
-    function arraySortCompareAsc($a, $b){
-        return $a == $b ? 0 : ($a < $b ? -1 : 1);
-    }
-
-    function arraySortCompareDesc($a, $b){
-        return $a == $b ? 0 : ($a > $b ? -1 : 1);
-    }
-
-    function sendMail($message, $options = array()){
-        //NOTE:
-        /*
-        If using XAMPP as your localhost things to do:
-            In php.ini file
-            1. smtp = 'ssl://stmp.googlemail.com'
-            2. smtp_port= '465'
-            3. enable/add extension=php_openssl.dll (the most import that thing to send email via localhost)
-        */
-
-        $default = array(
-            'to' => 'dummymailthedraftingzone@gmail.com',
-            'to_alias' => '',
-            'from' => 'donotreply@theestimator.co.nz',
-            'name' => 'TEC Administrator',
-            'subject' => 'Notification from The Estimator Ltd',
-            'cc' => '',
-            'cc_alias' => '',
-            'bcc' => '',
-            'bcc_alias' => '',
-            'url' => '',
-            'disposition' => 'attachment',
-            'file_names' => '',
-            'debug_type' => 0,
-            'debug_return' => 0,
-            'debug' => false
-        );
-
-        $option = count($options) > 0 ? array_merge($default, $options) : $default;
-        $option = (Object)$option;
-
-        $this->load->library('email');
-
-        //region compatible sitehost only if not sending to own DOMAIN Emails
-        /*//
-        $config['protocol'] = 'sendmail';
-        $config['mailpath'] = '/usr/sbin/sendmail';
-        $config['charset'] = 'iso-8859-1';
-        $config['wordwrap'] = TRUE;
-        $config['mailtype'] = 'html';
-        //*/
-        //endregion
-
-        //region localhost SMTP
-        /*//
-        $config['protocol'] = 'smtp';
-        $config['smtp_host'] = 'ssl://smtp.googlemail.com';
-        $config['smtp_port'] = 465;
-        $config['mailtype'] = 'html';
-        $config['smtp_user'] = 'dummymailthedraftingzone@gmail.com';
-        $config['smtp_pass'] = 'dummypassword';
-        //*/
-        //endregion
-
-        //region sitehost SMTP
-        $config['protocol'] = 'smtp';
-        $config['smtp_host'] = 'ssl://mx1.sitehost.co.nz';
-        $config['smtp_port'] = 465;
-        $config['mailtype'] = 'html';
-        $config['smtp_user'] = 'donotreply@theestimator.co.nz';
-        $config['smtp_pass'] = 'apple1';
-        //endregion
-
-        $this->email->set_newline("\r\n");
-        $this->email->initialize($config);
-
-        $this->email->clear(TRUE);
-
-        $this->email->from($option->from, $option->name);
-        $this->email->_to_alias_array = $option->to_alias;
-        $this->email->to($option->to);
-        $this->email->_cc_alias_array = $option->cc_alias;
-        $this->email->cc($option->cc);
-        $this->email->_bcc_alias_array = $option->bcc_alias;
-        $this->email->bcc($option->bcc);
-
-        $this->email->subject($option->subject);
-        $this->email->message($message);
-
-        if($option->url){
-            $this->sendEmailAddAttachment($option->url, $option->disposition, $option->file_names);
-        }
-
-        $isSuccess = 0;
-        if($this->email->send()){
-            $isSuccess = 1;
-        }
-
-        if($option->debug){
-            $resultString = "";
-            switch($option->debug_type){
-                case 2:
-                    $resultString = (Object)array(
-                        'type' => $isSuccess,
-                        'debug' => $this->email->print_debugger()
-                    );
-                    break;
-                case 1:
-                    $resultString = $this->email->print_debugger();
-                    break;
-                default:
-                    $resultString = $isSuccess;
-            }
-
-            switch($option->debug_return){
-                case 1:
-                    echo $resultString;
-                    break;
-                default:
-                    return $resultString;
-            }
-        }
-    }
-
-    function sendEmailAddAttachment($url, $disposition = "", $file_names = NULL){
-        if(is_array($url) || is_object($url)){
-            foreach($url as $key=>$file){
-                $this->sendEmailAddAttachment(
-                    $file,
-                    array_key_exists($key, $disposition) ? $disposition[$key] : "attachment",
-                    (is_array($url) || is_object($url)) ? (array_key_exists($key, $file_names) ? $file_names[$key] : NULL) : $file_names
-                );
-            }
-        }
-
-        if(@is_dir($url)){
-            if ($prints = opendir($url)) {
-                while (false !== ($file = readdir($prints))) {
-                    if($file !== "." && $file !== ".."){
-                        $this->email->attach(
-                            $url . $file,
-                            is_string($disposition) ? $disposition : 'attachment',
-                            is_string($file_names) ? $file_names : NULL
-                        );
-                    }
-                }
-            }
-        }
-        if(@is_file($url)){
-            $this->email->attach(
-                $url,
-                is_string($disposition) ? $disposition : 'attachment',
-                is_string($file_names) ? $file_names : NULL
-            );
-        }
-    }
-
+    
     public function updateNotification(){
         if($this->session->userdata('is_logged_in') == false){
             redirect(''.'?p=login');
@@ -2292,7 +2138,7 @@ class Subbie extends CI_Controller{
             'source_field' => array('tbl_invoice.client_id','tbl_invoice.job_id','tbl_registration.id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(
+        $fields = ArrayWalk(
             array(
                 'id','your_ref','job_id','meter','date','job_name','is_archive','is_open','is_new'
             ),
@@ -2378,6 +2224,39 @@ class Subbie extends CI_Controller{
         return $leave;
     }
 
+    function countLeaveTaken($id,$date){
+        $date = date('Y-m-d',strtotime($date));
+
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_holiday_type as sick_leave','tbl_holiday_type as holiday_leave'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_login_sheet.sick_leave_type_id','tbl_login_sheet.holiday_type_id'),
+            'type' => 'left',
+            'join_append' => array(
+                'sick_leave','holiday_leave'
+            )
+        ));
+        $this->my_model->setSelectFields(array('sick_leave.day_number as sick_leave','holiday_leave.day_number as holiday_leave'));
+        $whatVal = 'date <= "' . $date . '" AND staff_id ="' . $id . '"';
+        $leave_data = $this->my_model->getInfo('tbl_login_sheet',$whatVal,'');
+        $sick_leave = 0;
+        $holiday_leave = 0;
+
+        if(count($leave_data) > 0){
+            foreach($leave_data as $val){
+                $sick_leave += $val->sick_leave;
+                $holiday_leave += $val->holiday_leave;
+            }
+        }
+
+        $leave = array(
+            'sick_leave' => $sick_leave,
+            'holiday_leave' => $holiday_leave
+        );
+
+        return $leave;
+    }
+
     function getStaffFortnightlyHours($id, $year = 2015,$start_pay_week = 27,$start_year = 2015,$size = 2){
         $_date = new DateTime();
         $start_week = $start_pay_week - 1;
@@ -2418,54 +2297,182 @@ class Subbie extends CI_Controller{
         return $staff_hours;
     }
 
-    function payPeriodSentEmail($date,$range,$msg){
+    function payPeriodSentEmail($date,$range,$msg,$send = true){
         $has_pay_setup = $this->my_model->getInfo('tbl_pay_setup');
 
         $debugResult = array();
 
         if(count($has_pay_setup) > 0){
-            $date = date('Y-m-d',strtotime($date));
-            $this->my_model->setShift();
-            $pay_setup = (Object)$this->my_model->getInfo('tbl_pay_setup');
+            foreach($has_pay_setup as $pay_setup){
+                $date = date('Y-m-d',strtotime($date));
 
-            $this->my_model->setShift();
-            $whatVal = array($date,'report');
-            $whatFld = array('date','type');
-            $pdf_file = (Object)$this->my_model->getInfo('tbl_pdf_archive',$whatVal,$whatFld);
-            $cc = array(
-                $pay_setup->director_email,
-                $pay_setup->enderly_email
-            );
-            $cc_alias = array(
-                $pay_setup->director_name,
-                $pay_setup->enderly_name
-            );
-            $dir = realpath(APPPATH.'../pdf');;
-            $url = $dir.'/pay period/'.$range.'/'.$pdf_file->file_name;
+                $this->my_model->setShift();
+                $whatVal = array($date,'report');
+                $whatFld = array('date','type');
+                $pdf_file = (Object)$this->my_model->getInfo('tbl_pdf_archive',$whatVal,$whatFld);
 
-            $sendMailSetting = array(
-                'to' => $pay_setup->accountant_email,
-                'to_alias' => $pay_setup->accountant_name,
-                'cc' => $cc,
-                'cc_alias' => $cc_alias,
-                'subject' => 'Pay Period Summary Report from ' . date('j F Y',strtotime($date)) .' to '.date('j F Y',strtotime('+6 days '.$date)),
-                'url' => $url,
-                'debug_type' => 2,
-                'debug' => true
-            );
+                $cc = array(
+                    $pay_setup->director_email,
+                    $pay_setup->enderly_email
+                );
+                $cc_alias = array(
+                    $pay_setup->director_name,
+                    $pay_setup->enderly_name
+                );
+                $dir = realpath(APPPATH.'../pdf');;
+                $url = $dir.'/pay period/'.$range.'/'.$pdf_file->file_name;
 
-            $email_send = new Send_Email_Controller();
-            $debugResult['result'] = $email_send->sendingEmail(
-                $msg,
-                $sendMailSetting
-            );
-            $debugResult['mail_settings'] = $sendMailSetting;
+                $sendMailSetting = array(
+                    'to' => $pay_setup->accountant_email,
+                    'to_alias' => $pay_setup->accountant_name,
+                    'cc' => $cc,
+                    'cc_alias' => $cc_alias,
+                    'from' => 'no-reply@subbiesolutions.co.nz',
+                    'name' => 'Subbie Solutions Administrator',
+                    'subject' => 'Pay Period Summary Report from ' . date('j F Y',strtotime($date)) .' to '.date('j F Y',strtotime('+6 days '.$date)),
+                    'url' => $url,
+                    'file_names' => $pdf_file->file_name,
+                    'debug_type' => 2,
+                    'debug' => true
+                );
+
+                if($send){
+                    $email_send = new Send_Email_Controller();
+                    $debugResult['result'] = $email_send->sendingEmail(
+                        $msg,
+                        $sendMailSetting
+                    );
+                }else{
+                    $debugResult['result'] = (Object)array(
+                        'type' => 2,
+                        'debug' => 'Email needs to be review before sending'
+                    );
+                }
+                $debugResult['is_send'] = $send;
+                $debugResult['mail_settings'] = $sendMailSetting;
+            }
         }
 
         return $debugResult;
     }
 
-    function getPayeValue($frequency_id,$date,$gross,$kiwi = '',$emp_kiwi='',$cec = '',$esct = ''){
+    function sentAllStaffPaySlip($this_week,$this_date,$send = true,$staff_id = '',$email_id = ''){
+
+        if(!$this_date && !$this_week){
+            exit;
+        }
+
+        $this->my_model->setSelectFields(array('CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name','email','id'));
+        if($staff_id){
+            $whatVal = $staff_id;
+            $whatFld = 'tbl_staff.id';
+        }else{
+            $whatVal = 'project_id = "1" AND is_email_payslip ="1" AND (date_employed != "0000-00-00" AND status_id = "3") OR (last_week_pay >= "' . $this_week . '")';
+            $whatFld = '';
+        }
+        $staff = $this->my_model->getInfo('tbl_staff',$whatVal,$whatFld);
+
+        if($staff_id){
+            $whatVal = array($staff_id,$this_date);
+            $whatFld = array('staff_id','date');
+        }else{
+            $whatVal = array($this_date);
+            $whatFld = array('date');
+        }
+
+        $filename = $this->my_model->getInfo('tbl_pdf_archive',$whatVal,$whatFld);
+        $file = array();
+
+        if(count($filename) > 0){
+            foreach($filename as $fv){
+                $file[$fv->staff_id] = $fv->file_name;
+            }
+        }
+
+        $has_pay_setup = $this->my_model->getInfo('tbl_pay_setup');
+
+        $bcc = array();
+        $bcc_alias = array();
+
+        if(count($has_pay_setup) > 0) {
+            foreach ($has_pay_setup as $pay_setup) {
+                $bcc       = array(
+                    $pay_setup->director_email,
+                    $pay_setup->accountant_email,
+                    $pay_setup->enderly_email
+                );
+                $bcc_alias = array(
+                    $pay_setup->director_name,
+                    $pay_setup->accountant_name,
+                    $pay_setup->enderly_name
+                );
+            }
+        }
+
+        if(count($staff) > 0){
+            foreach($staff as $v){
+                $this->data['email'] = $v->email;
+                //$staff_name = $v->name;
+
+                $dir = realpath(APPPATH.'../pdf');
+                $path = 'payslip/'.date('Y/F',strtotime($this_date));
+                $_path = $dir.'/'.$path.'/'.@$file[$v->id];
+                if(file_exists($_path)) {
+                    $this->data['dir'] = $dir . '/' . $path;
+                    //$file_to_save      = $this->data['dir'] . '/' . $filename;
+                    //save the pdf file on the server
+
+                    $sendMailSetting = array(
+                        'to' => $v->email,
+                        'to_alias' => $v->name,
+                        'name' => 'Subbie Solutions Administrator',
+                        'from' => 'no-reply@subbiesolutions.co.nz',
+                        'subject' => 'Pay Slip for Week '. $this_week . ' (ending ' . date('d/m/Y', strtotime('+6 days '.$this_date)).')',
+                        'bcc' => $bcc,
+                        'bcc_alias' => $bcc_alias,
+                        'url' => $_path,
+                        'file_names' => $file[$v->id],
+                        'debug_type' => 2,
+                        'debug' => true
+                    );
+                    $msg = 'Attached please find your Pay Slip for Week '.$this_week . ' (Week Ending '.date('d/m/Y', strtotime('+6 days '.$this_date)).').<br/><br/>';
+                    $msg .= 'Regards,<br/><br/>';
+                    $msg .= 'Subbie Solutions Admin';
+                    if($send){
+                        $send_mail = new Send_Email_Controller();
+                        $debugResult = $send_mail->sendingEmail(
+                            $msg,
+                            $sendMailSetting
+                        );
+                    }else{
+                        $debugResult = (Object)array(
+                            'type' => 2,
+                            'debug' => 'Email needs to be review before sending'
+                        );
+                    }
+
+                    $post = array(
+                        'user_id' => $this->session->userdata('user_id'),
+                        'week_number' => $this_week,
+                        'pay_period' => $this_date,
+                        'message' => json_encode($sendMailSetting),
+                        'email_type_id' => 2,
+                        'staff_id' => $v->id,
+                        'type' => $debugResult->type,
+                        'debug' => $debugResult->debug,
+                        'date' => date('Y-m-d H:i:s')
+                    );
+                    if(!$email_id){
+                        $this->my_model->insert('tbl_email_export_log', $post, false);
+                    }else{
+                        $this->my_model->update('tbl_email_export_log', $post,$email_id,'id',false);
+                    }
+                }
+            }
+        }
+    }
+
+    function getPayeValue($code,$frequency_id,$date,$gross,$kiwi = '',$emp_kiwi='',$cec = '',$esct = '',$is_annual = false){
         $earnings = $this->data['earnings'];
         $m_paye = $this->data['m_paye'];
         $data = array();
@@ -2479,201 +2486,230 @@ class Subbie extends CI_Controller{
         $data['emp_kiwi'] = 0;
 
         if($gross){
-            if($frequency_id == 2){
-                if($gross > $earnings['fortnightly']){
-                    $data['tax'] = ((floatval($gross) - $earnings['fortnightly']) * 0.33) + $m_paye['fortnightly'];
-                }else{
-                    if($this->is_decimal($gross)){
-                        $is_even = $gross % 2;
-                        $_gross_val = number_format($gross,0,'.','');
-                        if($is_even){
-                            $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                            $this->my_model->setShift();
-                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                            $lower_sql_str = $this->db->last_query();
 
-                            $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+            $is_decimal = $this->is_decimal($gross);
 
-                            $this->my_model->setShift();
-                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                            $higher_sql_str = $this->db->last_query();
+            switch($frequency_id){
+                case 1:
+                    if($gross > $earnings['weekly']){
+                        $data['tax'] = ((floatval($gross) - $earnings['weekly']) * 0.33) + $m_paye['weekly'];
+                    }else{
+                        $_gross = number_format($gross,0,'.','');
 
+                        if($is_decimal){
+                            $h_gross = $is_annual ? (int)$_gross + 1 : $_gross;
+                            $l_gross = !$is_annual ? (int)$_gross - 1 : $_gross;
+                            $lower_tax = 0;
+                            $l_m_paye = 0;
+                            $l_me_paye = 0;
+                            $l_kiwi = 0;
+                            $l_st_loan = 0;
+                            $l_emp_kiwi = 0;
+                            $l_cec = 0;
+                            $l_esct = 0;
+
+                            $higher_tax = 0;
+                            $h_m_paye = 0;
+                            $h_me_paye = 0;
+                            $h_kiwi = 0;
+                            $h_st_loan = 0;
+                            $h_emp_kiwi = 0;
+                            $h_cec = 0;
+                            $h_esct = 0;
+
+
+                            $whatVal = 'earnings ="'.$l_gross.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                            $lower = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+
+                            if(count($lower) > 0){
+                                foreach($lower as $paye){
+                                    $lower_tax = $code ? $paye->$code : 0;
+                                    $l_m_paye = $paye->m_paye;
+                                    $l_me_paye = $paye->me_paye;
+                                    $l_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                    $l_st_loan = $paye->sl_loan_ded;
+                                    $l_cec = $cec ? $paye->$cec : 0;
+                                    $l_esct = $esct ? $paye->$esct : 0;
+                                    $l_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                }
+                            }
+
+                            $whatVal = 'earnings ="'.$h_gross.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                            $higher = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+
+                            if(count($higher) > 0){
+                                foreach($higher as $paye){
+                                    $higher_tax = $code ? $paye->$code : 0;
+                                    $h_m_paye = $paye->m_paye;
+                                    $h_me_paye = $paye->me_paye;
+                                    $h_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                    $h_st_loan = $paye->sl_loan_ded;
+                                    $h_cec = $cec ? $paye->$cec : 0;
+                                    $h_esct = $esct ? $paye->$esct : 0;
+                                    $h_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                }
+                            }
+
+                            if($is_annual){
+                                $data['tax'] = $lower_tax + (($higher_tax - $lower_tax)*0.16);
+                                $data['m_paye'] = $l_m_paye + (($h_m_paye - $l_m_paye)*0.16);
+                                $data['me_paye'] = $l_me_paye + (($h_me_paye - $l_me_paye)*0.16);
+                                $data['kiwi'] = $l_kiwi + (($h_kiwi - $l_kiwi)*0.16);
+                                $data['st_loan'] = $l_st_loan + (($h_st_loan - $l_st_loan)*0.16);
+                                $data['cec'] = $l_cec + (($h_cec - $l_cec)*0.16);
+                                $data['esct'] = $l_esct + (($h_esct - $l_esct)*0.16);
+                                $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)*0.16);
+                            }else{
+                                $data['tax'] = $lower_tax + (($higher_tax - $lower_tax)/2);
+                                $data['m_paye'] = $l_m_paye + (($h_m_paye - $l_m_paye)/2);
+                                $data['me_paye'] = $l_me_paye + (($h_me_paye - $l_me_paye)/2);
+                                $data['kiwi'] = $l_kiwi + (($h_kiwi - $l_kiwi)/2);
+                                $data['st_loan'] = $l_st_loan + (($h_st_loan - $l_st_loan)/2);
+                                $data['cec'] = $l_cec + (($h_cec - $l_cec)/2);
+                                $data['esct'] = $l_esct + (($h_esct - $l_esct)/2);
+                                $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)/2);
+                            }
+                        }
+                        else{
+                            $whatVal = 'earnings ="'.$_gross.'" AND (start_date <= "'.$date.'" AND end_date >= "'.$date.'") AND frequency_id="'.$frequency_id.'"';
+                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            if(count($tax)>0){
+                                foreach($tax as $tv){
+                                    $data['tax'] = $code ? $tv->$code : 0;
+                                    $data['m_paye'] = $tv->m_paye;
+                                    $data['me_paye'] = $tv->me_paye;
+                                    $data['kiwi'] = $kiwi ? $tv->$kiwi : 0;
+                                    $data['st_loan'] = $tv->sl_loan_ded;
+                                    $data['cec'] = $cec ? $tv->$cec : 0;
+                                    $data['esct'] = $esct ? $tv->$esct : 0;
+                                    $data['emp_kiwi'] = $emp_kiwi ? $tv->$emp_kiwi : 0;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 2:
+                    if($gross > $earnings['fortnightly']){
+                        $data['tax'] = ((floatval($gross) - $earnings['fortnightly']) * 0.33) + $m_paye['fortnightly'];
+                    }else{
+                        if($is_decimal){
+                            $is_even = $gross % 2;
+                            $_gross_val = number_format($gross,0,'.','');
+                            $lower_tax = 0;
+                            $l_m_paye = 0;
+                            $l_me_paye = 0;
+                            $l_kiwi = 0;
+                            $l_st_loan = 0;
+                            $l_emp_kiwi = 0;
+                            $l_cec = 0;
+                            $l_esct = 0;
+
+                            $higher_tax = 0;
+                            $h_m_paye = 0;
+                            $h_me_paye = 0;
+                            $h_kiwi = 0;
+                            $h_st_loan = 0;
+                            $h_emp_kiwi = 0;
+                            $h_cec = 0;
+                            $h_esct = 0;
+
+                            if($is_even){
+                                $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+
+                                $lower = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+
+                                if(count($lower) > 0){
+                                    foreach($lower as $paye){
+                                        $lower_tax = $code ? $paye->$code : 0;
+                                        $l_m_paye = $paye->m_paye;
+                                        $l_me_paye = $paye->me_paye;
+                                        $l_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                        $l_st_loan = $paye->sl_loan_ded;
+                                        $l_cec = $cec ? $paye->$cec : 0;
+                                        $l_esct = $esct ? $paye->$esct : 0;
+                                        $l_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                    }
+                                }
+
+                                $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                                $higher = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+
+                                if(count($higher) > 0){
+                                    foreach($higher as $paye){
+                                        $higher_tax = $code ? $paye->$code : 0;
+                                        $h_m_paye = $paye->m_paye;
+                                        $h_me_paye = $paye->me_paye;
+                                        $h_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                        $h_st_loan = $paye->sl_loan_ded;
+                                        $h_cec = $cec ? $paye->$cec : 0;
+                                        $h_esct = $esct ? $paye->$esct : 0;
+                                        $h_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                    }
+                                }
+
+                            }else{
+                                $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                                $lower = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+
+                                if(count($lower) > 0){
+                                    foreach($lower as $paye){
+                                        $lower_tax = $code ? $paye->$code : 0;
+                                        $l_m_paye = $paye->m_paye;
+                                        $l_me_paye = $paye->me_paye;
+                                        $l_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                        $l_st_loan = $paye->sl_loan_ded;
+                                        $l_cec = $cec ? $paye->$cec : 0;
+                                        $l_esct = $esct ? $paye->$esct : 0;
+                                        $l_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                    }
+                                }
+
+                                $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                                $higher = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+
+                                if(count($higher) > 0){
+                                    foreach($higher as $paye){
+                                        $higher_tax = $code ? $paye->$code : 0;
+                                        $h_m_paye = $paye->m_paye;
+                                        $h_me_paye = $paye->me_paye;
+                                        $h_kiwi = $kiwi ? $paye->$kiwi : 0;
+                                        $h_st_loan = $paye->sl_loan_ded;
+                                        $h_cec = $cec ? $paye->$cec : 0;
+                                        $h_esct = $esct ? $paye->$esct : 0;
+                                        $h_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                                    }
+                                }
+                            }
+
+                            $data['tax'] = $lower_tax + (($higher_tax - $lower_tax)/2);
+                            $data['m_paye'] = $l_m_paye + (($h_m_paye - $l_m_paye)/2);
+                            $data['me_paye'] = $l_me_paye + (($h_me_paye - $l_me_paye)/2);
+                            $data['kiwi'] = $l_kiwi + (($h_kiwi - $l_kiwi)/2);
+                            $data['st_loan'] = $l_st_loan + (($h_st_loan - $l_st_loan)/2);
+                            $data['cec'] = $l_cec + (($h_cec - $l_cec)/2);
+                            $data['esct'] = $l_esct + (($h_esct - $l_esct)/2);
+                            $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)/2);
                         }else{
-                            $whatVal = 'earnings = (SELECT MIN(earnings) FROM tbl_tax WHERE earnings > '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                            $this->my_model->setShift();
-                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                            $lower_sql_str = $this->db->last_query();
-
-                            $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings < '.$_gross_val.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-
-                            $this->my_model->setShift();
-                            $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                            $higher_sql_str = $this->db->last_query();
-                        }
-
-                        $_paye_table = $this->my_model->mysqlString($higher_sql_str.' UNION '.$lower_sql_str);
-
-                        $lower_tax = 0;
-                        $l_m_paye = 0;
-                        $l_me_paye = 0;
-                        $l_kiwi = 0;
-                        $l_st_loan = 0;
-                        $l_emp_kiwi = 0;
-                        $l_cec = 0;
-                        $l_esct = 0;
-
-                        $higher_tax = 0;
-                        $h_m_paye = 0;
-                        $h_me_paye = 0;
-                        $h_kiwi = 0;
-                        $h_st_loan = 0;
-                        $h_emp_kiwi = 0;
-                        $h_cec = 0;
-                        $h_esct = 0;
-
-
-                        if(count($_paye_table) > 0){
-                            foreach($_paye_table as $key=>$paye){
-                                if($key == 0){
-                                    $lower_tax = $paye->m_paye;
-                                    $l_m_paye = $paye->m_paye;
-                                    $l_me_paye = $paye->me_paye;
-                                    $l_kiwi = $kiwi ? $paye->$kiwi : 0;
-                                    $l_st_loan = $paye->sl_loan_ded;
-                                    $l_cec = $cec ? $paye->$cec : 0;
-                                    $l_esct = $esct ? $paye->$esct : 0;
-                                    $l_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
-                                }else{
-                                    $higher_tax = $paye->m_paye;
-                                    $h_m_paye = $paye->m_paye;
-                                    $h_me_paye = $paye->me_paye;
-                                    $h_kiwi = $kiwi ? $paye->$kiwi : 0;
-                                    $h_st_loan = $paye->sl_loan_ded;
-                                    $h_cec = $cec ? $paye->$cec : 0;
-                                    $h_esct = $esct ? $paye->$esct : 0;
-                                    $h_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
+                            $_gross_val = number_format($gross,0,'.','');
+                            $whatVal = 'earnings ="'.$_gross_val.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
+                            $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
+                            if(count($tax)>0){
+                                foreach($tax as $tv){
+                                    $data['tax'] = $code ? $tv->$code : 0;
+                                    $data['m_paye'] = $tv->m_paye;
+                                    $data['me_paye'] = $tv->me_paye;
+                                    $data['kiwi'] = $kiwi ? $tv->$kiwi : 0;
+                                    $data['st_loan'] = $tv->sl_loan_ded;
+                                    $data['cec'] = $cec ? $tv->$cec : 0;
+                                    $data['esct'] = $esct ? $tv->$esct : 0;
+                                    $data['emp_kiwi'] = $emp_kiwi ? $tv->$emp_kiwi : 0;
                                 }
                             }
                         }
-
-                        $data['tax'] = $lower_tax + (($higher_tax - $lower_tax)/2);
-                        $data['m_paye'] = $l_m_paye + (($h_m_paye - $l_m_paye)/2);
-                        $data['me_paye'] = $l_me_paye + (($h_me_paye - $l_me_paye)/2);
-                        $data['kiwi'] = $l_kiwi + (($h_kiwi - $l_kiwi)/2);
-                        $data['st_loan'] = $l_st_loan + (($h_st_loan - $l_st_loan)/2);
-                        $data['cec'] = $l_cec + (($h_cec - $l_cec)/2);
-                        $data['esct'] = $l_esct + (($h_esct - $l_esct)/2);
-                        $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)/2);
-                    }else{
-                        $_gross_val = number_format($gross,0,'.','');
-                        $whatVal = 'earnings ="'.$_gross_val.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                        $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                        if(count($tax)>0){
-                            foreach($tax as $tv){
-                                $data['tax'] = $tv->m_paye;
-                                $data['m_paye'] = $tv->m_paye;
-                                $data['me_paye'] = $tv->me_paye;
-                                $data['kiwi'] = $kiwi ? $tv->$kiwi : 0;
-                                $data['st_loan'] = $tv->sl_loan_ded;
-                                $data['cec'] = $cec ? $tv->$cec : 0;
-                                $data['esct'] = $esct ? $tv->$esct : 0;
-                                $data['emp_kiwi'] = $emp_kiwi ? $tv->$emp_kiwi : 0;
-                            }
-                        }
                     }
-                }
-            }else if($frequency_id == 1){
-                if($gross > $earnings['weekly']){
-                    $data['tax'] = ((floatval($gross) - $earnings['weekly']) * 0.33) + $m_paye['weekly'];
-                }else{
-                    if($this->is_decimal($gross)){
-                        $_gross = number_format($gross,0,'.','');
-                        $l_gross = $_gross - 1;
-                        $lower_tax = 0;
-                        $l_m_paye = 0;
-                        $l_me_paye = 0;
-                        $l_kiwi = 0;
-                        $l_st_loan = 0;
-                        $l_emp_kiwi = 0;
-                        $l_cec = 0;
-                        $l_esct = 0;
-
-                        $higher_tax = 0;
-                        $h_m_paye = 0;
-                        $h_me_paye = 0;
-                        $h_kiwi = 0;
-                        $h_st_loan = 0;
-                        $h_emp_kiwi = 0;
-                        $h_cec = 0;
-                        $h_esct = 0;
-
-
-                        $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings = '.$l_gross.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                        $this->my_model->setShift();
-                        $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                        $lower_sql_str = $this->db->last_query();
-
-                        $whatVal = 'earnings = (SELECT MAX(earnings) FROM tbl_tax WHERE earnings = '.$_gross.') AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-
-                        $this->my_model->setShift();
-                        $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                        $higher_sql_str = $this->db->last_query();
-
-                        $_paye_table = $this->my_model->mysqlString($higher_sql_str.' UNION '.$lower_sql_str);
-
-                        if(count($_paye_table) > 0){
-                            foreach($_paye_table as $key=>$paye){
-                                if($key == 0){
-                                    $lower_tax = $paye->m_paye;
-                                    $l_m_paye = $paye->m_paye;
-                                    $l_me_paye = $paye->me_paye;
-                                    $l_kiwi = $kiwi ? $paye->$kiwi : 0;
-                                    $l_st_loan = $paye->sl_loan_ded;
-                                    $l_cec = $cec ? $paye->$cec : 0;
-                                    $l_esct = $esct ? $paye->$esct : 0;
-                                    $l_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
-                                }else{
-                                    $higher_tax = $paye->m_paye;
-                                    $h_m_paye = $paye->m_paye;
-                                    $h_me_paye = $paye->me_paye;
-                                    $h_kiwi = $kiwi ? $paye->$kiwi : 0;
-                                    $h_st_loan = $paye->sl_loan_ded;
-                                    $h_cec = $cec ? $paye->$cec : 0;
-                                    $h_esct = $esct ? $paye->$esct : 0;
-                                    $h_emp_kiwi = $emp_kiwi ? $paye->$emp_kiwi : 0;
-                                }
-                            }
-                        }
-
-                        $data['data'] = $_paye_table;
-                        $data['tax'] = $lower_tax + (($higher_tax - $lower_tax)/2);
-                        $data['m_paye'] = $l_m_paye + (($h_m_paye - $l_m_paye)/2);
-                        $data['me_paye'] = $l_me_paye + (($h_me_paye - $l_me_paye)/2);
-                        $data['kiwi'] = $l_kiwi + (($h_kiwi - $l_kiwi)/2);
-                        $data['st_loan'] = $l_st_loan + (($h_st_loan - $l_st_loan)/2);
-                        $data['cec'] = $l_cec + (($h_cec - $l_cec)/2);
-                        $data['esct'] = $l_esct + (($h_esct - $l_esct)/2);
-                        $data['emp_kiwi'] = $l_emp_kiwi + (($h_emp_kiwi - $l_emp_kiwi)/2);
-                    }else{
-                        $_gross = number_format($gross,0,'.','');
-                        $whatVal = 'earnings ="'.$_gross.'" AND start_date <= "'.$date.'" AND end_date >= "'.$date.'" AND frequency_id="'.$frequency_id.'"';
-                        $tax = $this->my_model->getinfo('tbl_tax',$whatVal,'');
-                        if(count($tax)>0){
-                            foreach($tax as $tv){
-                                $data['tax'] = $tv->m_paye;
-                                $data['m_paye'] = $tv->m_paye;
-                                $data['me_paye'] = $tv->me_paye;
-                                $data['kiwi'] = $kiwi ? $tv->$kiwi : 0;
-                                $data['st_loan'] = $tv->sl_loan_ded;
-                                $data['cec'] = $cec ? $tv->$cec : 0;
-                                $data['esct'] = $esct ? $tv->$esct : 0;
-                                $data['emp_kiwi'] = $emp_kiwi ? $tv->$emp_kiwi : 0;
-                            }
-                        }
-                    }
-                }
-            }else{
-
+                    break;
+                default:
+                    break;
             }
         }
         return $data;
@@ -2702,7 +2738,6 @@ class Subbie extends CI_Controller{
     }
 
     function getTotalStaffData($date,$is_count = false){
-        $this->getYearTotalBalance(date('Y',strtotime($date)));
         $whatVal = 'start_use <= "' . $date . '" AND is_unemployed != "1"';
         $whatFld = '';
         $this->my_model->setJoin(array(
@@ -2729,10 +2764,12 @@ class Subbie extends CI_Controller{
             'tbl_staff.'
         );
         $fld[] = 'tbl_staff_rate.start_use';
+        $fld[] = 'tbl_staff.has_loans';
         $fld[] = 'tbl_wage_type.frequency';
         $fld[] = 'tbl_deductions.transport';
         $fld[] = 'tbl_kiwi.kiwi';
         $fld[] = 'tbl_tax_codes.has_st_loan';
+        $fld[] = 'tbl_tax_codes.field_code_name as field_code';
 
         $this->my_model->setSelectFields($fld);
         $this->my_model->setOrder(array('lname','fname'));
@@ -2742,18 +2779,42 @@ class Subbie extends CI_Controller{
         );
         $wage_ = 0;
         $paye_ = 0;
+        $wage_data = new Wage_Controller();
+        $this->data['total_bal'] = $wage_data->get_year_total_balance();
+        $staff_data = new Staff_Helper();
+        $rate = $staff_data->staff_rate();
+        //$kiwi_data = $staff_data->staff_kiwi();
         if(!$is_count){
             if(count($staff) > 0){
                 foreach($staff as $v){
-                    $rate = $this->getStaffRate($v->id,$date);
                     $v->rate_cost = 0;
                     $v->rate_name = '';
-                    if(count($rate) > 0){
-                        foreach($rate as $val){
-                            $v->rate_name = $val->rate_name;
-                            $v->rate_cost = $val->rate;
+                    if(count(@$rate[$v->id]) > 0){
+                        foreach(@$rate[$v->id] as $start_date=>$val){
+                            if(strtotime($start_date) <= strtotime($date) ||
+                                strtotime($start_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                                $v->rate_name = $val->rate_name;
+                                $v->rate_cost = $val->rate;
+                            }
                         }
                     }
+
+                    /*$v->kiwi = '';
+                    $v->emp_kiwi = '';
+                    $v->cec_name = '';
+                    $v->field_name = '';
+
+                    if(count(@$kiwi_data[$v->id]) > 0){
+                        foreach(@$kiwi_data[$v->id] as $start_use=>$val){
+                            if(strtotime($start_use) <= strtotime($date) ||
+                                strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                                $v->kiwi = $val->kiwi;
+                                $v->employer_kiwi = $val->employer_kiwi;
+                                $v->field_name = $val->field_name;
+                                $v->esct_rate = $val->esct_rate;
+                            }
+                        }
+                    }*/
 
                     $v->hours = $this->getWageTypeHoursValue($v->id,$v->wage_type,$v->frequency,$date);
                     $v->gross = $v->rate_cost * $v->hours;
@@ -2770,7 +2831,7 @@ class Subbie extends CI_Controller{
                         $v->st_loan = 0;
                         $kiwi = $v->kiwi ? 'kiwi_saver_'.$v->kiwi : '';
 
-                        $data_ = $this->getPayeValue($v->frequency,$date,$v->gross,$kiwi);
+                        $data_ = $this->getPayeValue($v->field_code,$v->frequency,$date,$v->gross,$kiwi);
                         if(count($data_) > 0){
                             $v->tax = $data_['tax'];
                             $v->m_paye = $data_['m_paye'];
@@ -2792,8 +2853,138 @@ class Subbie extends CI_Controller{
         return $data;
     }
 
+    function generatePaySlip($week,$month,$year,$id){
+        $week_in_month = $this->getWeekDateInMonth($year,$month);
+        $_week_format = str_pad($week,2,'0',STR_PAD_LEFT);
+        $this_date = $week_in_month[$_week_format];
+
+        $this->data['total_paid'] = $this->getOverAllWageTotalPay($this_date,$id);
+        $payslip = $this->getPaySlipData($id,$this_date);
+
+        if(count($payslip['staff']) > 0){
+            foreach($payslip['staff'] as $val) {
+                if((int)$val->hours){
+                    $dir                               = realpath(APPPATH . '../pdf');
+                    $path                              = 'payslip/' . date('Y/F', strtotime($this_date));
+                    $this->data['dir']                 = $dir . '/' . $path;
+                    $this->data['total_holiday_leave'] = $this->getAnnualLeave($id, $this_date);
+                    $this->data['total_sick_leave']    = $this->getSickLeave($id, $this_date);
+                    $this->data['last_pay']            = $val->has_final_pay && $val->last_week_pay == $week ? $this->getStaffLastPay($id,date('Y',strtotime($this_date))) : array();
+
+                    $this->my_model->setSelectFields(array('MIN(start_use) as start_use'));
+                    $start_date                    = $this->my_model->getInfo('tbl_staff_rate', $id, 'staff_id');
+                    $this->data['start_date']      = '';
+                    $this->data['is_download']     = true;
+                    $this->data['pay_period_date'] = $this_date;
+                    if (count($start_date) > 0) {
+                        foreach ($start_date as $sv) {
+                            $this->data['start_date'] = date('d/m/Y', strtotime($sv->start_use));
+                        }
+                    }
+                    if (!is_dir($this->data['dir'])) {
+                        mkdir($this->data['dir'], 0777, TRUE);
+                    }
+
+                    $str                     = $val->has_final_pay && $val->last_week_pay == $week ? '_Final_Payslip_' : '_Payslip_';
+                    //$regular                 = date('Ymd', strtotime($this_date)) . $str . str_replace(' ', '', $payslip['staff_name']);
+                    $last_pay                = date('Ymd', strtotime('+6 days '.$this_date)) . $str . str_replace(' ', '', $payslip['staff_name']);
+                    $filename                = $last_pay;
+                    $staff_id                = $id;
+                    $this->data['has_email'] = $payslip['has_email'];
+                    $this->data['staff']     = $payslip['staff'];
+                    $this->data['file_name'] = $filename;
+
+                    $has_value = $this->my_model->getInfo('tbl_pdf_archive', array($filename, $staff_id), array('file_name', 'staff_id'));
+                    $post      = array(
+                        'staff_id' => $id,
+                        'file_name' => $filename . '.pdf',
+                        'type' => 'payslip',
+                        'date' => date('Y-m-d', strtotime($this_date))
+                    );
+
+                    if (count($has_value) > 0) {
+                        $this->my_model->update('tbl_pdf_archive', $post, array($filename, $staff_id), array('file_name', 'staff_id'));
+                    } else {
+                        $this->my_model->insert('tbl_pdf_archive', $post);
+                    }
+                    $view = $val->has_final_pay && $val->last_week_pay == $week ? 'backend/staff/final_pay/print_pdf_final_payslip' : 'backend/staff/print_pdf_payslip';
+                    $this->load->view($view, $this->data);
+                }
+            }
+        }
+    }
+
     function is_decimal( $val )
     {
         return is_numeric( $val ) && floor( $val ) != $val;
+    }
+
+    function employeeKiwiSaver($id = '',$kiwi_data = ''){
+        $whatVal = '';
+        $whatFld = '';
+
+        if($id){
+            $whatVal = $id;
+            $whatFld = 'tbl_staff.id';
+        }
+        $staff_data = new Staff_Helper();
+        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
+        $rate = $staff_data->staff_rate();
+        //$kiwi_list = $staff_data->staff_kiwi();
+        $end = date('Y-m-d');
+        $staff = array();
+        if(count($staff_list) > 0){
+            foreach($staff_list as $val){
+                $staff[$id] = array(
+                    'date_employed' => $val->date_employed,
+                    'frequency_id' => $val->frequency_id,
+                    'field_code' => $val->field_code,
+                );
+            }
+        }
+        $date_employed = $staff[$id]['date_employed'];
+        $frequency_id = $staff[$id]['frequency_id'];
+        $field_code = $staff[$id]['field_code'];
+        $year_dates = $date_employed ? $this->getWeekBetweenDates($date_employed,$end) : array();
+        $data = array();
+        if(count($year_dates) > 0){
+            foreach($year_dates as $week_year=>$date){
+                $hours = $this->getTotalHours($date,$id);
+                $rate_cost = 0;
+                if(count(@$rate[$id]) > 0){
+                    foreach(@$rate[$id] as $used_date=>$val){
+                        if(strtotime($used_date) <= strtotime($date) ||
+                            strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                            $rate_cost = $val->rate;
+                        }
+                    }
+                }
+
+                /*$kiwi_val = '';
+                if(count(@$kiwi_list[$id]) > 0){
+                    foreach(@$kiwi_list[$id] as $start_use=>$val){
+                        if(strtotime($start_use) <= strtotime($date) ||
+                            strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                            $kiwi_val = $val->kiwi;
+                        }
+                    }
+                }*/
+
+                $gross = $hours * $rate_cost;
+                $kiwi_ = $kiwi_data ? 'kiwi_saver_'.$kiwi_data : '';
+                $paye_data = $this->getPayeValue($field_code,$frequency_id,$date,$gross,$kiwi_);
+                $kiwi = 0;
+                if(count($paye_data) > 0){
+                    $kiwi = $paye_data['kiwi'];
+                }
+                $data[$date] = array(
+                    'hours' => $hours,
+                    'gross' => $gross,
+                    'kiwi' => $kiwi
+                );
+            }
+        }
+
+        return $data;
     }
 }

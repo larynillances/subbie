@@ -23,7 +23,7 @@ switch($this->session->userdata('account_type')){
                 'jobList' => 'Job List',
                 'supplierList' => 'Supplier List'
             ),
-            'timeSheetEdit' => 'DTR',
+            'timeSheetDefault' => 'DTR',
             /*'Invoice' => array(
                 'invoiceList' => 'List',
                 'createNewInvoice' => 'Create New Entry'
@@ -34,11 +34,13 @@ switch($this->session->userdata('account_type')){
             'Wage' => array(
                 'wageManage' => 'Staff Details',
                 'staffList' => 'Staff List',
+                'payRatePeriods' => 'Pay Rate Periods',
                 'payPeriodSummaryReport' => 'Pay Period Summary Report',
                 'wageTable' => 'Monthly Wage Summary',
                 'monthlyTotalPay' => 'Monthly Pay',
                 'employerMonthlySched' => 'Employer Monthly Schedule',
-                'yearToDateReport' => 'YTD Report'
+                'yearToDateReport' => 'YTD Report',
+                'employeeFinalPay' => 'Final Pay'
             ),
             'outstandingBalance' => 'Outstanding',
             'PDF Archive' => array(
@@ -64,7 +66,7 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'orderSentList' => 'Order Sent List'
             ),
-            'timeSheetEdit' => 'DTR'
+            'timeSheetDefault' => 'DTR'
         );
         break;
     case 3:
@@ -82,7 +84,7 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'orderSentList' => 'Order Sent List'
             ),
-            'timeSheetEdit' => 'DTR'
+            'timeSheetDefault' => 'DTR'
         );
         break;
     case 4:
@@ -106,7 +108,7 @@ switch($this->session->userdata('account_type')){
                 'jobList' => 'Job List',
                 'supplierList' => 'Supplier List'
             ),
-            'timeSheetEdit' => 'DTR',
+            'timeSheetDefault' => 'DTR',
             'Manage' => array(
                 'textTemplate' => 'Template'
             ),

@@ -22,11 +22,11 @@ $(function(){
         );
     });
 
-    $('.cancel-btn').live('click',function(e){
+    $('.cancel-btn').on('click',function(e){
         $(this).newForm.forceClose();
     });
 
-    $('.submit-btn').live('click',function(e){
+    $('.submit-btn').on('click',function(e){
         var hasEmpty = false;
         $('.required').each(function(e){
             if(!$(this).val()){
@@ -40,7 +40,7 @@ $(function(){
             e.preventDefault();
         }
     });
-    $('.number').live('focusin',function(e){
+    $('.number').on('focusin',function(e){
         $(this).numberOnly();
     });
     $('.datepicker').datetimepicker({

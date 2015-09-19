@@ -727,9 +727,11 @@ class invoice_export_controller extends CI_Controller{
 
         $fields = ArrayWalk($this->my_model->getFields('tbl_email_export_log', array('date', 'debug')), 'tbl_email_export_log.');
         $fields[] = 'DATE_FORMAT(tbl_email_export_log.date, "%Y%m%d %H%i") as date';
-        $fields[] = 'IF(tbl_email_export_log.type = 1, "Success", "Failed") as status';
+        $fields[] = 'IF(tbl_email_export_log.type = 1, "Success", IF(tbl_email_export_log.type = 2, "Review",
+                        IF(tbl_email_export_log.type = 3,"Cancel","Failed"))) as status';
         $fields[] = 'tbl_user.name as user';
         $fields[] = 'tbl_pdf_archive.file_name';
+        $fields[] = 'tbl_pdf_archive.date as pay_period_date';
         $fields[] = 'tbl_client.client_name';
         $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as staff_name';
         $fields[] = 'tbl_email_type.email_type';
@@ -757,9 +759,29 @@ class invoice_export_controller extends CI_Controller{
             foreach($log as $v){
                 $file_name = explode(' ',$v->file_name);
                 $v->message = json_decode($v->message);
-                $v->export_setting = json_decode(($v->export_setting ? $v->export_setting : array()));
+                if($v->type){
+                    if(array_key_exists('file_names',$v->message)){
+                        $file_names = $v->message->file_names;
+                        if(is_array($file_names)){
+                            if(count($file_names) > 0){
+                                foreach($file_names as $file){
+                                    $dir               = realpath(APPPATH . '../pdf');
+                                    $path              = 'payslip/' . date('Y/F', strtotime($v->pay_period));
+                                    $full_path = $dir . '/' . $path . '/' . $file->file_name;
+                                    $file->has_attachment = file_exists($full_path) ? 'Yes' : 'No';
+                                }
+                            }
+                        }else{
+                            $dir               = realpath(APPPATH . '../pdf');
+                            $path              = 'payslip/' . date('Y/F', strtotime($v->pay_period));
+                            $full_path = $dir . '/' . $path . '/' . $file_names;
+                            $v->has_attachment = file_exists($full_path) ? 'Yes' : 'No';
+                        }
+                    }
+                }
+                $v->export_setting = $v->export_setting ? json_decode($v->export_setting) : '[]';
                 $v->job = $file_name[0];
-                
+
             }
         }
         $this->my_model->setNormalized('email_type','id');
@@ -768,7 +790,6 @@ class invoice_export_controller extends CI_Controller{
         $this->data['email_type'][''] = 'All';
         ksort($this->data['email_type']);
         $this->data['log'] = json_encode($log);
-
         $this->load->view('main_view',$this->data);
     }
 

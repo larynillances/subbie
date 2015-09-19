@@ -8,11 +8,13 @@
     border: 1px solid #d2d2d2;
     color: #ffffff;
     text-align: center;
+    vertical-align: middle;
 }
 .table-colored-header > tbody > tr > td{
     border: 1px solid #d2d2d2;
     text-align: center;
     padding: 4px 5px;
+    vertical-align: middle;
 }
 .align-right{
     text-align: right!important;

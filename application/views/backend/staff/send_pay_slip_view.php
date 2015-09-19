@@ -1,12 +1,21 @@
 <?php
-$uri2 = $this->uri->segment(2);
-$uri3 = $this->uri->segment(3);
-echo form_open('');
+$id = $this->uri->segment(2);
+$date = $this->uri->segment(3);
+$week = $this->uri->segment(4);
+echo form_open('sendStaffPaySlip/'.$id.'/'.$date.'/'.$week.'?type='.$_GET['type'],'class="form-horizontal"');
 ?>
 <div class="modal-body">
     <div class="form-group">
-        <label class="control-label col-sm-1" for="email">Email:</label>
-        <input type="email" name="email" class="form-control input-sm" id="email" value="<?php echo $email;?>" placeholder="Email">
+        <label class="control-label col-sm-2" for="name">To:</label>
+        <div class="col-sm-10">
+            <input type="text" name="name" class="form-control input-sm" id="name" value="<?php echo @$details['name'];?>" placeholder="Email">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="control-label col-sm-2" for="email">Email:</label>
+        <div class="col-sm-10">
+            <input type="email" name="email" class="form-control input-sm" id="email" value="<?php echo @$details['email'];?>" placeholder="Email">
+        </div>
     </div>
 </div>
 <div class="modal-footer">

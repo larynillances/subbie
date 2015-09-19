@@ -156,9 +156,9 @@
                 <td><?php echo @$pay_setup->director_email?></td>
             </tr>
             <tr>
-                <td class="text-left"><strong>Enderly Admin:</strong></td>
+                <td class="text-left"><strong>Wage Clerk:</strong></td>
                 <td><?php echo @$pay_setup->enderly_name?></td>
-                <td class="text-left"><strong>Enderly Admin Email:</strong></td>
+                <td class="text-left"><strong>Wage Clerk Email:</strong></td>
                 <td><?php echo @$pay_setup->enderly_email?></td>
             </tr>
             <tr>
@@ -231,7 +231,7 @@
             if(count($deductions)>0):
                 foreach($deductions as $v):
                     $edit_link = '<a href="#" class="edit-deduction-btn" id="'.$v->id.'"><span class="glyphicon glyphicon-pencil"></a>';
-                    $add_link = '<a href="#" class="add-deduction-btn" id="'.$v->employee.'"><span class="glyphicon glyphicon-plus"></a>';
+                    $add_link = '<a href="#" class="add-deduction-btn" id="'.$v->id.'"><span class="glyphicon glyphicon-plus"></a>';
                     $options = $v->flight_debt != '' || $v->visa_debt != '' || $v->accommodation != '' || $v->transport != '' ? $edit_link : $add_link;
                     ?>
                     <tr>

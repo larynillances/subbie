@@ -29,7 +29,7 @@
 
             <div id="ourDetail">
                 <div class="ourHeader">
-                    Email Log
+                    <span class="headerName">Email Log</span>
                     <a href="#" class="closeBtn">x</a>
                 </div>
                 <div class="ourForm">
@@ -46,9 +46,13 @@
                             <td>User:</td>
                             <td class="userView"></td>
                         </tr>
-                        <tr>
-                            <td>Invoice:</td>
+                        <tr class="jobView-tr">
+                            <td>Subject:</td>
                             <td class="jobView"></td>
+                        </tr>
+                        <tr class="jobView-tr">
+                            <td>Attachment?:</td>
+                            <td class="attachmentView"></td>
                         </tr>
 
                         <tr>
@@ -57,20 +61,42 @@
 
                         <tr>
                             <td colspan="2" style="text-align: left!important;">
-                                Take-off Information
+                                Sending Information
                             </td>
                         </tr>
                         <tr>
-                            <td>Client:</td>
+                            <td>From:</td>
+                            <td class="fromView"></td>
+                        </tr>
+                        <tr>
+                            <td>To:</td>
                             <td class="toView"></td>
                         </tr>
-                        <tr style="vertical-align: top;">
-                            <td>CC:</td>
+                        <tr style="vertical-align: top;" class="ccView-tr">
+                            <td class="ccView-name">CC:</td>
                             <td class="ccView"></td>
+                        </tr>
+                        <tr style="vertical-align: top;" class="bccView-tr">
+                            <td class="bccView-name">BCC:</td>
+                            <td class="bccView"></td>
                         </tr>
                         <tr style="vertical-align: top;">
                             <td>Message:</td>
                             <td class="messageView"></td>
+                        </tr>
+                        <tr style="vertical-align: top;">
+                            <td>Reply To:</td>
+                            <td class="replyToView"></td>
+                        </tr>
+                        <tr style="vertical-align: top;">
+                            <td colspan="2">
+                                <div class="send-btn-col">
+                                    <div style="border-top: 1px solid #c5c5c5;padding-top: 3px;">
+                                        <button class="btn btn-sm btn-danger cancel-email">Cancel</button>
+                                        <button class="btn btn-sm btn-primary send-email"><i class="glyphicon glyphicon-send"></i> Send</button>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -150,7 +176,9 @@
         white-space: nowrap;
         text-align: right;
     }
-
+    .slick-row.active{
+        background: #80c6bf !important;
+    }
     .closeBtn{
         float: right;
         color: #ffffff;
@@ -165,14 +193,14 @@
     }
 </style>
 <script>
-    var ourGrid, dataView;
+    var ourGrid, dataView,email_log_id;
     var ourColumns = [
         {id: "date", name: "Date", field: "date", width: 50, cssClass: "column-empid"},
         {id: "status", name: "Status", field: "status", width: 30, cssClass: "column-empid"},
         {id: "user", name: "User", field: "user", width: 50, cssClass: "column-empid"},
         {id: "email_type", name: "Email Type", field: "email_type", width: 35, cssClass: "column-empid"},
-        {id: "job", name: "Invoice", field: "job", width: 80, cssClass: "column-status"},
-        {id: "staff_name", name: "Staff", field: "staff_name", width: 80, cssClass: "column-status"},
+        {id: "job", name: "Invoice Ref.", field: "job", width: 80, cssClass: "column-status"},
+        {id: "staff_name", name: "Staff", field: "staff_name", width: 80},
         {id: "client_name", name: "Client", field: "client_name", width: 80, cssClass: "column-empid"}
     ];
 
@@ -308,25 +336,67 @@
         ourGrid.onClick.subscribe(function(e, args) {
             var currentRow = args.row;
             var thisData = dataView.getItem(currentRow);
-
+            email_log_id = thisData.id;
+            $('.slick-row').removeClass('active');
             ourDetail.css({
                 display: 'inherit'
             });
 
+            if(thisData.type == 2){
+                $('.headerName').html('Email Log Review');
+                $('.send-btn-col').css({'display':'inline'});
+            }else{
+                $('.headerName').html('Email Log');
+                $('.send-btn-col').css({'display':'none'});
+            }
+            var name_ = typeof thisData.message.from == 'undefined' ? '' : thisData.message.name;
+            var avail_attachment = 'No';
+            if('file_names' in thisData.message){
+                var $_file_names = thisData.message.file_names;
+                if($.isArray($_file_names)){
+                    $.each($_file_names,function(key,val){
+                        avail_attachment = val.file_name;
+                    });
+                }else{
+                    avail_attachment = $_file_names;
+                }
+            }
+            var job_view = thisData.job ? thisData.job : thisData.message.subject;
+            var from_ = typeof thisData.message.from == 'undefined' ? '' : " <br/>&lt;" + thisData.message.from + "&gt;";
+            var to_ = thisData.message.to_alias ? thisData.message.to_alias + " &lt;" + thisData.message.to + "&gt;" : thisData.staff_name + " &lt;" + thisData.message.to + "&gt;";
             ourDetail.find('.dateView').html(thisData.date);
             ourDetail.find('.statusView').html(thisData.status);
             ourDetail.find('.userView').html(thisData.user);
-            ourDetail.find('.jobView').html(thisData.job);
+            ourDetail.find('.jobView').html(job_view);
             ourDetail.find('.branchView').html(thisData.branch);
-            ourDetail.find('.toView').html(thisData.message.to_alias + " [" + thisData.message.to + ']');
+            ourDetail.find('.toView').html(to_);
+            ourDetail.find('.fromView').html(name_ + from_);
+            ourDetail.find('.replyToView').html('no-reply@subbiesolutions.co.nz');
+            ourDetail.find('.attachmentView').html(avail_attachment);
 
             var cc = thisData.message.cc;
             var alias = thisData.message.cc_alias;
             var ccStr = "";
-            $.each(cc, function(k, v){
-                ccStr += alias[k] + " [" + v + ']<br />';
-            });
-            ourDetail.find('.ccView').html(ccStr);
+            if(typeof cc == "undefined"){
+                ourDetail.find('.ccView').html('');
+            }else{
+                $.each(cc, function(k, v){
+                    ccStr += alias[k] + " &lt;" + v + "&gt;<br />";
+                });
+                ourDetail.find('.ccView').html(ccStr);
+            }
+
+            var bcc = thisData.message.bcc;
+            var bcc_alias = thisData.message.bcc_alias;
+            var bccStr = "";
+            if(typeof bcc == "undefined"){
+                ourDetail.find('.bccView').html('');
+            }else{
+                $.each(bcc, function(k, v){
+                    bccStr += bcc_alias[k] + " &lt;" + v + "&gt;<br />";
+                });
+                ourDetail.find('.bccView').html(bccStr);
+            }
 
             var thisDisplay = 'none';
             if(thisData.message.comment){
@@ -456,5 +526,35 @@
         dataView.setItems(log);
         dataView.endUpdate();
         dataView.refresh();
+    });
+    $('.send-email').click(function(){
+        $(this).newForm.addLoadingForm();
+        $.post(bu + 'sendEmailLogReview',
+            {
+                send: 1,
+                id: email_log_id
+            },
+            function(data){
+                $(this).newForm.removeLoadingForm();
+                location.reload();
+            }
+        )
+    });
+    $('.cancel-email').click(function(){
+        $(this).newForm.addLoadingForm();
+        $.post(bu + 'sendEmailLogReview',
+            {
+                cancel: 1,
+                id: email_log_id
+            },
+            function(data){
+                $(this).newForm.removeLoadingForm();
+                location.reload();
+            }
+        )
+    });
+    $('.slick-row').live('click',function(){
+        $('.slick-row').removeClass('active');
+        $(this).addClass('active');
     });
 </script>

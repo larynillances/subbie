@@ -32,6 +32,7 @@
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="<?php echo base_url();?>plugins/js/jquery-1.8.3.min.js"></script>
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>-->
     <script src="<?php echo base_url();?>plugins/js/jquery-ui.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="<?php echo base_url();?>plugins/js/underscore-min.js"></script>
@@ -54,7 +55,9 @@
     <script src="<?php echo base_url() . "plugins/js/email.validation.js"; ?>"></script>
     <script src="<?php echo base_url() . "plugins/multi-select/js/bootstrap-multiselect.js" ?>"></script>
     <script src="<?php echo base_url() . "plugins/js/fileinput.js" ?>"></script>
-
+    <script>
+        $.ajaxSetup({ cache: false });
+    </script>
 </head>
 <body>
 

@@ -3,8 +3,8 @@
     echo form_open('','class="form-horizontal" role="form"');
     $this_day = @$days_of_week[0];
     $str_date = $thisYear . '-' . $thisMonth . '-' . date('d',strtotime($this_day));
-    $commit_btn_class = @$pay_period->week_num && !$pay_period->is_locked ?
-        '' : 'disabled="disabled"';
+    $commit_btn_class = @$pay_period->week_num ?
+        (@$pay_period->is_locked ? 'disabled="disabled"' : '') : 'disabled="disabled"';
     $is_locked_dtr = @$pay_period->is_locked ? 'is-locked-dtr' : '';
 
     $account = array(1,2,4);
@@ -25,6 +25,8 @@
         <div class="col-sm-6">
             <input type="submit" name="submit" class="btn btn-success btn-sm" value="Save" style="display: none">
             <input type="submit" name="search" class="btn btn-success btn-sm" value="Go">
+            <a href="<?php echo base_url('timeSheetDefault')?>" class="btn btn-primary btn-sm">
+                <i class="glyphicon glyphicon-arrow-left"></i> Back</a>
             <span class="msg-str" style="display: none;">
                 <span class="alert-danger alert" style="padding: 6px 4px;">Saved data.</span>
             </span>
@@ -32,7 +34,7 @@
             if(count($staff) > 0 && in_array($account_type,$account)){
                 ?>
                 <span class="pull-right" style="margin-right: 15px;">
-                <a href="<?php echo base_url().'payPeriodSummaryReport?print=1&week=' . $thisWeek . '&month=' . $thisMonth . '&year=' . $thisYear?>" class="btn btn-sm btn-primary preview-btn" name="preview" target="_blank">Preview</a>
+                <a href="<?php echo base_url().'payPeriodSummaryReport?print=1&week=' . $thisWeek . '&month=' . $thisMonth . '&year=' . $thisYear?>" class="btn btn-sm btn-primary preview-btn" name="preview" target="_blank" <?php echo $commit_btn_class;?> >Preview</a>
                 <button class="btn btn-sm btn-danger commit-btn" name="commit"  <?php echo $commit_btn_class;?>>Commit</button>
             </span>
             <?php
@@ -46,7 +48,7 @@
     </div>
     <div class="row">
         <div class="col-sm-12">
-            <table class="table table-colored-header table-responsive">
+            <table class="table table-colored-header table-responsive table-fixed-header">
                 <?php
                 $totalValue = 0;
                 $total = 0;
@@ -61,10 +63,10 @@
                 $week_number = $thisWeek;
                 $dt = new DateTime();
                 ?>
-                <thead>
+                <thead class="header">
                 <tr>
                     <th rowspan="2" style="width: 15%;">Date</th>
-                    <th rowspan="2">Staff Name</th>
+                    <th rowspan="2" >Staff Name</th>
                     <th rowspan="2" style="width: 10%;">Time In</th>
                     <th rowspan="2" style="width: 10%;">Time Out</th>
                     <th rowspan="2" style="width: 12%;">Holiday</th>
@@ -95,13 +97,16 @@
                     $today = date('Y-m-d', strtotime($getDate)) == date('Y-m-d') ? 'today' : '';
                     $this_month = date('m', strtotime($getDate)) == $thisMonth ? '' : 'not-this-month';
                     $ref = 0;
+                    $_week = new DateTime($getDate);
+
                     if(count($staff)>0):
                         ?>
-                        <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>">
+                        <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>" style="border-bottom: 2px solid #0000ff">
                             <td style="vertical-align: middle;font-weight: bold;" rowspan="<?php echo count($staff) + 1?>">
                                 <?php
                                 echo date('l', strtotime($getDate)).'<br/>'.
-                                    date('d-M-Y', strtotime($getDate)).'<br/>';
+                                    date('d-M-Y', strtotime($getDate)).'<br/>'.
+                                    '[Week '.$_week->format('W').']<br/>';
                                 ?>
                             </td>
                         </tr>
@@ -118,8 +123,10 @@
                                 'holiday' => @$getValue['holiday_hours'],
                                 'sick' => @$getValue['sick_hours']
                             );
+
+                            $style = $ref == (count($staff) - 1) ? 'style="border-bottom: 2px solid #0000ff!important"' : '';
                             ?>
-                            <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>">
+                            <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>" <?php echo $style;?>>
                                 <td style="background: #34386a;color: white;font-style: italic;vertical-align: middle;width: 20%;">
                                     <?php
                                     echo $v->fname.' '.$v->lname;
@@ -135,15 +142,17 @@
                                             $thisTime = $thisDtr[$day];
                                             $isToday = @$thisTime['time_in'] == '';
                                             $pastDay = @$thisTime['time_in'] == '';
+                                            $style = @floatval($thisTime['time_out']) > 0 &&
+                                            (@floatval($thisTime['time_in']) == 0 || $thisTime['time_in'] == '')? 'style="border:1px solid red;background:pink;"' : '';
                                             ?>
-                                            <input type="text" name="time_in_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours"  value="<?php echo @$thisTime['time_in'];?>" placeholder="0000">
+                                            <input type="text" name="time_in_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours tooltip-class" title="Valid time format HHmm eg.(0100)"  value="<?php echo @$thisTime['time_in'];?>" placeholder="0000" <?php echo $style;?> >
                                         <?php
                                         }else{?>
-                                            <input type="text" name="time_in_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours" placeholder="0000">
+                                            <input type="text" name="time_in_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours tooltip-class" title="Valid time format HHmm eg.(0100)" placeholder="0000">
                                         <?php
                                         }
                                     }else{?>
-                                        <input type="text" name="time_in_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours" placeholder="0000">
+                                        <input type="text" name="time_in_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours tooltip-class" title="Valid time format HHmm eg.(0100)" placeholder="0000">
                                     <?php
                                     }
                                     ?>
@@ -156,15 +165,17 @@
                                             $thisTime = $thisDtr[$day];
                                             $dtr_id = @$thisTime['dtr_id'];
                                             $isToday = @$thisTime['time_in'] != '' && @$thisTime['time_out'] == '';
+                                            $style = @floatval($thisTime['time_in']) > 0 &&
+                                            (@floatval($thisTime['time_out']) == 0 || $thisTime['time_out'] == '')? 'style="border:1px solid red;background:pink;"' : '';
                                             ?>
-                                            <input type="text" name="time_out_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours"  value="<?php echo @$thisTime['time_out'];?>" placeholder="0000">
+                                            <input type="text" name="time_out_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours tooltip-class" title="Valid time format HHmm eg.(0100)" value="<?php echo @$thisTime['time_out'];?>" placeholder="0000" <?php echo $style;?> >
                                         <?php
                                         }else{?>
-                                            <input type="text" name="time_out_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours" placeholder="0000">
+                                            <input type="text" name="time_out_<?php echo $v->id.'['.$d.']';?>" class="form-control input-sm data-input hours tooltip-class" title="Valid time format HHmm eg.(0100)" placeholder="0000">
                                         <?php
                                         }
                                     }else{?>
-                                        <input type="text" name="time_out_<?php echo $v->id.'['.$d.']';?>" id="<?php echo $v->id?>" data-value="<?php echo $d;?>" class="form-control input-sm data-input hours" placeholder="0000">
+                                        <input type="text" name="time_out_<?php echo $v->id.'['.$d.']';?>" id="<?php echo $v->id?>" data-value="<?php echo $d;?>" class="form-control input-sm data-input hours tooltip-class" title="Valid time format HHmm eg.(0100)" placeholder="0000">
                                     <?php
                                     }
                                     ?>
@@ -183,10 +194,16 @@
                                         if($hasInfo){
                                             $thisTime = $thisDtr[$day];
 
-                                            @$totalHours[$v->id] += @$thisTime['seconds'];
+                                            $break_deduction = BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out']);
+                                            $break_deduction_seconds = BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out'],true);
+
+                                            $valid_time = @floatval($thisTime['time_in']) > 0 && @floatval($thisTime['time_out']) > 0;
+
+                                            @$totalHours[$v->id] += $valid_time ? (@$thisTime['seconds'] - $break_deduction_seconds) : 0;
 
                                             $dtr_id = @$thisTime['dtr_id'];
-                                            echo @$thisTime['hours'] ? @$thisTime['hours'] : '0.00';
+                                            echo @$thisTime['hours'] > 0 ? number_format(@$thisTime['hours'] - $break_deduction,2) : '&nbsp;';
+                                            echo @$thisTime['hours'] > 0 ? '&nbsp;<a href="#" style="color: red;float: right;" class="tooltip-class" title="'.($break_deduction_seconds/60).' minutes Meal Break deducted.">?</a>' : '';
                                         }else{
                                             echo '&nbsp;';
                                         }
@@ -305,24 +322,41 @@
     }
 
 </style>
+<script src="<?php echo base_url();?>plugins/fixed-header/jquery.stickytableheaders.js"></script>
 <script>
+    $('.table-fixed-header').stickyTableHeaders({marginTop: 51});
     $(function(e){
         var hours = $('.hours');
+        var week_ = <?php echo $thisWeek;?>;
+        var month_ = <?php echo $thisMonth;?>;
+        var year_ = <?php echo $thisYear;?>;
+
         hours.numberOnly({
             wholeNumber: true,
             isForContact:true,
             hasMaxChar:true,
             maxCharLen:4
         });
-        $('.preview-btn').click(function(){
+
+        $('.preview-btn').click(function(e){
+            e.preventDefault();
             var myWindow = window.open(
                 this.href,
-                'Working Drawings'
+                'Pay Period Summary Report'
             );
-            $(myWindow).load(function(){
-                location.reload();
-            });
+            $.post(bu + 'generateStaffPaySlip/' + week_ + '/' + month_ + '/' + year_ +'?generate=1',
+                {
+                    generate: 1
+                },
+                function(data){
+                    if(data){
 
+                        $(myWindow).load(function(){
+                            location.reload();
+                        });
+                    }
+                }
+            );
         });
 
         $('.btn-submit-hours').click(function(e){
@@ -385,12 +419,25 @@
             });
 
             $('.yesBtn-confirm').click(function(){
+                $(this).newForm.addLoadingForm();
+                var has_return = 0;
                 $.post(bu + 'timeSheetEdit',{commit:1},
-                    function(data){
-                        console.log(data);
-                        location.reload();
-                    }
-                );
+                     function(data){
+                         $.post(bu + 'payPeriodSummaryReport?print=1&week=' + week_ + '&month=' + month_ + '&year=' + year_,
+                             {submit:1},
+                             function(data){
+                                 $.post(bu + 'timeSheetEdit',
+                                     {send_mail:1},
+                                     function(data){
+                                         has_return = 1;
+                                         $(this).newForm.removeLoadingForm();
+                                         location.replace(bu + 'timeSheetEdit');
+                                     }
+                                 );
+                             }
+                         );
+                     }
+                 );
             });
         });
         $('.data-dp').change(function(){

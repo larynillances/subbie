@@ -19,7 +19,7 @@
     echo form_close();
     ?><br/>
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-8">
             <div class="week_number_view grid" style="border: 1px solid #000000;height: 600px;"></div>
         </div>
     </div>
@@ -49,6 +49,13 @@
     .is_locked .slick-cell.l2{
         background: #63c65c!important;
     }
+
+    .is_this_week{
+        background: #b2f1f9 !important;
+    }
+    .ui-widget-content .slick-cell{
+        height: 26px;
+    }
 </style>
 
 <script>
@@ -62,6 +69,13 @@
             {id: "total_pay", name: "Total Pay", field: "total_pay", width: 30,cssClass: "right-align",sortable: true},
             {id: "total_paye", name: "Total PAYE", field: "total_paye", width: 30,cssClass: "right-align",sortable: true}
         ];
+        Date.prototype.getWeek = function() {
+            var onejan = new Date(this.getFullYear(),0,1);
+            return Math.ceil((((this - onejan) / 86400000) + onejan.getDay()+1)/7);
+        };
+
+        var today = new Date();
+        var weekNumber = today.getWeek();
 
         $(this).newForm.addLoadingForm();
         $.ajax({
@@ -128,17 +142,32 @@
 
                     grid.onDblClick.subscribe(function(e, args){
                         var row = dataView.getItem(args.row);
-                        $.post(bu + 'timeSheetEdit',
-                            {
-                                search: true,
-                                year: row.year,
-                                month: row.month,
-                                week: row.week_num
-                            },
-                            function(data){
-                                location.replace(bu + 'timeSheetEdit');
-                            }
-                        );
+                        if(row.week_has_passed){
+                            $.post(bu + 'timeSheetEdit',
+                                {
+                                    submit_week_pay: true,
+                                    search: true,
+                                    year: row.year,
+                                    month: row.month,
+                                    week: row.week_num
+                                },
+                                function(data){
+                                    location.replace(bu + 'timeSheetEdit');
+                                }
+                            );
+                        }else{
+                            $.post(bu + 'timeSheetEdit',
+                                {
+                                    search: true,
+                                    year: row.year,
+                                    month: row.month,
+                                    week: row.week_num
+                                },
+                                function(data){
+                                    location.replace(bu + 'timeSheetEdit');
+                                }
+                            );
+                        }
                     });
 
                     grid.onCellChange.subscribe(function (e, args) {
@@ -152,9 +181,15 @@
                                     'cssClasses': 'is_locked'
                                 };
                             }else{
-                                return {
-                                    'cssClasses': 'not_locked'
-                                };
+                                if (dataView.getItem(row).is_this_week) {
+                                    return {
+                                        'cssClasses': 'is_this_week'
+                                    };
+                                }else{
+                                    return {
+                                        'cssClasses': 'not_locked'
+                                    };
+                                }
                             }
                         };
                         grid.invalidateRows(args.rows);
@@ -182,6 +217,13 @@
                     dataView.endUpdate();
 
                     grid.resizeCanvas();
+                    var scrollToGridRef = function(scrollToRef){
+                        var scrollToRowMiddleRow = scrollToRef - 11;
+                        scrollToRowMiddleRow = scrollToRowMiddleRow > 0 ? scrollToRowMiddleRow : scrollToRef;
+                        grid.scrollRowIntoView(scrollToRowMiddleRow, 1);
+                    };
+
+                    scrollToGridRef(weekNumber);
                 }
             });
         }

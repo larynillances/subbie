@@ -14,9 +14,9 @@ class Send_Email_Controller extends CI_Controller{
 
         $default = array(
             'to' => 'dummymailthedraftingzone@gmail.com',
-            'from' => 'noreply@libertyhomes.co.nz',
-            'name' => 'Liberty Homes Administrator',
-            'subject' => 'Notification from Liberty Homes',
+            'from' => 'no-reply@subbiesolutions.co.nz',
+            'name' => 'Subbie Solutions Administrator',
+            'subject' => 'Notification from Subbie Solutions',
             'to_alias' => '',
             'cc' => '',
             'cc_alias' => '',
@@ -57,12 +57,22 @@ class Send_Email_Controller extends CI_Controller{
         //endregion
 
         //region sitehost SMTP
-        $config['protocol'] = 'smtp';
+       /* $config['protocol'] = 'smtp';
         $config['smtp_host'] = 'ssl://mx1.sitehost.co.nz';
         $config['smtp_port'] = 465;
         $config['mailtype'] = 'html';
         $config['smtp_user'] = 'donotreply@theestimator.co.nz';
-        $config['smtp_pass'] = 'apple1';
+        $config['smtp_pass'] = 'apple1';*/
+        //endregion
+
+        //region EstimIT Host
+        $config['protocol'] = 'smtp';
+        $config['smtp_host'] = 'mail.estimit.net';
+        $config['smtp_crypto'] = 'tls';
+        $config['smtp_port'] = 587;
+        $config['mailtype'] = 'html';
+        $config['smtp_user'] = 'no-reply@subbiesolutions.co.nz';
+        $config['smtp_pass'] = 'M4?xdOg|64f76ZP6';
         //endregion
 
         $this->email->set_newline("\r\n");

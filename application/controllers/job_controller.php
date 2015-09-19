@@ -30,7 +30,7 @@ class Job_Controller extends Subbie{
             ),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(array('id','client_id','address'),'tbl_registration.');
+        $fields = ArrayWalk(array('id','client_id','address'),'tbl_registration.');
         $fields[] = 'IF(tbl_registration.start_date != "0000-00-00",
                         DATE_FORMAT(tbl_registration.start_date,"%d/%m/%y"),
                          "") as start_date';
@@ -199,7 +199,7 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_statement.client_id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(array('id','reference','debits','type','date'),'tbl_statement.');
+        $fields = ArrayWalk(array('id','reference','debits','type','date'),'tbl_statement.');
         $fields[] = 'DATE_FORMAT(tbl_statement.date,"%d/%m/%Y") as save_date';
         $fields[] = 'tbl_client.client_name';
         $fields[] = 'tbl_client.client_code';
@@ -258,7 +258,7 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_invoice.client_id','tbl_invoice.job_id','tbl_registration.id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(
+        $fields = ArrayWalk(
             array(
                 'id','your_ref','job_id','meter','date','job_name','is_archive'
             ),
@@ -636,7 +636,7 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_pdf_archive.client_id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(array('file_name','client_id','date'),'tbl_pdf_archive.');
+        $fields = ArrayWalk(array('file_name','client_id','date'),'tbl_pdf_archive.');
         $fields[] = 'DATE_FORMAT(tbl_pdf_archive.date,"%d/%m/%Y") as archive_date';
         $fields[] = 'tbl_client.client_name';
 
@@ -816,7 +816,7 @@ class Job_Controller extends Subbie{
             'type' => 'left'
         ));
 
-        $fields = $this->arrayWalk(array('id','date','invoice_id','client_id','client_ref','area','price','groupid'),'tbl_credit_note.');
+        $fields = ArrayWalk(array('id','date','invoice_id','client_id','client_ref','area','price','groupid'),'tbl_credit_note.');
         $fields[] = 'tbl_invoice.job_name';
         $fields[] = 'tbl_registration.address';
         $fields[] = 'IF(tbl_invoice.job_id != 0 ,
@@ -932,7 +932,7 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_pdf_archive.client_id','tbl_pdf_archive.client_id','tbl_credit_note.invoice_id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(array('id','file_name','client_id','type','date','download'),'tbl_pdf_archive.');
+        $fields = ArrayWalk(array('id','file_name','client_id','type','date','download'),'tbl_pdf_archive.');
         $fields[] = 'DATE_FORMAT(tbl_pdf_archive.date,"%d/%m/%Y") as archive_date';
         $fields[] = 'tbl_client.client_name';
         $fields[] = 'tbl_client.client_code';
@@ -1152,7 +1152,7 @@ class Job_Controller extends Subbie{
                 'inside_outside'
             )
         ));
-        $fields = $this->arrayWalk(array('id','client_id','address','owner_name'),'tbl_registration.');
+        $fields = ArrayWalk(array('id','client_id','address','owner_name'),'tbl_registration.');
         $fields[] = 'tbl_client.client_name';
         $fields[] = 'story.type as story_type';
         $fields[] = 'inside_outside.type as inside_type';
@@ -1229,14 +1229,14 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_registration.id'),
             'type' => 'left'
         ));
-        $registration = $this->arrayWalk(
+        $registration = ArrayWalk(
             array(
                 'id','job_name','address','job_type_id','option_1','option_2','start_date','tender_date',
                 'owner_name','contact_name','phone','email','client_id'
             ),
             'tbl_registration.'
         );
-        $tracking = $this->arrayWalk(
+        $tracking = ArrayWalk(
             array(
                 'status_id','meter','job_rating','team','notes'
             ),
@@ -1472,7 +1472,7 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_job_allocated.job_id','tbl_registration.client_id','tbl_job_allocated.color_pick_id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(array('id','job_id','duration','days','date_allocated'),'tbl_job_allocated.');
+        $fields = ArrayWalk(array('id','job_id','duration','days','date_allocated'),'tbl_job_allocated.');
         $fields[] = 'CONCAT(tbl_client.client_code,LPAD(tbl_job_allocated.job_id, 5,"0")) as job_ref';
         $fields[] = 'tbl_registration.client_id';
         $fields[] = 'tbl_events_color_pick.class';
@@ -1486,7 +1486,7 @@ class Job_Controller extends Subbie{
             'source_field' => array('tbl_quotation.client_id'),
             'type' => 'left'
         ));
-        $fields = $this->arrayWalk(array('id','closure_date','announce_date'),'tbl_quotation.');
+        $fields = ArrayWalk(array('id','closure_date','announce_date'),'tbl_quotation.');
         $fields[] = 'CONCAT("SQ",LPAD(tbl_quotation.id + 30, 5,"0")) as job_ref';
         $this->my_model->setSelectFields($fields);
         $quotation = $this->my_model->getInfo('tbl_quotation');
@@ -1500,7 +1500,7 @@ class Job_Controller extends Subbie{
             'type' => 'left'
         ));
 
-        $fields = $this->arrayWalk(array('id','staff_id','start_date','end_date'),'tbl_absent_reason.');
+        $fields = ArrayWalk(array('id','staff_id','start_date','end_date'),'tbl_absent_reason.');
         $fields[] = 'tbl_absent_type.string';
         $fields[] = 'tbl_absent_type.color';
         $fields[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';

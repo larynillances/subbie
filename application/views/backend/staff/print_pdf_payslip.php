@@ -76,15 +76,17 @@ ob_start();
         <div id="content">
             <div class="content">
                 <?php
-                $date = $this->uri->segment(3);
+                $date = @$pay_period_date ? @$pay_period_date : $this->uri->segment(3);
                 $name = '';
                 $_date = new DateTime($date);
                 $week = $_date->format("W");
+                $_year = $_date->format("Y");
                 $start_wage = date('d/m/Y',strtotime('April '.date('Y',strtotime($date)).' Tuesday '));
                 if(count($staff)>0):
                     foreach($staff as $v):
                         $name = $v->name;
                         $total = @$total_paid[$v->id][$date];
+                        $balance_data = @$total_bal[$v->id][$_year][$week];
                         $total_account_one = @$total['account_one'] ? $v->converted_amount * $total['account_one'] : 0;
                         $total_account_two = @$total['account_two'] ? $v->converted_amount * $total['account_two'] : 0;
                         ?>
@@ -97,7 +99,7 @@ ob_start();
                             </tr>
                             <tr>
                                 <th colspan="4" style="text-transform: uppercase;">
-                                    <?php echo 'PROJECT: '.$v->company?>
+                                    <?php echo 'PROJECT: '.$v->project_name?>
                                 </th>
                             </tr>
                             <tr>
@@ -178,15 +180,15 @@ ob_start();
                                             <tr>
                                                 <td></td>
                                                 <td>PAYE</td>
-                                                <td><?php echo $v->tax;?></td>
+                                                <td><?php echo number_format($v->tax,2);?></td>
                                             </tr>
                                             <tr>
-                                                <td><?php echo @$total_bal[$date][$v->id]['flight_debt'] ? '$'.@$total_bal[$date][$v->id]['flight_debt'] : '&nbsp;';?></td>
+                                                <td><?php echo @$balance_data['flight_debt'] ? '$'.@$balance_data['flight_debt'] : '&nbsp;';?></td>
                                                 <td>Flight</td>
                                                 <td><?php echo $v->total_flight;?></td>
                                             </tr>
                                             <tr>
-                                                <td><?php echo @$total_bal[$date][$v->id]['visa_debt'] ? '$'.@$total_bal[$date][$v->id]['visa_debt'] : '&nbsp;';?></td>
+                                                <td><?php echo @$balance_data['visa_debt'] ? '$'.@$balance_data['visa_debt'] : '&nbsp;';?></td>
                                                 <td>Visa</td>
                                                 <td><?php echo $v->total_visa;?></td>
                                             </tr>
@@ -301,7 +303,7 @@ ob_start();
                                         if($v->nz_account != ''){
                                             ?>
                                             <tr>
-                                                <td style="text-align: center"><?php echo $v->star_balance;?></td>
+                                                <td style="text-align: center"><?php echo @$balance_data['balance'] != 0 ? $v->star_balance : '&nbsp;';?></td>
                                             </tr>
                                         <?php
                                         }else{
@@ -349,7 +351,8 @@ ob_start();
                                             <tr>
                                                 <td style="text-align: center">
                                                     <?php
-                                                    echo @$total_bal[$date][$v->id]['balance'] != 0 ? number_format(@$total_bal[$date][$v->id]['balance'],2) : '&nbsp;';?>
+                                                    echo @$balance_data['balance'] != 0 ? number_format(@$balance_data['balance'],2) : '&nbsp;';
+                                                    ?>
                                                 </td>
                                             </tr>
                                             <?php
@@ -548,9 +551,15 @@ $pdf = $domPdf->output();
 // You can now write $pdf to disk, store it in a database or stream it
 // to the client.
 $pdfName = $file_name;
-@$domPdf->stream($pdfName.".pdf", array("Attachment" => 0));
+if(!$is_download){
+    @$domPdf->stream($pdfName.".pdf", array("Attachment" => 1));
+    $file_to_save = $dir.'/'.$pdfName.'.pdf';
+    //save the pdf file on the server
+    file_put_contents($file_to_save, $pdf);
+}else{
+    $file_to_save = $dir.'/'.$pdfName.'.pdf';
+    //save the pdf file on the server
+    file_put_contents($file_to_save, $pdf);
+}
 
-$file_to_save = $dir.'/'.$pdfName.'.pdf';
-//save the pdf file on the server
-file_put_contents($file_to_save, $pdf);
 ?>
