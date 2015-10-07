@@ -244,7 +244,7 @@ ob_start();
                     else:
                         ?>
                         <tr>
-                            <td colspan="15">No data has found.</td>
+                            <td colspan="15">No data was found.</td>
                         </tr>
                     <?php
                     endif;

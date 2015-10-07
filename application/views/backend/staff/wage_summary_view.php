@@ -6,10 +6,13 @@ echo form_open('','class="form-horizontal" role="form"');
     <div class="col-sm-2">
         <?php echo form_dropdown('month',$month,$thisMonth,'class="form-control input-sm"')?>
     </div>
-    <div class="col-sm-2">
+    <div class="col-sm-1">
         <?php echo form_dropdown('year',$year,$thisYear,'class="form-control input-sm"')?>
     </div>
-    <div class="col-sm-7">
+    <div class="col-sm-2">
+        <?php echo form_dropdown('project_type',$project_type,$thisProject,'class="form-control input-sm"')?>
+    </div>
+    <div class="col-sm-5">
         <input type="submit" name="search" class="btn btn-primary" value="Go">
         <a href="<?php echo base_url().'printSummary/wage/'.$thisMonth.'/'.$thisYear?>" class="btn btn-success" target="_blank">Print</a>
     </div>
@@ -47,19 +50,20 @@ echo form_open('','class="form-horizontal" role="form"');
             $week = $_date->format("W");
             $_year = $_date->format("Y");
             $_what_date = $week == 30 && $_year == 2015 ? date('d-m-Y',strtotime('+5 days'.$v)) : date('d-m-Y',strtotime('+6 days'.$v));
+            $this_data = @$wage_data[$this_date];
+            $tr_style = count($this_data) == 1 ? 'style="border-bottom: 2px solid #000000"' : '';
             ?>
-            <tr>
-                <?php
-                $this_data = @$wage_data[$this_date];
-                ?>
+            <tr <?php echo $tr_style;?> >
                 <td rowspan="<?php echo count($this_data)?>" style="vertical-align: middle;border-bottom: 2px solid #000000">
                     <?php
                     echo date('D',strtotime($v)).' ('.date('d/m/y',strtotime($v)).') to <br/>';
-                    echo date('D',strtotime($_what_date)).' ('.date('d/m/y',strtotime($_what_date)).')';
+                    echo date('D',strtotime($_what_date)).' ('.date('d/m/y',strtotime($_what_date)).')<br/>';
+                    echo '<strong style="white-space: nowrap;">[Week '.$week.']</strong>';
                     ;?>
                 </td>
             <?php
             $ref = 0;
+
             if(count($this_data) >0):
                 foreach($this_data as $val):
                     $date = new DateTime($this_date);
@@ -71,9 +75,6 @@ echo form_open('','class="form-horizontal" role="form"');
                     $is_final_pay = $last_pay['last_week'] == $week ? '&nbsp;<strong class="tooltip-class" title="Final Pay Period">?</strong>' : '';
                     $final_pay_url = '<a href="'.base_url().'printFinalPaySlip/' . $val['id'] . '/' . $this_date . '/' . $week .'?v=1&type=2" class="payslip-view-btn" id="'.$val['id'].'" data-type="1" data-value="'.$this_date.'">'.$val['name'].'</a>';
 
-                    $modulus = $week ? $week % 2 : 0;
-                    $is_not_even = $start_week % 2;
-                    $condition = $is_not_even ? !$modulus : $modulus;
                     $style = (count($this_data) - 1) == $ref ? 'style="border-bottom: 2px solid #000000!important"' : '';
                     echo $ref != 0 ? '<tr '.$style.'>' : '';
                         ?>
@@ -82,7 +83,7 @@ echo form_open('','class="form-horizontal" role="form"');
                         $tooltip = 'class="tooltip-class" data-toggle="tooltip" data-placement="top" title="IRD No.: '.$val['ird_num'].'"';
                         $url = '<a href="'.base_url().'printPaySlip/' . $val['id'] . '/' . $this_date . '/' . $week . '?view=1&type=1" class="payslip-view-btn" id="'.$val['id'].'" data-type="2" data-value="'.$this_date.'">'.$val['name'].'</a>';
                         if($val['wage_type'] == 1){
-                            $name = $val['hours'] != 0 && (@$val['start_use'] && $this_date <= date('Y-m-d')) && $condition ? $url : $val['name'];
+                            $name = $val['hours'] != 0 && (@$val['start_use'] && $this_date <= date('Y-m-d')) ? $url : $val['name'];
                         }else{
                             $name = $val['hours'] != 0 && @$val['start_use'] ? ($last_pay['last_week'] == $week ? $final_pay_url : $url) : $val['name'];
                         }
@@ -226,17 +227,16 @@ echo form_open('','class="form-horizontal" role="form"');
                             endif;
                     else:
                         if($val['hours'] != 0
-                            && (@$val['start_use'] && $this_date <= date('Y-m-d'))
-                            && $condition):
+                            && (@$val['start_use'] && $this_date <= date('Y-m-d'))):
                             $php_two_convert = $val['account_two']* $val['rate_value'];
                             $php_one_convert = $val['account_one']* $val['rate_value'];
                             ?>
-                            <td class="column" style="text-align: center">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo number_format($val['hours'],2);
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo '$'.number_format($val['gross'],2);
                                 ?>
@@ -246,17 +246,17 @@ echo form_open('','class="form-horizontal" role="form"');
                                 echo '$'.number_format($val['tax'],2);
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['has_kiwi'] ? '$'.number_format($val['kiwi'],2) : '';
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['has_st_loan'] ? '$'.number_format($val['st_loan'],2) : '';
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
                                 $flight_debt =  @$total_bal[$v][$val['id']]['flight_debt'];
@@ -265,7 +265,7 @@ echo form_open('','class="form-horizontal" role="form"');
                                 echo '</strong>';
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['visa'] != '' ? '$'.$val['visa'].'<br/>' : '';
                                 $visa_debt =  @$total_bal[$v][$val['id']]['visa_debt'];
@@ -274,21 +274,27 @@ echo form_open('','class="form-horizontal" role="form"');
                                 echo '</strong>';
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['accommodation'] ? '$'.number_format($val['accommodation'],2) : '';
                                 ?>
                             </td>
-                            <td class="column"><?php echo $val['transport'] ? '$'.number_format($val['transport'],2) : '';?></td>
-                            <td class="column"><?php echo $val['recruit'] ? '$'.number_format($val['recruit'],2) : '';?></td>
-                            <td class="column"><?php echo $val['admin'] ? '$'.number_format($val['admin'],2) : '';?></td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
+                                <?php echo $val['transport'] ? '$'.number_format($val['transport'],2) : '';?>
+                            </td>
+                            <td class="column" <?php echo $flag_staff;?>>
+                                <?php echo $val['recruit'] ? '$'.number_format($val['recruit'],2) : '';?>
+                            </td>
+                            <td class="column" <?php echo $flag_staff;?>>
+                                <?php echo $val['admin'] ? '$'.number_format($val['admin'],2) : '';?>
+                            </td>
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 $nett = floatval(str_replace('$','',$val['nett']));
                                 echo $nett > 0 ? '$'.number_format($val['nett'],2) : '<strong class="value-class">$'.number_format($val['nett']).'</strong>';
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
                                 echo $thisBalance > 0 ? ($val['deduction'] ? $val['deduction'].'<br/>' : '') : '';
@@ -297,13 +303,13 @@ echo form_open('','class="form-horizontal" role="form"');
                                 echo '</strong>';
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 $distribution = floatval(str_replace('$','',$val['distribution']));
                                 echo $distribution > 0 ? '$'.number_format($val['distribution'],2) : '<strong class="value-class">$'.number_format($val['distribution'],2).'</strong>';
                                 ?>
                             </td>
-                            <td class="column" style="text-transform: uppercase">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 if($val['account_one'] != ''){
                                     $account_one = $val['account_one'] != '' ?
@@ -316,7 +322,7 @@ echo form_open('','class="form-horizontal" role="form"');
                                 }
                                 ?>
                             </td>
-                            <td class="column" style="text-transform: uppercase">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 if($val['account_two'] != ''){
                                     $account_two = $val['account_two'] != '' ? '$'.number_format($val['account_two'],2).'<br/>' : '$0.00'.'<br/>';
@@ -327,7 +333,7 @@ echo form_open('','class="form-horizontal" role="form"');
                                 }
                                 ?>
                             </td>
-                            <td class="column">
+                            <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 $nz_account = $val['nz_account'] != '' ? '$'.number_format($val['nz_account'],2) : '';
                                 echo '<strong>'. $nz_account .'</strong><br/>';
@@ -337,7 +343,7 @@ echo form_open('','class="form-horizontal" role="form"');
                         else:
                             for($i=0;$i<=16;$i++):
                                 ?>
-                                <td>&nbsp;</td>
+                                <td class="column">&nbsp;</td>
                             <?php
                             endfor;
                         endif;
@@ -346,12 +352,9 @@ echo form_open('','class="form-horizontal" role="form"');
                     echo $ref != 0 ? '</tr>' : '';
                 endforeach;
             else:
-                for($i=0;$i<=16;$i++):
-                ?>
-                    <td>&nbsp;</td>
-
-                <?php
-                endfor;
+                echo '<td class="column" colspan="18" style="border-bottom: 2px solid #000000">';
+                echo '<strong>No pay has been found for this week period.</strong>';
+                echo '</td>';
                 echo '</tr>';
             endif;
         endforeach;
@@ -407,7 +410,7 @@ echo form_close();
         // make the header fixed on scroll
         //$('.table-fixed-header').fixedHeader();
         //$('.table-fixed-header').scrollTableBody({rowsToDisplay:30});
-        $('.table-fixed-header').stickyTableHeaders();
+        /*$('.table-fixed-header').stickyTableHeaders();*/
         $('.payslip-view-btn').click(function(e){
             e.preventDefault();
             var url = this.href;

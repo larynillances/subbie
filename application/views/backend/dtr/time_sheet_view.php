@@ -7,7 +7,7 @@
             <div class="col-sm-3">
                 <label class="control-label col-sm-2" style="margin-left: -20px;">Year:</label>
                 <div class="col-sm-5">
-                    <?php echo form_dropdown('year',$year,$thisYear,'class="form-control input-sm select year-dp"')?>
+                    <?php echo form_dropdown('year',$year,$thisYear,'class="form-control input-sm"')?>
                 </div>
 
                 <input type="submit" name="search" class="btn btn-success btn-sm" value="Go">

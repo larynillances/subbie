@@ -54,8 +54,18 @@
     <div class="row">
         <div class="col-sm-3 pull-right">
             <button type="button" class="btn btn-sm btn-success send-payslip" <?php echo $has_email != 1 ? 'disabled' : '';?>><i class="glyphicon glyphicon-send"></i> Send</button>
-            <a href="<?php echo base_url('printPaySlip/'.$this->uri->segment(2).'/'.$this->uri->segment(3));?>" target="_blank" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-print"></i> Print</a>
-            <a href="<?php echo base_url('wageTable');?>" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
+            <a href="<?php echo base_url('printFinalPaySlip/'.$this->uri->segment(2).'/'.$this->uri->segment(3));?>" target="_blank" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-print"></i> Print</a>
+            <?php
+            if(isset($_GET['type'])){
+                ?>
+                <a href="<?php echo base_url('wageTable');?>" class="btn btn-sm btn-info"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
+            <?php
+            }else{
+                ?>
+                <a href="<?php echo base_url('employeeFinalPay');?>" class="btn btn-sm btn-info"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
+            <?php
+            }
+            ?>
         </div>
         <div class="col-sm-8">
             <?php
@@ -75,11 +85,14 @@
         $start_wage = date('d/m/Y',strtotime('April '.date('Y',strtotime($date))));
         if(count($staff)>0):
             foreach($staff as $v):
+                $pay_data = @$last_pay[$v->id];
                 $name = $v->name;
                 $total = @$total_paid[$v->id][$date];
                 $balance_data = @$total_bal[$v->id][$_year][$week];
                 $total_account_one = @$total['account_one'] ? $v->converted_amount * $total['account_one'] : 0;
                 $total_account_two = @$total['account_two'] ? $v->converted_amount * $total['account_two'] : 0;
+                $v->distribution = ($pay_data['annual_leave_pay'] - $pay_data['annual_tax']) + $v->distribution;
+
                 ?>
                 <table class="print-table">
                     <thead>
@@ -94,9 +107,9 @@
                         </th>
                     </tr>
                     <tr>
-                        <th colspan="4" style="padding: 10px;border: 1px solid #000000">Pay Advice Slip for the Pay Period Ended:
+                        <th colspan="4" style="padding: 10px;border: 1px solid #000000">Final Pay Advice Slip for the Pay Period Ended:
                             <?php
-                            echo $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));
+                            echo date('j F Y',strtotime('+6 days '.$pay_data['last_date_pay']));
                             echo '&nbsp;[Week '.$week.']'
                             ?>
                         </th>
@@ -160,7 +173,22 @@
                     }
                     ?>
                     <tr style="vertical-align: top">
-                        <td >Wage Gross: <span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                        <td>
+                            <table style="font-size: 13px;border-collapse: collapse;">
+                                <tr>
+                                    <td style="text-align: right">Wage Gross:</td>
+                                    <td style="padding-left: 5px;"><span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: right">Annual Leave Pay:</td>
+                                    <td style="padding-left: 5px;"><span><?php echo $pay_data['annual_leave_pay'] ? '$'.number_format($pay_data['annual_leave_pay'],2) : '$0.00';?></span></td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: right">Annual Leave PAYE:</td>
+                                    <td style="padding-left: 5px;"><span><?php echo $pay_data['annual_tax'] ? '$'.number_format($pay_data['annual_tax'],2) : '$0.00';?></span></td>
+                                </tr>
+                            </table>
+                        </td>
                         <td class="deduction-column">
                             <table class="deduction-table">
                                 <tr>
@@ -316,7 +344,7 @@
                                     <td>&nbsp;</td>
                                 </tr>
                                 <tr>
-                                    <td><?php echo !$v->nz_account ? (@$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '&nbsp;') : '';?></td>
+                                    <td><?php echo !$v->nz_account ? (@$pay_data['total_gross'] ? '$ '.number_format($pay_data['total_gross'],2) : '&nbsp;') : '';?></td>
                                 </tr>
                                 <tr>
                                     <td>&nbsp;</td>
@@ -353,7 +381,7 @@
                                 }else{
                                     ?>
                                     <tr>
-                                        <td style="border-top: 1px solid #000000;"><strong><?php echo @$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '&nbsp;';?></strong></td>
+                                        <td style="border-top: 1px solid #000000;"><strong><?php echo @$pay_data['total_gross'] ? '$ '.number_format(@$pay_data['total_gross'],2) : '&nbsp;';?></strong></td>
                                     </tr>
                                 <?php
                                 }
@@ -468,8 +496,8 @@
                                     </thead>
                                     <tbody>
                                     <tr>
-                                        <td style="padding-right: 10px;"><?php echo $total_holiday_leave?></td>
-                                        <td style="padding-right: 10px;">0</td>
+                                        <td style="padding-right: 10px;"><?php echo $pay_data['total_holiday_leave']?></td>
+                                        <td style="padding-right: 10px;"><?php echo $pay_data['holiday_leave_taken']?></td>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -509,8 +537,8 @@
                                     </thead>
                                     <tbody>
                                     <tr>
-                                        <td style="padding-right: 10px;"><?php echo $total_sick_leave?></td>
-                                        <td style="padding-right: 10px;">0</td>
+                                        <td style="padding-right: 10px;"><?php echo $pay_data['total_sick_leave']?></td>
+                                        <td style="padding-right: 10px;"><?php echo $pay_data['sick_leave_taken']?></td>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -528,6 +556,7 @@
 </div>
 <script>
     $(function(){
+        var date = <?php echo $this->uri->segment(3) ? $this->uri->segment(3) : '';?>;
         $('.send-payslip').click(function(){
             $(this).modifiedModal({
                 url: bu + 'sendStaffPaySlip<?php echo '/'.$this->uri->segment(2).'/'.$this->uri->segment(3).'/'.$this->uri->segment(4).'?type='.$_GET['type']?>',
@@ -538,5 +567,6 @@
         jQuery(window).load(function () {
             $(this).newForm.removeLoadingForm();
         });
+
     });
 </script>

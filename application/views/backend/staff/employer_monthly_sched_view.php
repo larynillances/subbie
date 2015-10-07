@@ -23,11 +23,11 @@ if(count($info_array) >0){
         <?php echo form_dropdown('year',$year,$thisYear,'class="form-control input-sm"')?>
     </div>
     <div class="col-sm-7">
-        <input type="submit" name="search" class="btn btn-success" value="Go">
-        <a href="<?php echo base_url().'employerMonthlySched?print=deductions&year='.$thisYear.'&month='.$thisMonth.'&payment=1'?>" class="btn btn-primary deduction-btn" target="_blank">
+        <input type="submit" name="search" class="btn btn-success btn-sm" value="Go">
+        <a href="<?php echo base_url().'employerMonthlySched?print=deductions&year='.$thisYear.'&month='.$thisMonth.'&payment=1'?>" class="btn btn-primary btn-sm deduction-btn" target="_blank">
             <span class="glyphicon glyphicon-print"></span> Deduction
         </a>
-        <a href="<?php echo base_url().'employerMonthlySched?print=schedule&year='.$thisYear.'&month='.$thisMonth?>" class="btn btn-primary sched-btn" target="_blank">
+        <a href="<?php echo base_url().'employerMonthlySched?print=schedule&year='.$thisYear.'&month='.$thisMonth?>" class="btn btn-primary btn-sm sched-btn" target="_blank">
             <span class="glyphicon glyphicon-print"></span> Schedule
         </a>
     </div>

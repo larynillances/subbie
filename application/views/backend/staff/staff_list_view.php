@@ -76,7 +76,7 @@
     else:
     ?>
         <tr>
-            <td colspan="12">No data has found.</td>
+            <td colspan="12">No data was found.</td>
         </tr>
     <?php
     endif;

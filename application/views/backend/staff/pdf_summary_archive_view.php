@@ -27,7 +27,7 @@
             else:
                 ?>
                 <tr>
-                    <td colspan="4">No data has found.</td>
+                    <td colspan="4">No data was found.</td>
                 </tr>
             <?php
             endif;
@@ -63,7 +63,7 @@
             else:
                 ?>
                 <tr>
-                    <td colspan="4">No data has found.</td>
+                    <td colspan="4">No data was found.</td>
                 </tr>
             <?php
             endif;
@@ -103,7 +103,7 @@
             else:
                 ?>
                 <tr>
-                    <td colspan="4">No data has found.</td>
+                    <td colspan="4">No data was found.</td>
                 </tr>
             <?php
             endif;

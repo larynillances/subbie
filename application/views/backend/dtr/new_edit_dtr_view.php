@@ -427,8 +427,11 @@
                              {submit:1},
                              function(data){
                                  $.post(bu + 'timeSheetEdit',
-                                     {send_mail:1},
+                                     {
+                                         send_mail:1
+                                     },
                                      function(data){
+                                         console.log(data);
                                          has_return = 1;
                                          $(this).newForm.removeLoadingForm();
                                          location.replace(bu + 'timeSheetEdit');

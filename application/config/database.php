@@ -57,7 +57,7 @@ $db['default']['database'] = 'printxp1_nubuild';*/
 $db['default']['hostname'] = 'localhost';//192.168.0.105
 $db['default']['username'] = 'root';
 $db['default']['password'] = '';
-$db['default']['database'] = 'db_subbie_test';
+$db['default']['database'] = 'db_subbie';
 
 $db['default']['dbdriver'] = 'mysql';
 $db['default']['dbprefix'] = '';

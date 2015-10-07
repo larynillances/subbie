@@ -62,7 +62,7 @@ echo form_close();
             else:
                 ?>
                 <tr>
-                    <td colspan="6">No data has found.</td>
+                    <td colspan="6">No data was found.</td>
                 </tr>
             <?php
             endif;

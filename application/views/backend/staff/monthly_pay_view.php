@@ -184,7 +184,7 @@ echo form_open('','class="form-horizontal" role="form"');
             else:
                 ?>
                 <tr>
-                    <td colspan="15">No data has found.</td>
+                    <td colspan="15">No data was found.</td>
                 </tr>
             <?php
             endif;
@@ -262,7 +262,7 @@ echo form_open('','class="form-horizontal" role="form"');
             else:
                 ?>
                 <tr>
-                    <td colspan="3">No data has found.</td>
+                    <td colspan="3">No data was found.</td>
                 </tr>
             <?php
             endif;

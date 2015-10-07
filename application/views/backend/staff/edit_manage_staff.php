@@ -14,7 +14,7 @@ echo form_open('','class="form-horizontal" role="form"');
                     </div>
                     <label class="col-sm-2 control-label" for="mname">Middle:</label>
                     <div class="col-sm-3">
-                        <input type="text" name="mname" id="mname" class="form-control input-sm required" value="<?php echo $v->mname;?>">
+                        <input type="text" name="mname" id="mname" class="form-control input-sm" value="<?php echo $v->mname;?>">
                     </div>
                 </div>
                 <div class="form-group">
@@ -44,12 +44,12 @@ echo form_open('','class="form-horizontal" role="form"');
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="email">Email:</label>
                     <div class="col-sm-5">
-                        <input type="text" name="email" id="email" class="form-control input-sm" value="<?php echo $v->email;?>">
+                        <input type="text" name="email" id="email" class="form-control input-sm email-details" value="<?php echo $v->email;?>">
                     </div>
                     <div class="col-sm-3">
                         <label>
                             Email Payslip?
-                            <input type="checkbox" name="is_email_payslip" value="1" style="margin-top: 10px;" <?php echo $v->is_email_payslip ? 'checked' : '';?>>
+                            <input type="checkbox" name="is_email_payslip" value="1" class="email-checked-details" disabled style="margin-top: 10px;" <?php echo $v->is_email_payslip ? 'checked' : '';?>>
                         </label>
                     </div>
                 </div>

@@ -834,7 +834,7 @@ class Admin_Controller extends Subbie{
 
         if (isset($_POST['send_mail'])) {
 
-            $msg = 'Good day. <br/>Here is the attach file for Pay Period Summary Report from ';
+            $msg = 'Good day. <br/>Here is the attach file for Pay Period Summary Report for Week ' . $this->data['thisWeek'] . ' from ';
             $msg .= '<strong>' . date('j F Y', strtotime($this_week[$this->data['thisWeek']])) . ' to ' . date('j F Y', strtotime('+6 days ' . $this_week[$this->data['thisWeek']])) . '</strong>.';
 
             $this_date  = $this_week[$this->data['thisWeek']];
@@ -2401,6 +2401,214 @@ class Admin_Controller extends Subbie{
         }
         if(isset($_POST['cancel'])){
             $this->my_model->update('tbl_email_export_log',array('type'=>3),$_POST['id']);
+        }
+    }
+
+    function payPeriodSettings(){
+        if($this->session->userdata('is_logged_in') === false){
+            redirect('');
+        }
+
+        $this->data['year'] = $this->getYear();
+        $this->data['month'] = $this->getMonth();
+
+        $this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
+
+        ksort($this->data['project_type']);
+
+        if(isset($_POST['search'])){
+            $this->session->set_userdata(array(
+                '_year_session' => $_POST['year'],
+                '_month_session' => $_POST['month'],
+                '_week_session' => $_POST['week'],
+                '_project_session' => $_POST['project_type']
+            ));
+            redirect('payPeriodSettings');
+        }
+
+        $year_session = $this->session->userdata('_year_session');
+        $month_session = $this->session->userdata('_month_session');
+        $week_session = $this->session->userdata('_week_session');
+        $project_session = $this->session->userdata('_project_session');
+
+        $_this_date = new DateTime();
+        $this->data['thisYear'] = $year_session != '' ? $year_session : date('Y');
+        $this->data['thisMonth'] = $month_session != '' ? $month_session : date('m');
+        $this->data['thisWeek'] = $week_session != '' ? $week_session : $_this_date->format('W');
+        $this->data['thisProject'] = $project_session != '' ? $project_session : 1;
+        $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $week_data = $this->getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $week_date = $week_data[$this->data['thisWeek']];
+
+        $id = $this->uri->segment(2);
+        if($id){
+            $this->my_model->setLastId('name');
+            $this->my_model->setSelectFields(array('CONCAT(fname," ",lname) as name'));
+            $staff_name = $this->my_model->getInfo('tbl_staff',$id);
+
+            $this->data['page_name'] .= ' for '.$staff_name;
+            $whatVal = 'tbl_staff.id ="'.$id.'"';
+            $this->data['page_load'] = 'backend/pay_period/pay_period_settings_employee_view';
+        }
+        else{
+            $whatVal = 'project_id = "'.$this->data['thisProject'].'" AND (date_employed != "0000-00-00" AND (status_id = "3" OR status_id="2"))';
+            $whatVal .= ' OR (last_week_pay >= "' . $this->data['thisWeek'] . '")';
+            $this->data['page_load'] = 'backend/pay_period/pay_period_settings_view';
+        }
+
+        $staff = new Staff_Helper();
+        $staff_data = $staff->staff_details($whatVal,'');
+        $hourly_rate = $staff->staff_hourly_rate();
+        $rate = $staff->staff_rate();
+        $data_ = array();
+        $rate_cost = array();
+        $rate_week_start = array();
+        $staff_name = '';
+        if(count($staff_data) > 0){
+            foreach($staff_data as $ev){
+                $staff_name = $ev->name;
+                $ev->rate_name = '';
+                $ev->rate_cost = 0;
+                $ev->start_use = '';
+                $salary_type = explode(' ',$ev->description);
+                $ev->description = end($salary_type).' ('.$ev->salary_code.')';
+
+                $ev->esct_rate = $ev->esct_rate ? ($this->is_decimal($ev->esct_rate) ? number_format($ev->esct_rate, 2) . '%' : $ev->esct_rate . '%') : '';
+                $ev->kiwi      = $ev->kiwi ? $ev->kiwi . '%' : '';
+                $ev->emp_kiwi  = $ev->emp_kiwi ? $ev->emp_kiwi . '%' : '';
+
+                if($id){
+                    $end = $ev->date_last_pay != '0000-00-00' ? $ev->date_last_pay : date('Y-m-d');
+                    $week_in_year = $this->getWeekBetweenDates($ev->date_employed,$end);
+                    $ref = 1;
+                    if(count($week_in_year) > 0){
+                        foreach($week_in_year as $year_week=>$date){
+                            $week_year = explode('-',$year_week);
+                            if (count(@$rate[$ev->id]) > 0) {
+                                foreach (@$rate[$ev->id] as $used_date => $val) {
+                                    if (strtotime($used_date) <= strtotime($date) ||
+                                        strtotime($used_date) <= strtotime(date('Y-m-d', strtotime('+6 days ' . $date)))) {
+                                        $rate_name = explode(' ',$val->rate_name);
+                                        //$ev->rate_name = $val->rate_name;
+                                        $val->rate_cost = $this->is_decimal($val->rate_cost) ? number_format($val->rate_cost,2,'.','') : $val->rate_cost;
+                                        $ev->rate_name = end($rate_name).' ($ '.$val->rate_cost.')';
+                                        //$ev->rate_cost = $val->rate;
+                                        $ev->start_use = $val->start_use;
+                                        $start_week = new DateTime($used_date);
+                                        $start_use_week = $start_week->format('W');
+                                        $year_ = $start_week->format('Y');
+                                        $ev->rate_cost = $val->rate_cost;
+                                        $rate_cost[$val->rate_cost] =  $val->rate_cost;
+                                        $rate_week_start[$val->rate_cost] = $start_use_week.'-'.$year_;
+                                    }
+                                }
+                            }
+
+                            $ev->hourly_rate = 0;
+                            if (count(@$hourly_rate[$ev->id]) > 0) {
+                                foreach (@$hourly_rate[$ev->id] as $used_date => $val) {
+                                    if (strtotime($used_date) <= strtotime($date) ||
+                                        strtotime($used_date) <= strtotime(date('Y-m-d', strtotime('+6 days ' . $date)))) {
+                                        $ev->hourly_rate = $val->hourly_rate;
+                                    }
+                                }
+                            }
+                            $previous_rate = end(array_slice($rate_cost, - (count($rate_cost) - 2),1));
+                            $current_rate = end($rate_cost);
+                            $rate_value = '';
+                            if(count($rate_cost) > 1){
+                                $rate_value = '$ '.number_format($current_rate - $previous_rate,2);
+                            }
+                            $rate_week_year = @$rate_week_start[$ev->rate_cost];
+
+                            if($ev->rate_name) {
+                                $data_[] = (object)array(
+                                    'id' => $ref,
+                                    'rate_name' => $ev->rate_name,
+                                    'year' => $week_year[1],
+                                    'week' => $week_year[0],
+                                    'week_ending' => $week_year[0] == 30 && $week_year[1] == 2015 ? date('d-M-Y',strtotime('+5 days '.$date)) : date('d-M-Y',strtotime('+6 days '.$date)),
+                                    'rate_cost' => $ev->rate_cost,
+                                    'description' => $ev->description,
+                                    'hourly_rate' => $ev->hourly_rate ? '$'.number_format($ev->hourly_rate,2) : '',
+                                    'pay_increase' =>  $rate_week_year == $year_week ? $rate_value : '',
+                                    'has_pay_increase' =>  count($rate_cost) > 1 && $rate_week_year == $year_week ? 1 : 0,
+                                    'esct_rate' => $ev->esct_rate,
+                                    'kiwi' => $ev->kiwi,
+                                    'emp_kiwi' => $ev->emp_kiwi,
+                                    'name' => $ev->name,
+                                    'frequency' => $ev->frequency,
+                                    'staff_status' => $ev->staff_status,
+                                    'tax_code' => $ev->tax_code,
+                                    'color' => $ev->color
+                                );
+                                $ref++;
+                            }
+                        }
+                    }
+                }
+                else{
+                    if (count(@$rate[$ev->id]) > 0) {
+                        foreach (@$rate[$ev->id] as $used_date => $val) {
+                            if (strtotime($used_date) <= strtotime($week_date) ||
+                                strtotime($used_date) <= strtotime(date('Y-m-d', strtotime('+6 days ' . $week_date)))) {
+                                $rate_name = explode(' ',$val->rate_name);
+                                //$ev->rate_name = $val->rate_name;
+                                $val->rate_cost = $this->is_decimal($val->rate_cost) ? number_format($val->rate_cost,2) : $val->rate_cost;
+                                $ev->rate_name = end($rate_name).' ($ '.$val->rate_cost.')';
+                                $ev->rate_cost = $val->rate;
+                                $ev->start_use = $val->start_use;
+                            }
+                        }
+                    }
+
+                    $ev->hourly_rate = 0;
+                    if (count(@$hourly_rate[$ev->id]) > 0) {
+                        foreach (@$hourly_rate[$ev->id] as $used_date => $val) {
+                            if (strtotime($used_date) <= strtotime($week_date) ||
+                                strtotime($used_date) <= strtotime(date('Y-m-d', strtotime('+6 days ' . $week_date)))) {
+                                $ev->hourly_rate = $val->hourly_rate;
+                            }
+                        }
+                    }
+
+                    if($ev->rate_name){
+                        $data_[] = (object)array(
+                            'id' => $ev->id,
+                            'rate_name' => $ev->rate_name,
+                            'rate_cost' => $ev->rate_cost,
+                            'description' => $ev->description,
+                            'hourly_rate' => $ev->hourly_rate,
+                            'esct_rate' => $ev->esct_rate,
+                            'kiwi' => $ev->kiwi,
+                            'emp_kiwi' => $ev->emp_kiwi,
+                            'name' => $ev->name,
+                            'frequency' => $ev->frequency,
+                            'staff_status' => $ev->staff_status,
+                            'tax_code' => $ev->tax_code,
+                            'color' => $ev->color
+                        );
+                    }
+                }
+            }
+        }
+
+        if(isset($_GET['p']) && $_GET['p'] == 1 && $id){
+            $dir = realpath(APPPATH.'../pdf');
+            $real_path = $dir.'/pay period/settings';
+            if (!is_dir($real_path)) {
+                mkdir($real_path, 0777, TRUE);
+            }
+            $this->data['dir'] = $real_path;
+            $this->data['staff_data'] = $data_;
+            $this->data['file_name'] = date('Ymd').'_Pay_Period_Settings_'.str_replace(' ','',$staff_name);
+            $this->data['page_name'] = 'Pay Period Settings for '.$staff_name;
+            $this->load->view('backend/pay_period/print_pay_period_settings_employee_view',$this->data);
+        }else{
+            $this->data['staff_data'] = $id ? json_encode($data_) : $data_;
+            $this->load->view('main_view',$this->data);
         }
     }
 

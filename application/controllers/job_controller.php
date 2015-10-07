@@ -3,11 +3,46 @@ include('subbie.php');
 
 class Job_Controller extends Subbie{
 
-    function trackingLog(){
-        if($this->session->userdata('is_logged_in') == false){
+    function __construct(){
+        parent::__construct();
+        if($this->session->userdata('is_logged_in') === false){
             redirect('');
         }
+    }
 
+    function trackingLog(){
+
+        $this->my_model->setNormalized('status','id');
+        $this->my_model->setSelectFields(array('id','status'));
+        $this->data['job_status'] = $this->my_model->getInfo('tbl_job_status');
+        $this->data['job_status'][''] = 'All Job Status';
+        ksort($this->data['job_status']);
+
+        $this->my_model->setNormalized('list_type','id');
+        $this->my_model->setSelectFields(array('id','list_type'));
+        $this->data['list_type'] = $this->my_model->getInfo('tbl_list_type');
+        $this->data['list_type'][''] = 'All List';
+        ksort($this->data['list_type']);
+
+        if(isset($_POST['go'])){
+            $this->session->set_userdata(array(
+                'job_status_id'=> $_POST['status_id'],
+                'list_type_id' => $_POST['list_id']
+            ));
+
+            redirect('trackingLog');
+        }
+
+        $this->data['job_status_id'] = !array_key_exists('job_status_id',$this->session->all_userdata()) ? 4 : $this->session->userdata('job_status_id');
+        $this->data['list_type_id'] = $this->session->userdata('list_type_id');
+
+        $whatVal = '';
+        $whatFld = '';
+
+        if($this->data['job_status_id']){
+            $whatVal = array($this->data['job_status_id']);
+            $whatFld = array('tbl_tracking_log.status_id');
+        }
         $this->my_model->setJoin(array(
             'table' => array(
                 'tbl_client',
@@ -59,7 +94,7 @@ class Job_Controller extends Subbie{
 
         $this->my_model->setSelectFields($fields,false);
         $this->my_model->setGroupBy('id');
-        $this->data['job_data'] = $this->my_model->getinfo('tbl_registration');
+        $this->data['job_data'] = $this->my_model->getinfo('tbl_registration',$whatVal,$whatFld);
         if(count($this->data['job_data']) >0){
             foreach($this->data['job_data'] as $jv){
                 $team = json_decode($jv->team);
@@ -115,14 +150,19 @@ class Job_Controller extends Subbie{
             }
         }
 
+        if(isset($_POST['change_status'])){
+            unset($_POST['change_status']);
+            $id = $_POST['job_id'];
+            $this->my_model->update('tbl_tracking_log',$_POST,$id,'job_id');
+            redirect('trackingLog');
+        }
+
         $this->data['page_load'] = 'backend/tracking/tracking_log_view';
         $this->load->view('main_view',$this->data);
     }
 
+
     function invoiceList(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
 
         $action = $this->uri->segment(2);
         $id = $this->uri->segment(3);
@@ -167,9 +207,6 @@ class Job_Controller extends Subbie{
     }
 
     function invoiceSummary(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
 
         $id = $this->uri->segment(2);
         if(!$id){
@@ -236,10 +273,6 @@ class Job_Controller extends Subbie{
     }
 
     function jobInvoice(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $id = $this->uri->segment(2);
         $inv_id = $this->uri->segment(3);
         if(!$id && !$inv_id){
@@ -371,10 +404,6 @@ class Job_Controller extends Subbie{
     }
 
     function invoiceManage(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $action = $this->uri->segment(2);
         $client_id = $this->uri->segment(3);
         $inv_ref = $this->uri->segment(4);
@@ -497,9 +526,7 @@ class Job_Controller extends Subbie{
     }
 
     function editArchiveInvoice(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
+        
         $ref = $this->uri->segment(3);
         $client_id = $this->uri->segment(2);
 
@@ -514,9 +541,7 @@ class Job_Controller extends Subbie{
     }
 
     function statement(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
+        
         $id = $this->uri->segment(2);
         if(!$id){
             exit;
@@ -605,9 +630,7 @@ class Job_Controller extends Subbie{
     }
 
     function archiveStatement(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
+        
         $this->data['pdf_statement'] = array();
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
@@ -658,10 +681,6 @@ class Job_Controller extends Subbie{
     }
 
     function manageStatement(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $action = $this->uri->segment(2);
         $client_id = $this->uri->segment(3);
         if(!$action){
@@ -800,10 +819,6 @@ class Job_Controller extends Subbie{
     }
 
     function creditNote(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $id = $this->uri->segment(2);
         if(!$id){
             exit;
@@ -890,9 +905,6 @@ class Job_Controller extends Subbie{
     }
 
     function archiveCreditNote(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
         $this->data['invoice_list'] = array();
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
@@ -967,10 +979,6 @@ class Job_Controller extends Subbie{
     }
 
     function manageCreditNote(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $action = $this->uri->segment(2);
         $id = $this->uri->segment(3);
         if(!$action && !$id){
@@ -1038,9 +1046,6 @@ class Job_Controller extends Subbie{
     }
 
     function newJobRequestForm(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
 
         $this->my_model->setNormalized('client_name','id');
         $this->my_model->setSelectFields(array('id','client_name'));
@@ -1126,10 +1131,6 @@ class Job_Controller extends Subbie{
     }
 
     function jobList(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $this->my_model->setJoin(array(
             'table' => array(
                 'tbl_client',
@@ -1184,10 +1185,6 @@ class Job_Controller extends Subbie{
     }
 
     function jobEdit(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         $page = $this->uri->segment(2);
         $id = $this->uri->segment(3);
 
@@ -1278,9 +1275,7 @@ class Job_Controller extends Subbie{
     }
 
     function jobCostSheet(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
+        
         $id = $this->uri->segment(2);
 
         if(!$id){
@@ -1354,19 +1349,16 @@ class Job_Controller extends Subbie{
     }
 
     function workFlowCalendar(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
-        $this->data['job_allocated'] = $this->my_model->getInfo('tbl_registration',true,'is_allocated !=');
+        $whatVal = array(4,false);
+        $whatFld = array('status_id','is_allocated');
+        $job_data = new Job_Helper();
+        $this->data['job_allocated'] = $job_data->job_details($whatVal,$whatFld);
         $this->data['page_load'] = 'backend/work_flow/work_flow_calendar_view';
         $this->load->view('main_view',$this->data);
     }
 
     function allocateJob(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
+        
         $this->data['job_list'] = array();
         $this->my_model->setJoin(array(
             'table' => array('tbl_client'),
@@ -1379,7 +1371,10 @@ class Job_Controller extends Subbie{
             'CONCAT(tbl_client.client_code,LPAD(tbl_registration.id, 5,"0")) as job_ref',
             'tbl_registration.address','tbl_registration.job_name'
         ));
-        $job_list = $this->my_model->getinfo('tbl_registration',true,'is_allocated !=');
+        $job_data = new Job_Helper();
+        $whatVal = array(4,false);
+        $whatFld = array('status_id','is_allocated');
+        $job_list = $job_data->job_details($whatVal,$whatFld);
 
         if(count($job_list) >0){
             foreach($job_list as $jv){
@@ -1409,10 +1404,6 @@ class Job_Controller extends Subbie{
     }
 
     function addSchedule(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
-
         if(isset($_POST['submit'])){
             unset($_POST['submit']);
             $_POST['date_sched'] = date('Y-m-d');
@@ -1427,9 +1418,7 @@ class Job_Controller extends Subbie{
     }
 
     function setJobComplete(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
+        
         $id = $this->uri->segment(2);
         $inv = $this->uri->segment(3);
         if(!$id){
@@ -1580,10 +1569,12 @@ class Job_Controller extends Subbie{
     }
 
     function jobQuoting(){
-        if($this->session->userdata('is_logged_in') == false){
-            redirect('');
-        }
         $this->data['page_load'] = 'backend/quote/job_quoting_view';
+        $this->load->view('main_view',$this->data);
+    }
+
+    function workOrder(){
+        $this->data['page_load'] = 'backend/work_order/work_order_view';
         $this->load->view('main_view',$this->data);
     }
 }

@@ -364,6 +364,7 @@
             var job_view = thisData.job ? thisData.job : thisData.message.subject;
             var from_ = typeof thisData.message.from == 'undefined' ? '' : " <br/>&lt;" + thisData.message.from + "&gt;";
             var to_ = thisData.message.to_alias ? thisData.message.to_alias + " &lt;" + thisData.message.to + "&gt;" : thisData.staff_name + " &lt;" + thisData.message.to + "&gt;";
+            var link = thisData.link ? '&nbsp;|&nbsp;<a href="'+ thisData.link +'" target="_blank">view</a>' : '';
             ourDetail.find('.dateView').html(thisData.date);
             ourDetail.find('.statusView').html(thisData.status);
             ourDetail.find('.userView').html(thisData.user);
@@ -372,7 +373,7 @@
             ourDetail.find('.toView').html(to_);
             ourDetail.find('.fromView').html(name_ + from_);
             ourDetail.find('.replyToView').html('no-reply@subbiesolutions.co.nz');
-            ourDetail.find('.attachmentView').html(avail_attachment);
+            ourDetail.find('.attachmentView').html(avail_attachment + link);
 
             var cc = thisData.message.cc;
             var alias = thisData.message.cc_alias;

@@ -43,7 +43,7 @@
     else:
     ?>
         <tr>
-            <td colspan="8">No data has found.</td>
+            <td colspan="8">No data was found.</td>
         </tr>
     <?php
     endif;

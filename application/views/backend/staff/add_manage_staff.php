@@ -5,53 +5,53 @@
     <div class="row">
         <div class="col-sm-6">
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="fname">First Name:</label>
-                <div class="col-sm-4">
+                <label class="col-sm-3 control-label" for="fname">First Name:</label>
+                <div class="col-sm-3">
                     <input type="text" name="fname" id="fname" class="form-control input-sm required">
                 </div>
                 <label class="col-sm-2 control-label" for="mname">Middle:</label>
-                <div class="col-sm-4">
-                    <input type="text" name="mname" id="mname" class="form-control input-sm required">
+                <div class="col-sm-3">
+                    <input type="text" name="mname" id="mname" class="form-control input-sm">
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="lname">Last Name:</label>
-                <div class="col-sm-6">
+                <label class="col-sm-3 control-label" for="lname">Last Name:</label>
+                <div class="col-sm-8">
                     <input type="text" name="lname" id="lname" class="form-control input-sm required">
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="company">Project:</label>
-                <div class="col-sm-6">
+                <label class="col-sm-3 control-label" for="company">Project:</label>
+                <div class="col-sm-8">
                     <?php echo form_dropdown('project_id',$project,'','class="form-control input-sm"')?>
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="company">Company:</label>
-                <div class="col-sm-6">
+                <label class="col-sm-3 control-label" for="company">Company:</label>
+                <div class="col-sm-8">
                     <input type="text" name="company" id="company" class="form-control input-sm required">
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="position">Position:</label>
-                <div class="col-sm-6">
+                <label class="col-sm-3 control-label" for="position">Position:</label>
+                <div class="col-sm-8">
                     <input type="text" name="position" id="position" class="form-control input-sm required">
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="email">Email:</label>
+                <label class="col-sm-3 control-label" for="email">Email:</label>
                 <div class="col-sm-5">
-                    <input type="text" name="email" id="email" class="form-control input-sm">
+                    <input type="text" name="email" id="email" class="form-control input-sm email-details">
                 </div>
                 <div class="col-sm-3">
                     <label>
                         Email Payslip?
-                        <input type="checkbox" name="is_email_payslip" value="1" style="margin-top: 10px;">
+                        <input type="checkbox" name="is_email_payslip" value="1" class="email-checked-details" disabled style="margin-top: 10px;">
                     </label>
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="bank_account">Bank Account:</label>
+                <label class="col-sm-3 control-label" for="bank_account">Bank Account:</label>
                 <div class="div-class">
                     <div class="col-sm-3" style="padding-right: 3px!important;text-align: right!important;">
                         <?php echo form_dropdown('bank_account[]',$bank_number,'','id="bank_account" class="form-control input-sm" style="width: 90%!important;"')?>
@@ -68,17 +68,17 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="ird_num">IRD Number:</label>
-                <div class="col-sm-6">
+                <label class="col-sm-3 control-label" for="ird_num">IRD Number:</label>
+                <div class="col-sm-8">
                     <input type="text" name="ird_num" id="ird_num" class="form-control input-sm required">
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-2 control-label" for="tax_code_id">PAYE Code:</label>
+                <label class="col-sm-3 control-label" for="tax_code_id">PAYE Code:</label>
                 <div class="col-sm-4">
                     <?php echo form_dropdown('tax_code_id',$tax_code,'','class="form-control input-sm required" id="tax_code_id"');?>
                 </div>
-                <label class="col-sm-2 control-label" for="has_st_loan">
+                <label class="col-sm-3 control-label" for="has_st_loan">
                     ST Loan? <input type="checkbox" name="has_st_loan" id="has_st_loan" value="1" disabled>
                 </label>
             </div>
@@ -124,13 +124,13 @@
             </div>
             <div class="form-group">
                 <label class="col-sm-3 control-label" for="kiwi_id">Employee Kiwi Saver:</label>
-                <div class="col-sm-2" >
+                <div class="col-sm-3" >
                     <?php echo form_dropdown('kiwi_id',$kiwi,'','class="form-control input-sm kiwi-class" id="kiwi_id" style="width:134%"');?>
                 </div>
             </div>
             <div class="form-group">
                 <label class="col-sm-3 control-label" for="kiwi_id">Employer Kiwi Saver:</label>
-                <div class="col-sm-2">
+                <div class="col-sm-3">
                     <?php echo form_dropdown('employeer_kiwi',$kiwi,'','class="form-control input-sm kiwi-class" id="kiwi_id" style="width:134%"');?>
                 </div>
             </div>

@@ -1,20 +1,20 @@
 <div class="page-header">
     <div class="pull-right form-inline">
         <div class="btn-group">
-            <button class="btn btn-primary" data-calendar-nav="prev"><< Prev</button>
-            <button class="btn" data-calendar-nav="today">Today</button>
-            <button class="btn btn-primary" data-calendar-nav="next">Next >></button>
+            <button class="btn btn-sm btn-primary" data-calendar-nav="prev"><< Prev</button>
+            <button class="btn btn-sm" data-calendar-nav="today">Today</button>
+            <button class="btn btn-primary btn-sm" data-calendar-nav="next">Next >></button>
         </div>
         <div class="btn-group">
-            <button class="btn btn-warning" data-calendar-view="year">Year</button>
-            <button class="btn btn-warning active" data-calendar-view="month">Month</button>
-            <button class="btn btn-warning" data-calendar-view="week">Week</button>
-            <button class="btn btn-warning" data-calendar-view="day">Day</button>
+            <button class="btn btn-warning btn-sm" data-calendar-view="year">Year</button>
+            <button class="btn btn-warning btn-sm active" data-calendar-view="month">Month</button>
+            <button class="btn btn-warning btn-sm" data-calendar-view="week">Week</button>
+            <button class="btn btn-warning btn-sm" data-calendar-view="day">Day</button>
         </div>
     </div>
     <h3></h3><br/>
-    <a href="#" class="btn btn-success allocate-job">Allocate Job</a>
-    <a href="#" class="btn btn-success add-sched">Add Event</a>
+    <button class="btn btn-success btn-sm allocate-job" <?php echo count($job_allocated) > 0 ? '' : 'disabled'?> >Allocate Job</button>
+    <button class="btn btn-success btn-sm add-sched">Add Event</button>
     <span style="<?php echo count($job_allocated) > 0 ? '' : 'display:none;'?>">Job to be Allocate:</span>
     <?php
     if(count($job_allocated) >0):

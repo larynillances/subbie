@@ -9,6 +9,9 @@
             <div class="col-sm-1" style="margin-left: -20px;">
                 <?php echo form_dropdown('staff_status',$staff_status,$status,'class="form-control input-sm" style="width:120%;"')?>
             </div>
+            <div class="col-sm-2" style="margin-left: -10px;">
+                <?php echo form_dropdown('project_type',$project_type,$project,'class="form-control input-sm"')?>
+            </div>
             <div class="col-sm-1">
                 <input type="submit" name="go" class="btn btn-success input-sm" style="padding: 5px 10px;" value="Go" >
             </div>
@@ -68,8 +71,8 @@
                         <td><?php echo $v->installment ? '$'.number_format($v->installment,2) : ''?></td>
                         <td><?php echo $v->balance ? '$'.number_format($v->balance,2) : ''?></td>
                         <td <?php echo $v->staff_status ? 'style="background:'.$v->color.'"' : ''?> ><?php echo $v->staff_status;?></td>
-                        <td>
-                            <a href="<?php echo base_url().'kiwiPayLetter/'.$v->id?>" target="_blank" class="tooltip-class" title="Print Kiwisaver Letter">Kiwi</a>
+                        <td style="text-align: left;">
+                            <a href="<?php echo base_url().'kiwiPayLetter/'.$v->id?>" target="_blank" class="tooltip-class" title="Print Kiwisaver Letter">Kiwi</a>&nbsp;
                             <?php
                             if($v->status_id == 3){
                                 ?>
@@ -78,6 +81,7 @@
                             <?php
                             }else if($v->status_id == 2){
                                 ?>
+                                <a href="<?php echo base_url('manageStaff/edit/'.$v->id)?>" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
                                 <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?current=1';?>" class="move-to-current-btn move-btn tooltip-class" data-value="Move to Current" data-placement="left" title="Move to Current">Cur.</a>&nbsp;
                                 <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?archive=1';?>" class="move-to-archive-btn move-btn tooltip-class"  data-value="Move to Archive" data-placement="left" title="Move to Archive">Arc.</a>
                             <?php
@@ -95,7 +99,7 @@
             else:
                 ?>
                 <tr>
-                    <td colspan="15" class="empty-table">No data has found.</td>
+                    <td colspan="15" class="empty-table">No data was found.</td>
                 </tr>
             <?php
             endif;

@@ -7,6 +7,9 @@ echo form_open('','class="form-horizontal"');
         <div class="col-sm-1">
             <?php echo form_dropdown('year',$year,$_year,'class="form-control input-sm"')?>
         </div>
+        <div class="col-sm-2">
+            <?php echo form_dropdown('project_type',$project_type,$_project,'class="form-control input-sm"')?>
+        </div>
         <div class="col-sm-1">
             <input type="submit" name="submit" class="btn btn-sm btn-success" value="Go">
         </div>

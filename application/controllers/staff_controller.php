@@ -15,12 +15,19 @@ class Staff_Controller extends Subbie{
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
+        $this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
+
+        ksort($this->data['project_type']);
+
         if(isset($_POST['search'])){
             $this->data['thisYear'] = $_POST['year'];
             $this->data['thisMonth'] = $_POST['month'];
             $this->session->set_userdata(array(
                 '_year' => $_POST['year'],
-                '_month' => $_POST['month']
+                '_month' => $_POST['month'],
+                '_project_type' => $_POST['project_type']
             ));
 
             redirect('wageTable');
@@ -28,8 +35,9 @@ class Staff_Controller extends Subbie{
 
         $this->data['thisYear'] = $this->session->userdata('_year') ? $this->session->userdata('_year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('_month') ? $this->session->userdata('_month') : date('m');
+        $this->data['thisProject'] = $this->session->userdata('_month') ? $this->session->userdata('_project_type') : 1;
 
-        $this->getWageData($this->data['thisYear'],$this->data['thisMonth']);
+        $this->getWageData($this->data['thisYear'],$this->data['thisMonth'],'weekly',$this->data['thisProject']);
 
         $id = array();
         $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$this->data['thisYear'].'" AND (MONTH(date_last_pay) ="'.(int)$this->data['thisMonth'].'" OR MONTH(date_last_pay) ="'.(int)($this->data['thisMonth'] - 1).'")';
@@ -101,20 +109,30 @@ class Staff_Controller extends Subbie{
 
         ksort($this->data['staff_status']);
 
+        $this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
+
+        ksort($this->data['project_type']);
+
         if(isset($_POST['go'])){
             if(!$_POST['staff_status']){
                 $_POST['staff_status'] = 4;
             }
-            $this->session->set_userdata(array('status_selected'=>$_POST['staff_status']));
+            $this->session->set_userdata(array(
+                'status_selected'=> $_POST['staff_status'],
+                'project_type' => $_POST['project_type']
+            ));
             redirect('wageManage');
         }
         $this->data['status'] = $this->session->userdata('status_selected') ? $this->session->userdata('status_selected') : 3;
+        $this->data['project'] = $this->session->userdata('project_type') ? $this->session->userdata('project_type') : 1;
 
-        $whatVal = array($this->data['status'],1);
+        $whatVal = array($this->data['status'],$this->data['project']);
         $whatFld = array('status_id','project_id');
 
         if($this->session->userdata('status_selected') == 4){
-            $whatVal = 1;
+            $whatVal = $this->data['project'];
             $whatFld = 'project_id';
         }
 
@@ -490,7 +508,7 @@ class Staff_Controller extends Subbie{
                     $this->my_model->update('tbl_deductions',$_POST,$id);
                     break;
             }
-            redirect('wageManage');
+            redirect('paySetup');
         }
 
     }
@@ -519,7 +537,7 @@ class Staff_Controller extends Subbie{
             switch($action){
                 case 'add':
                     $this->my_model->insert('tbl_rate',$_POST);
-                    redirect('wageManage');
+                    redirect('paySetup');
                     break;
                 default:
                     $id = $this->uri->segment(3);
@@ -528,7 +546,7 @@ class Staff_Controller extends Subbie{
                     }
 
                     $this->my_model->update('tbl_rate',$_POST,$id);
-                    redirect('wageManage');
+                    redirect('paySetup');
                     break;
             }
         }
@@ -797,12 +815,13 @@ class Staff_Controller extends Subbie{
                     @$start_use_ = $this->my_model->getInfo('tbl_staff_rate',$id,'staff_id');
 
                     $post_rate = array(
-                        'start_use' => date('Y-m-d',strtotime($_POST['start_use']))
+                        /*'start_use' => date('Y-m-d',strtotime($_POST['start_use']))*/
                     );
 
                     $has_rate = $this->my_model->getInfo('tbl_staff_rate',array($rate,$rate_type),array('id','rate_id'));
                     if(count($has_rate) > 0){
                         foreach($has_rate as $value){
+                            $post_rate['start_use'] = $value->start_use;
                             if($rate_type != $_POST['rate']){
                                 $post_rate['end_use'] = date('Y-m-d',strtotime('-1 day '.$_POST['start_use']));
 
@@ -1284,23 +1303,28 @@ class Staff_Controller extends Subbie{
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
+        /*$this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
+
+        ksort($this->data['project_type']);*/
 
         if(isset($_POST['search'])){
-            $this->data['thisYear'] = $_POST['year'];
-            $this->data['thisMonth'] = $_POST['month'];
-            $this->data['thisWeek'] = $_POST['week'];
             $this->session->set_userdata(array(
                 '$_year' => $_POST['year'],
                 '$_month' => $_POST['month'],
-                '$_week' => $_POST['week']
+                '$_week' => $_POST['week'],
+                //'$_project_type' => $_POST['project_type']
             ));
             redirect('payPeriodSummaryReport');
         }
+
         $_this_date = new DateTime();
         $this->data['thisYear'] = $this->session->userdata('$_year') != '' ? $this->session->userdata('$_year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('$_month') != '' ? $this->session->userdata('$_month') : date('m');
         $this->data['thisWeek'] = $this->session->userdata('$_week') != '' ? $this->session->userdata('$_week') : $_this_date->format('W');
         $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        //$this->data['thisProject'] = $this->session->userdata('$_project_type') ? $this->session->userdata('$_project_type') : 1;
 
         $year_ = isset($_GET['year']) ? $_GET['year'] : $this->data['thisYear'];
         $month_ = isset($_GET['month']) ? $_GET['month'] : $this->data['thisMonth'];
@@ -1361,6 +1385,7 @@ class Staff_Controller extends Subbie{
             $_date = new DateTime($date);
             $week = $_date->format("W");
             $_week_end = $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));
+            $this->data['page_name'] .= ' for Week '.$this->data['thisWeek'];
             $this->data['page_name'] .= ' <br/>from '.date('j F Y',strtotime($date)).' to '.$_week_end;
             $this->data['pdf_name'] = 'Subbies_PPSR_WE'.date('Ymd',strtotime($_week_end));
 
@@ -1415,6 +1440,7 @@ class Staff_Controller extends Subbie{
             $_date = new DateTime($date);
             $week = $_date->format("W");
             $_week_end = $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));
+            $this->data['page_name'] .= ' for Week '.$this->data['thisWeek'];
             $this->data['page_name'] .= ' from '.date('j F Y',strtotime($date)).' to '.$_week_end;
 
             $this->data['page_load'] = 'backend/staff/pay_summary_report_view';
@@ -1527,6 +1553,7 @@ class Staff_Controller extends Subbie{
         if(isset($_POST['month'])){
             $_month = str_pad($_POST['month'],2,'0',STR_PAD_LEFT);
             $week = $this->getWeeksNumberInMonth($_POST['year'],$_month);
+            ksort($week);
             echo json_encode($week);
         }
     }
@@ -1535,11 +1562,22 @@ class Staff_Controller extends Subbie{
         //$this->output->enable_profiler();
         $page = $this->uri->segment(2);
 
+        $this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
+
+        ksort($this->data['project_type']);
+
         if(isset($_POST['submit'])){
-            $this->session->set_userdata(array('_year_val'=>$_POST['year']));
+            $this->session->set_userdata(array(
+                '_year_val' => $_POST['year'],
+                '_project_val' => $_POST['project_type']
+                )
+            );
             redirect('yearToDateReport');
         }
         $this->data['_year'] = $this->session->userdata('_year_val') ? $this->session->userdata('_year_val') : date('Y');
+        $this->data['_project'] = $this->session->userdata('_project_val') ? $this->session->userdata('_project_val') : 1;
         $this_date = date('Y-m-d',strtotime($this->data['_year'].'-'.date('m-d')));
 
         if($page){
@@ -1603,10 +1641,10 @@ class Staff_Controller extends Subbie{
             }
         }else{
             $this->my_model->setOrder(array('lname','fname'));
-            $this->data['staff'] = $this->my_model->getInfo('tbl_staff',array('false',1),array('is_unemployed','project_id'));
+            $this->data['staff'] = $this->my_model->getInfo('tbl_staff',array('false',$this->data['_project']),array('is_unemployed','project_id'));
             $this->data['year'] = $this->getYear();
 
-            $total_paid = $this->getOverAllWageTotalPay($this_date);
+            $total_paid = $this->getOverAllWageTotalPay($this_date,'',false,$this->data['_project']);
 
             if(count($this->data['staff']) > 0){
                 foreach($this->data['staff'] as $row){
@@ -1884,6 +1922,13 @@ class Staff_Controller extends Subbie{
 
     function payRatePeriods(){
         $id = $this->uri->segment(2);
+
+        $this->my_model->setNormalized('project_name','id');
+        $this->my_model->setSelectFields(array('id','project_name'));
+        $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
+
+        ksort($this->data['project_type']);
+
         if($id){
             $this->my_model->setShift();
             $this->data['staff_rate'] = (Object)$this->my_model->getInfo('tbl_staff_rate',$id);
@@ -1918,20 +1963,24 @@ class Staff_Controller extends Subbie{
                 if(!$_POST['staff_status']){
                     $_POST['staff_status'] = 4;
                 }
-                $this->session->set_userdata(array('status_'=>$_POST['staff_status']));
+                $this->session->set_userdata(array(
+                    'status_' => $_POST['staff_status'],
+                    'project_' => $_POST['project_type']
+                ));
                 redirect('payRatePeriods');
             }
             $this->data['status'] = $this->session->userdata('status_') ? $this->session->userdata('status_') : 4;
+            $this->data['project'] = $this->session->userdata('project_') ? $this->session->userdata('project_') : 1;
 
             if(isset($_GET['id']) && $_GET['id']){
                 $whatVal = array($_GET['id']);
                 $whatFld = array('tbl_staff.id');
             }else{
                 if($this->data['status'] == 4){
-                    $whatVal = array(1);
+                    $whatVal = array($this->data['project']);
                     $whatFld = array('project_id');
                 }else{
-                    $whatVal = array($this->data['status'],1);
+                    $whatVal = array($this->data['status'],$this->data['project']);
                     $whatFld = array('status_id','project_id');
                 }
 

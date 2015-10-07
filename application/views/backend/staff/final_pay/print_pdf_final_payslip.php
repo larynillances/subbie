@@ -84,11 +84,13 @@ ob_start();
                 $start_wage = date('d/m/Y',strtotime('April '.date('Y',strtotime($date)).' Tuesday '));
                 if(count($staff)>0):
                     foreach($staff as $v):
+                        $pay_data = @$last_pay[$v->id];
                         $name = $v->name;
                         $total = @$total_paid[$v->id][$date];
                         $balance_data = @$total_bal[$v->id][$_year][$week];
                         $total_account_one = @$total['account_one'] ? $v->converted_amount * $total['account_one'] : 0;
                         $total_account_two = @$total['account_two'] ? $v->converted_amount * $total['account_two'] : 0;
+                        $v->distribution = ($pay_data['annual_leave_pay'] - $pay_data['annual_tax']) + $v->distribution;
                         ?>
                         <table class="print-table">
                             <thead>
@@ -103,10 +105,10 @@ ob_start();
                                 </th>
                             </tr>
                             <tr>
-                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Pay Advice Slip for the Pay Period Ended:
+                                <th colspan="4" style="padding: 10px;border: 1px solid #000000">Final Pay Advice Slip for the Pay Period Ended:
                                     <?php
-                                    echo $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));
-                                    echo '&nbsp;[Week '.$week.']'
+                                    echo date('j F Y',strtotime('+6 days '.$pay_data['last_date_pay']));
+                                    echo '&nbsp;[Week '.$week.']';
                                     ?>
                                 </th>
                             </tr>
@@ -142,12 +144,12 @@ ob_start();
                                 if($v->nz_account != ''){
                                     ?>
                                     <td class="bold-text" style="text-align: center" colspan="2">Loans</td>
-                                    <?php
+                                <?php
                                 }else{
                                     ?>
                                     <td class="bold-text">Position: <?php echo $v->position;?></td>
                                     <td class="bold-text">Start Date: <?php echo $start_date;?></td>
-                                    <?php
+                                <?php
                                 }
                                 ?>
                             </tr>
@@ -165,11 +167,26 @@ ob_start();
                                     <td class="bold-text" style="text-align: center">This Pay</td>
                                     <td class="bold-text" style="text-align: center">Year to date<br/> (<?php echo $start_wage;?>)</td>
                                 </tr>
-                                <?php
+                            <?php
                             }
                             ?>
                             <tr style="vertical-align: top">
-                                <td >Wage Gross: <span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                                <td>
+                                    <table style="font-size: 12px;border-collapse: collapse;">
+                                        <tr>
+                                            <td style="text-align: right;white-space: nowrap">Wage Gross:</td>
+                                            <td style="padding-left: 5px;"><span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: right;white-space: nowrap">Annual Leave Pay:</td>
+                                            <td style="padding-left: 5px;"><span><?php echo $pay_data['annual_leave_pay'] ? '$'.number_format($pay_data['annual_leave_pay'],2) : '$0.00';?></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: right">Annual Leave PAYE:</td>
+                                            <td style="padding-left: 5px;"><span><?php echo $pay_data['annual_tax'] ? '$'.number_format($pay_data['annual_tax'],2) : '$0.00';?></span></td>
+                                        </tr>
+                                    </table>
+                                </td>
                                 <td class="deduction-column">
                                     <table class="deduction-table">
                                         <tr>
@@ -220,7 +237,7 @@ ob_start();
                                                 <td>Loans</td>
                                                 <td><?php echo $v->total_install;?></td>
                                             </tr>
-                                            <?php
+                                        <?php
                                         }else{
                                             ?>
                                             <tr>
@@ -263,7 +280,7 @@ ob_start();
                                                 <td>&nbsp;</td>
                                                 <td>&nbsp;</td>
                                             </tr>
-                                            <?php
+                                        <?php
                                         }
                                         ?>
                                         <tr>
@@ -358,13 +375,13 @@ ob_start();
                                                     ?>
                                                 </td>
                                             </tr>
-                                            <?php
+                                        <?php
                                         }else{
                                             ?>
                                             <tr>
                                                 <td style="border-top: 1px solid #000000;"><strong><?php echo @$total['distribution'] ? '$ '.number_format($total['distribution'],2) : '&nbsp;';?></strong></td>
                                             </tr>
-                                            <?php
+                                        <?php
                                         }
                                         ?>
                                     </table>
@@ -378,7 +395,7 @@ ob_start();
                                     <strong>Distribution</strong>
                                 </td>
                                 <td style="text-align: center;">
-                                   <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
+                                    <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
                                 </td>
                                 <td style="text-align: center;">
                                     <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : 'Holiday <span style="color: #ff0000">(' .$total_holiday_leave.')</span>'?></strong>
@@ -477,8 +494,8 @@ ob_start();
                                             </thead>
                                             <tbody>
                                             <tr>
-                                                <td style="padding-right: 10px;"><?php echo $total_holiday_leave?></td>
-                                                <td style="padding-right: 10px;">0</td>
+                                                <td style="padding-right: 10px;"><?php echo $pay_data['total_holiday_leave']?></td>
+                                                <td style="padding-right: 10px;"><?php echo $pay_data['holiday_leave_taken']?></td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -518,8 +535,8 @@ ob_start();
                                             </thead>
                                             <tbody>
                                             <tr>
-                                                <td style="padding-right: 10px;"><?php echo $total_sick_leave?></td>
-                                                <td style="padding-right: 10px;">0</td>
+                                                <td style="padding-right: 10px;"><?php echo $pay_data['total_sick_leave']?></td>
+                                                <td style="padding-right: 10px;"><?php echo $pay_data['sick_leave_taken']?></td>
                                             </tr>
                                             </tbody>
                                         </table>

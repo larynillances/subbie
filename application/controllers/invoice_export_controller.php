@@ -766,16 +766,20 @@ class invoice_export_controller extends CI_Controller{
                             if(count($file_names) > 0){
                                 foreach($file_names as $file){
                                     $dir               = realpath(APPPATH . '../pdf');
-                                    $path              = 'payslip/' . date('Y/F', strtotime($v->pay_period));
+                                    $pdf_path = $v->email_type_id == 1 ? 'pay period' : 'payslip';
+                                    $path              = $pdf_path . '/' . date('Y/F', strtotime($v->pay_period));
                                     $full_path = $dir . '/' . $path . '/' . $file->file_name;
-                                    $file->has_attachment = file_exists($full_path) ? 'Yes' : 'No';
+                                    $file->has_attachment = file_exists($full_path) && $file->file_name ? 'Yes' : 'No';
+                                    $v->link = file_exists($full_path) && $file->file_name ? base_url($pdf_path . date('Y/F', strtotime($v->pay_period)).'/'.$file->file_name) : '';
                                 }
                             }
                         }else{
                             $dir               = realpath(APPPATH . '../pdf');
-                            $path              = 'payslip/' . date('Y/F', strtotime($v->pay_period));
+                            $pdf_path = $v->email_type_id == 1 ? 'pay period' : 'payslip';
+                            $path              = $pdf_path . '/' . date('Y/F', strtotime($v->pay_period));
                             $full_path = $dir . '/' . $path . '/' . $file_names;
-                            $v->has_attachment = file_exists($full_path) ? 'Yes' : 'No';
+                            $v->has_attachment = file_exists($full_path) && $file_names ? 'Yes' : 'No';
+                            $v->link = file_exists($full_path) && $file_names ? base_url('pdf/' . $pdf_path . '/' . date('Y/F', strtotime($v->pay_period)).'/'.$file_names) : '';
                         }
                     }
                 }

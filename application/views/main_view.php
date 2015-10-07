@@ -57,10 +57,15 @@
     <script src="<?php echo base_url() . "plugins/js/fileinput.js" ?>"></script>
     <script>
         $.ajaxSetup({ cache: false });
+        jQuery(document).ready(function($){
+            // Get current url
+            // Select an a element that has the matching href and apply a class of 'active'. Also prepend a - to the content of the link
+            //var url = window.location.href;
+            $.post(bu + 'checkTrackingLogPage',{select: 1,page_name:window.location.pathname},function(data){});
+        });
     </script>
 </head>
 <body>
-
 <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="container-fluid">
         <div class="navbar-header">

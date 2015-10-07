@@ -33,7 +33,7 @@
     }
 </style>
 <?php
-echo form_open('');
+echo form_open('','class="form-horizontal"');
 ?>
 <div class="row">
     <div class="col-sm-12">
@@ -49,6 +49,9 @@ echo form_open('');
             <div class="col-sm-1 week-display">
                 <?php echo form_dropdown('week',$week,$thisWeek,'class="form-control input-sm"')?>
             </div>
+            <!--<div class="col-sm-2">
+                <?php /*echo form_dropdown('project_type',$project_type,$thisProject,'class="form-control input-sm"')*/?>
+            </div>-->
             <div class="col-sm-3">
                 <input type="submit" name="search" class="btn btn-success btn-sm" value="Go">
                 <a href="<?php echo base_url().'payPeriodSummaryReport?print=1'?>" class="btn btn-sm btn-success" target="_blank">Print</a>
