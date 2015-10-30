@@ -95,8 +95,8 @@
             <div class="col-md-8">
                 <h4>Rate Table</h4>
             </div>
-            <div class="col-md-4">
-                <input type="button" class="btn btn-primary add-rate-btn" value="Add Rate">
+            <div class="pull-right">
+                <input type="button" class="btn btn-sm btn-primary add-rate-btn" value="Add Rate">
             </div>
         </div>
         <table class="table table-responsive table-colored-header">
@@ -115,7 +115,10 @@
                     <tr>
                         <td><?php echo $v->rate_name;?></td>
                         <td style="text-align: center"><?php echo '$'.number_format($v->rate_cost,2)?></td>
-                        <td><a href="#" class="edit-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a></td>
+                        <td>
+                            <a href="#" class="edit-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>
+                            <a href="#" class="delete-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-remove"></a>
+                        </td>
                     </tr>
                 <?php
                 endforeach;
@@ -364,6 +367,34 @@
                 title: 'Edit Rate',
                 url: url,
                 type: 'small'
+            });
+        });
+        $('.delete-btn').click(function(e){
+            var id = this.id;
+            var ele =
+                '<div class="modal-body">' +
+                    '<div class="row">' +
+                        '<div class="col-sm-12">' +
+                        'Are you sure to delete this rate?' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="modal-footer">' +
+                    '<button type="button" class="btn btn-sm btn-success yes-confirm" data-dismiss="modal">Yes</button>' +
+                    '<button type="button" class="btn btn-sm btn-default" data-dismiss="modal">No</button>' +
+                '</div>';
+            $(this).modifiedModal({
+                html:ele,
+                type: 'small',
+                title: 'Delete Rate Type'
+            });
+
+            $('.yes-confirm').click(function(){
+                $.post(bu + 'rateManage/delete/' + id,{data:1},
+                    function(data){
+                        location.reload();
+                    }
+                );
             });
         });
         $('.edit-fixed-btn').click(function(e){

@@ -9,7 +9,7 @@ if(count($user) > 0):
                     <div class="form-group">
                         <label for="name" class="col-sm-4 control-label">Name</label>
                         <div class="col-sm-6">
-                            <input type="text" class="form-control input-sm" id="name" name="name" value="<?php echo $uv->name;?>">
+                            <input type="text" class="form-control input-sm required" id="name" name="name" value="<?php echo $uv->name;?>">
                         </div>
                     </div>
                     <div class="form-group">
@@ -35,19 +35,19 @@ if(count($user) > 0):
                     <div class="form-group">
                         <label for="email" class="col-sm-3 control-label">Email</label>
                         <div class="col-sm-7">
-                            <input type="text" class="form-control input-sm" id="email" name="email" value="<?php echo $uv->email;?>">
+                            <input type="text" class="form-control input-sm required" id="email" name="email" value="<?php echo $uv->email;?>">
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="username" class="col-sm-3 control-label">Username</label>
                         <div class="col-sm-6">
-                            <input type="text" class="form-control input-sm" id="username" name="username" value="<?php echo $uv->username;?>">
+                            <input type="text" class="form-control input-sm required" id="username" name="username" value="<?php echo $uv->username;?>">
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="password" class="col-sm-3 control-label">Password</label>
                         <div class="col-sm-6">
-                            <input type="password" class="form-control input-sm" id="password" name="password" value="<?php echo $this->encrypt->decode($uv->password);?>">
+                            <input type="password" class="form-control input-sm required" id="password" name="password" value="<?php echo $this->encrypt->decode($uv->password);?>">
                         </div>
                     </div>
                     <div class="form-group">
@@ -73,10 +73,28 @@ if(count($user) > 0):
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary" name="submit">Save</button>
+            <button type="submit" class="btn btn-primary submit-btn" name="submit">Save</button>
         </div>
         <?php
         endforeach;
     endif;
 echo form_close();
 ?>
+<script>
+    $(function(e){
+        $('.submit-btn').live('click',function(e){
+            var hasEmpty = false;
+            $('.required').each(function(e){
+                if(!$(this).val()){
+                    hasEmpty = true;
+                    $(this).css({
+                        border:'1px solid #a94442'
+                    });
+                }
+            });
+            if(hasEmpty){
+                e.preventDefault();
+            }
+        });
+    })
+</script>

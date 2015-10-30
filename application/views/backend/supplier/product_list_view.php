@@ -1,9 +1,11 @@
-<div class="form-group row">
-    <div class="col-sm-3">
-        <input type="button" name="addProduct" class="btn btn-primary add-product" id="<?php echo $this->uri->segment(2);?>" value="Add Product">
-        <a href="<?php echo base_url().'supplierList'?>" class="btn btn-success">Back</a>
+<div class="row">
+    <div class="col-lg-6">
+        <div class="pull-right">
+            <input type="button" name="addProduct" class="btn btn-primary btn-sm add-product" id="<?php echo $this->uri->segment(2);?>" value="Add Product">
+            <a href="<?php echo base_url().'supplierList'?>" class="btn btn-success btn-sm"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
+        </div>
     </div>
-</div>
+</div><br/>
 <div class="row">
     <div class="col-lg-6">
         <table class="table table-colored-header table-responsive">

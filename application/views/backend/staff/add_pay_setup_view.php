@@ -46,8 +46,8 @@ echo form_open('','class="form-horizontal" role="form"');
     </div>
 </div>
 <div class="modal-footer">
-    <button type="submit" class="btn btn-primary submit-btn" name="submit">Submit</button>
-    <button type="button" class="btn btn-default cancel-btn" data-dismiss="modal">Cancel</button>
+    <button type="submit" class="btn btn-sm btn-primary submit-btn" name="submit">Submit</button>
+    <button type="button" class="btn btn-sm btn-default cancel-btn" data-dismiss="modal">Cancel</button>
 </div>
 <?php
 echo form_close();

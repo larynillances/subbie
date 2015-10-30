@@ -1,9 +1,15 @@
-<div class="container-fluid">
+<div class="container-fluid form-horizontal">
     <div class="row">
         <div class="col-sm-9">
+            <label class="control-label col-sm-1">Year:</label>
+            <div class="col-sm-2">
+                <?php
+                echo form_dropdown('year',$year,'','class="form-control input-sm year-dp-select"');
+                ?>
+            </div>
             <div class="pull-right">
                 <a href="<?php echo base_url('payPeriodSettings')?>" class="btn btn-sm btn-success"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
-                <a href="<?php echo base_url('payPeriodSettings/'.$this->uri->segment(2).'?p=1')?>" class="btn btn-sm btn-primary" target="_blank"><i class="glyphicon glyphicon-print"></i> Print</a>
+                <a href="<?php echo base_url('payPeriodSettings/'.$this->uri->segment(2).'?p=1')?>" class="btn btn-sm btn-primary" target="_blank"><i class="glyphicon glyphicon-print"></i> Print All</a>
             </div>
         </div>
     </div><br/>
@@ -85,6 +91,8 @@
                 var o = this.wrapperOptions;
                 var dataView = new Slick.Data.DataView();
                 var grid = new Slick.Grid(this.element, dataView, o.columns, o.slickGridOptions);
+                var d = new Date();
+                var year_val = d.getFullYear();
 
                 grid.onCellChange.subscribe(function (e, args) {
                     dataView.updateItem(args.item.id, args.item);
@@ -99,6 +107,33 @@
                     var currentRow = args.row;
                     rowData = dataView.getItem(currentRow);
                 });
+
+                function myFilter(item, args) {
+                    if (args.year_val != "" && item["year"].indexOf(args.year_val) == -1) {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                $(".year-dp-select").change(function (e) {
+                    Slick.GlobalEditorLock.cancelCurrentEdit();
+
+                    // clear on Esc
+                    if (e.which == 27) {
+                        this.value = "";
+                    }
+
+                    year_val = this.value;
+                    updateFilter();
+                });
+
+                function updateFilter() {
+                    dataView.setFilterArgs({
+                        year_val: year_val
+                    });
+                    dataView.refresh();
+                }
 
                 var sortCol = o.sortCol;
                 var sortDir = o.sortDir;
@@ -154,6 +189,12 @@
                     grid.setSelectedRows(rows);
                     e.preventDefault();
                 });
+
+                dataView.setFilterArgs({
+                    year_val: year_val
+                });
+
+                dataView.setFilter(myFilter);
 
                 dataView.beginUpdate();
                 dataView.setItems(o.data);

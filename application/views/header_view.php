@@ -12,6 +12,8 @@ switch($this->session->userdata('account_type')){
                 'paySetup' => 'Pay Setup',
                 'supplierList' => 'Supplier List',
                 'clientList' => 'Client List',
+                'invoiceList' => 'Invoice List',
+                'payIntegrityCheck' => 'Pay Integrity Check'
             ),
             'New' => array(
                 'newJobRequestForm' => 'Job Request',
@@ -33,6 +35,7 @@ switch($this->session->userdata('account_type')){
             'Wage' => array(
                 'wageManage' => 'Staff Details',
                 'staffList' => 'Staff List',
+                'staffLeave' => 'Staff Leave',
                 'payRatePeriods' => 'Pay Rate Periods',
                 'payPeriodSettings' => 'Pay Period Settings',
                 'payPeriodSummaryReport' => 'Pay Period Summary Report',
@@ -102,7 +105,8 @@ switch($this->session->userdata('account_type')){
                 'paySetup' => 'Pay Setup',
                 'clientList' => 'Client List',
                 'supplierList' => 'Supplier List',
-                'downloadForm' => 'Download Forms'
+                'downloadForm' => 'Download Forms',
+                'payIntegrityCheck' => 'Pay Integrity Check'
             ),
             'New' => array(
                 'newJobRequestForm' => 'Job Request',

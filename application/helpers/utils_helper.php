@@ -40,6 +40,40 @@ if ( ! function_exists('BreakTimeDeduction'))
 
 }
 
+if ( ! function_exists('maxValueInArray'))
+{
+    function maxValueInArray($array, $keyToSearch)
+    {
+        $currentMax = NULL;
+        foreach($array as $arr)
+        {
+            foreach($arr as $key => $value)
+            {
+                if(is_array($value))
+                {
+                    foreach($value as $k => $v)
+                    {
+                        if ($k == $keyToSearch && ($v >= $currentMax))
+                        {
+                            $currentMax = $v;
+                        }
+                    }
+                }
+                else
+                {
+                    if ($key == $keyToSearch && ($value >= $currentMax))
+                    {
+                        $currentMax = $value;
+                    }
+                }
+            }
+        }
+
+        return $currentMax;
+    }
+
+}
+
 if ( ! function_exists('StartWeekNumber'))
 {
     function StartWeekNumber($week_number,$year = 2015){

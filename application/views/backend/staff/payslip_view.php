@@ -118,7 +118,7 @@
                                 </tr>
                                 <tr>
                                     <td style="text-align: right">Non-Working:</td>
-                                    <td style="padding-left: 5px;"><span><?php echo @$v->non_working_hour ? @$v->non_working_hour : '00.0'?></span></td>
+                                    <td style="padding-left: 5px;"><span><?php echo @$v->non_working_hours ? @$v->non_working_hours : '00.0'?></span></td>
                                 </tr>
                             </table>
                         </td>

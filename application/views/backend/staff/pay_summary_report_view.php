@@ -76,6 +76,7 @@ echo form_close();
         $total_emp_kiwi = 0;
         $total_esct = 0;
         $ref = 0;
+        $total_data = array();
         if(count($this_data) >0) {
             foreach ($this_data as $val) {
                 $last_pay = @$last_pay_data[$val['id']];
@@ -88,6 +89,17 @@ echo form_close();
                     $total_kiwi += $val['kiwi'];
                     $total_emp_kiwi += $val['cec'];
                     $total_esct += $val['esct'];
+
+                    $total_data[$project_type[$val['project_id']]][] = array(
+                        'total_nett' => $val['nett'],
+                        'total_dist' => $val['distribution'],
+                        'total_gross' => $val['gross'],
+                        'total_paye' => $val['tax'],
+                        'total_st_loan' => $val['st_loan'],
+                        'total_kiwi' => $val['kiwi'],
+                        'total_emp_kiwi' => $val['cec'],
+                        'total_esct' => $val['esct']
+                    );
                 }
                 ?>
                 <div class="content-div">
@@ -356,11 +368,65 @@ echo form_close();
             <?php
             }
         }
+        ksort($total_data);
+        if(count($total_data) > 0){
+            foreach($total_data as $key=>$data){
+                $_gross = 0;
+                $_paye = 0;
+                $_st_loan = 0;
+                $_nett = 0;
+                $_kiwi = 0;
+                $_emp_kiwi = 0;
+                $_esct = 0;
+                $_dist = 0;
+                if(count($data) > 0){
+                    foreach($data as $val){
+                        $_gross += $val['total_gross'];
+                        $_paye += $val['total_paye'];
+                        $_st_loan += $val['total_st_loan'];
+                        $_nett += $val['total_nett'];
+                        $_kiwi += $val['total_kiwi'];
+                        $_emp_kiwi += $val['total_emp_kiwi'];
+                        $_esct += $val['total_esct'];
+                        $_dist += $val['total_dist'];
+                    }
+                }
+                ?>
+                <div class="content-div">
+                    <table class="inner-table-class">
+                        <tr>
+                            <td colspan="8" style="text-align: left;text-transform: uppercase;background: #dadada"><strong><?php echo $key.' Project Sub-Total:';?></strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-right"><strong>GROSS:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_gross,2)?></strong></td>
+                            <td class="text-right"><strong>PAYE:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_paye,2)?></strong></td>
+                            <td class="text-right"><strong>Student Loan:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_st_loan,2)?></strong></td>
+                            <td class="text-right"><strong>Nett Pay:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_nett,2)?></strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-right"><strong>Kiwisaver Employee:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_kiwi,2)?></strong></td>
+                            <td class="text-right"><strong>Kiwisaver Employer:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_emp_kiwi,2)?></strong></td>
+                            <td class="text-right"><strong>ESCT:</strong></td>
+                            <td><strong><?php echo '$ '.number_format($_esct,2)?></strong></td>
+                            <td class="text-right"><strong>To Bank:</strong></td>
+                            <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format($_dist,2)?></strong></td>
+                        </tr>
+                    </table>
+                </div>
+            <?php
+            }
+        }
         ?>
         <div class="content-div">
             <table class="inner-table-class">
                 <tr>
-                    <td colspan="8" style="text-align: left;"><strong>TOTALS:</strong></td>
+                    <td colspan="8" style="text-align: left;background: #dab7b6"><strong>GRAND TOTAL:</strong></td>
                 </tr>
                 <tr>
                     <td class="text-right"><strong>GROSS:</strong></td>

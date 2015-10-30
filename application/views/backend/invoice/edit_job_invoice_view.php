@@ -162,7 +162,6 @@
         $('.edit-btn').click(function(){
             var data_value = $(this).attr('data-value');
             var url = bu + 'invoiceManage/edit/<?php echo $this->uri->segment(2)?>/' + this.id +'/<?php echo $inv_code.'/'.true;?>?ref=' + data_value;
-            console.log(url);
             content.load(url);
             $('.modal-load').modal();
         });

@@ -13,8 +13,8 @@ echo form_open('','class="form-horizontal" role="form"');
         <?php echo form_dropdown('project_type',$project_type,$thisProject,'class="form-control input-sm"')?>
     </div>
     <div class="col-sm-5">
-        <input type="submit" name="search" class="btn btn-primary" value="Go">
-        <a href="<?php echo base_url().'printSummary/wage/'.$thisMonth.'/'.$thisYear?>" class="btn btn-success" target="_blank">Print</a>
+        <input type="submit" name="search" class="btn btn-primary btn-sm" value="Go">
+        <a href="<?php echo base_url().'printSummary/wage/'.$thisMonth.'/'.$thisYear?>" class="btn btn-success btn-sm" target="_blank">Print</a>
     </div>
 </div>
 <table class="table table-colored-header table-responsive table-striped table-fixed-header">

@@ -54,6 +54,12 @@ echo form_open('','class="form-horizontal" role="form"');
                     </div>
                 </div>
                 <div class="form-group">
+                    <label class="col-sm-3 control-label" for="mobile">Mobile No.:</label>
+                    <div class="col-sm-5">
+                        <input type="text" name="mobile_no" id="mobile" class="form-control input-sm" value="<?php echo $v->mobile_no;?>">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label class="col-sm-3 control-label" for="bank_account">Bank Account:</label>
                     <div class="div-class">
                         <div class="col-sm-4" style="padding-right: 3px!important;text-align: right!important;">
@@ -138,6 +144,18 @@ echo form_open('','class="form-horizontal" role="form"');
                         </div>
                     </div>
                 </div>
+                <div class="has-kiwi-save" style="display: none">
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label tooltip-class" data-placement="top" title="KiwiSaver Date Applied" for="kiwi_id">KS Date Applied:</label>
+                        <div class="col-sm-6">
+                            <div class='input-group date datetimepicker' id='datetimepicker1' data-date-format="DD-MM-YYYY">
+                                <input type='text' class="input-sm form-control date-class required" id="date_employed" name="kiwi_date_start" placeholder="dd-mm-yyyy" value="<?php echo date('d-m-Y',strtotime($v->kiwi_date_start))?>">
+                            <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="esct_rate_id">ESCT Rate:</label>
                     <div class="col-sm-3">
@@ -158,6 +176,37 @@ echo form_open('','class="form-horizontal" role="form"');
                 </div>
             </div>
         </div>
+        <fieldset>
+            <legend>&nbsp;</legend>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label" for="next_of_kin">Next of Kin:</label>
+                        <div class="col-sm-8">
+                            <input type="text" name="next_of_kin" id="next_of_kin" class="form-control input-sm" value="<?php echo $v->next_of_kin;?>">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label" for="relationship">Relationship:</label>
+                        <div class="col-sm-8">
+                            <input type="text" name="relationship" id="relationship" class="form-control input-sm" value="<?php echo $v->relationship;?>">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label" for="kin_mobile">Mobile No.:</label>
+                        <div class="col-sm-6">
+                            <input type="text" name="kin_mobile" id="kin_mobile" class="form-control input-sm" value="<?php echo $v->kin_mobile;?>">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label" for="kin_email">Email:</label>
+                        <div class="col-sm-6">
+                            <input type="text" name="kin_email" id="kin_email" class="form-control input-sm" value="<?php echo $v->kin_email;?>">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
         <div class="row">
             <div class="col-sm-12">
                 <div class="pull-right" style="margin-right: 55px;">
@@ -213,12 +262,16 @@ echo form_close();
         var has_kiwi_value = function(data,$_class){
 
             if(data){
+                $('.has-kiwi-save')
+                    .css({'display':'inline'});
                 $_class.addClass('required');
             }else{
                 $_class
                     .removeClass('required')
                     .removeAttr('style')
                     .val('');
+                $('.has-kiwi-save')
+                    .css({'display':'none'});
             }
         };
 

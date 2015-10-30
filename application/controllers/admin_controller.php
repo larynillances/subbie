@@ -580,6 +580,7 @@ class Admin_Controller extends Subbie{
         if($this->session->userdata('is_logged_in') === false){
             redirect('');
         }
+
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
@@ -589,6 +590,13 @@ class Admin_Controller extends Subbie{
         $this->data['holiday'][''] = '-';
 
         ksort($this->data['holiday']);
+
+        $this->my_model->setNormalized('type','id');
+        $this->my_model->setSelectFields(array('id','type'));
+        $this->data['leave_type'] = $this->my_model->getInfo('tbl_leave_type');
+        $this->data['leave_type'][''] = '-';
+
+        ksort($this->data['leave_type']);
 
         $this->data['dtr'] = array();
         $this->data['job_assign'] = array();
@@ -638,12 +646,16 @@ class Admin_Controller extends Subbie{
         }
 
         $date_ = new DateTime();
+        $default_week = date('N') >= 4 ? $date_->format('W') : $date_->format('W') - 1;
         $this->data['thisYear'] = $this->session->userdata('year') != '' ? $this->session->userdata('year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('month') != '' ? $this->session->userdata('month') : date('m');
-        $this->data['thisWeek'] = $this->session->userdata('week') != '' ? $this->session->userdata('week') : $date_->format('W');
+        $this->data['thisWeek'] = $this->session->userdata('week') != '' ? $this->session->userdata('week') : $default_week;
 
         $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
         $this_week = $this->getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $staff_data = new Staff_Helper();
+        $this->data['leave_data_approved'] = $staff_data->staff_leave_application(array(1),array('tbl_leave.decision'));
+        $this->data['leave_data_pending'] = $staff_data->staff_leave_application(array(0),array('tbl_leave.decision'));
 
         $this->my_model->setJoin(array(
             'table' => array('tbl_registration','tbl_client'),
@@ -670,32 +682,71 @@ class Admin_Controller extends Subbie{
 
         //$first_day_of_week = $this_week[$this->data['thisWeek']];
         //$last_day_of_week = date('Y-m-d',strtotime('+6 days '.$first_day_of_week));
-        $whatVal = 'project_id = "1" AND (date_employed != "0000-00-00" AND status_id = "3") OR (last_week_pay >= "' . $this->data['thisWeek'] . '")';
+        $whatVal = 'project_id = "1"';
+        //$whatVal = 'project_id = "1" AND (date_employed != "0000-00-00" AND status_id = "3") ';
+        //$whatVal .= 'OR (last_week_pay >= "' . $this->data['thisWeek'] . '")';
         //$whatVal .= ' AND date_last_pay = "0000-00-00"';
         $whatFld = '';
-        $this->data['staff'] = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+        $staff = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+        $this->data['staff'] = array();
+        $employment_data = $staff_data->staff_employment();
+        if(count($staff) > 0){
+            foreach($staff as $ev){
+                $week_value = $this_week[$this->data['thisWeek']];
+                if(count(@$employment_data[$ev->id]) > 0){
+                    foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                        if(
+                            strtotime($used_date) <= strtotime($week_value) ||
+                            strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_value)))){
+                            $ev->date_employed = $val->date_employed;
+                            $ev->date_last_pay = $val->date_last_pay;
+                            $ev->last_week_pay = $val->last_week_pay;
+                            $ev->has_final_pay = $val->has_final_pay;
+                        }
+                    }
+                }
 
+                $date_employed = strtotime($ev->date_employed) <= strtotime($week_value) || strtotime($ev->date_employed) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_value)));
+                $last_pay = $ev->date_last_pay != '0000-00-00' && strtotime($ev->date_last_pay) >= strtotime($week_value);
+                $last_week_pay = $ev->last_week_pay && $ev->last_week_pay >= $this->data['thisWeek'];
+                $has_hours = $this->getTotalHours($week_value,$ev->id);
+
+                if(($ev->date_employed != "0000-00-00" && $date_employed && $ev->status_id == 3)
+                    || ($last_week_pay && $last_pay && $date_employed)
+                    || ($date_employed && $last_pay)
+                    || ($date_employed && $has_hours > 0 && $ev->status_id == 2)
+                ){
+                    $this->data['staff'][] = $ev;
+                }
+            }
+        }
+        //DisplayArray($this->data['staff']);
         $this->my_model->setJoin(array(
             'table' => array(
                 'tbl_holiday_type as holiday_tbl',
-                'tbl_holiday_type as sick_leave_tbl'
+                'tbl_holiday_type as sick_leave_tbl',
+                'tbl_holiday_type as day_type',
+                'tbl_leave_type'
             ),
-            'join_field' => array('id','id'),
+            'join_field' => array('id','id','id','id'),
             'source_field' => array(
                 'tbl_login_sheet.holiday_type_id',
                 'tbl_login_sheet.sick_leave_type_id',
-
+                'tbl_login_sheet.day_type_id',
+                'tbl_login_sheet.leave_type_id'
             ),
             'type' => 'left',
             'join_append' => array(
-                'holiday_tbl','sick_leave_tbl'
+                'holiday_tbl','sick_leave_tbl','day_type','tbl_leave_type'
             )
         ));
         $this->my_model->setSelectFields(array(
             'TIMESTAMPDIFF(SECOND, time_in, time_out) as hours',
             'time_in','time_out','staff_id','date',
             'tbl_login_sheet.id as dtr_id','working_type_id','holiday_type_id','sick_leave_type_id',
-            'holiday_tbl.hours as holiday_hours','sick_leave_tbl.hours as sick_hours'
+            'tbl_login_sheet.leave_type_id','tbl_login_sheet.day_type_id',
+            'holiday_tbl.hours as holiday_hours','sick_leave_tbl.hours as sick_hours',
+            'day_type.hours as day_hours','tbl_leave_type.type'
         ));
         $dtr = $this->my_model->getinfo('tbl_login_sheet');
         if(count($job)>0){
@@ -726,37 +777,67 @@ class Admin_Controller extends Subbie{
                         $this->my_model->setLastId('id');
                         $id      = (int)$this->my_model->getinfo('tbl_login_sheet', array($staff->id, $getDate), array('staff_id', 'date'));
                         $user_id = $this->session->userdata('user_id');
-                        if (@$_POST['holiday_type_id'][$staff->id][$getDate]) {
+                        $this_id = '';
+                        if((@$_POST['leave_type_id'][$staff->id][$getDate] ||
+                            @$_POST['day_type_id'][$staff->id][$getDate])){
+
+                            $__data['day_type_id'][$staff->id][$getDate] = $_POST['day_type_id'][$staff->id][$getDate];
+                            $__data['leave_type_id'][$staff->id][$getDate] = $_POST['leave_type_id'][$staff->id][$getDate];
+
+                            $this->session->set_userdata(array('day_type_selected' => $__data['day_type_id']));
+                            $this->session->set_userdata(array('leave_type_selected' => $__data['leave_type_id']));
+                        }
+
+                        if (@$_POST['leave_type_id'][$staff->id][$getDate]
+                            && @$_POST['day_type_id'][$staff->id][$getDate]) {
                             $post = array(
                                 'staff_id' => $staff->id,
                                 'date' => $getDate,
                                 'working_type_id' => 2,
                                 'user_id' => $user_id,
-                                'holiday_type_id' => $_POST['holiday_type_id'][$staff->id][$getDate]
+                                'leave_type_id' => @$_POST['leave_type_id'][$staff->id][$getDate],
+                                'day_type_id' => @$_POST['day_type_id'][$staff->id][$getDate]
                             );
+
+                            if (@$_POST['time_in_' . $staff->id][$d] != '') {
+                                $str_hours    = str_split(@$_POST['time_in_' . $staff->id][$d], 2);
+                                $str_hours[0] = $str_hours[0] > 23 ? '00' : $str_hours[0];
+                                $str_hours[1] = $str_hours[1] > 59 ? '00' : $str_hours[1];
+                                $post['time_in']  = $getDate . ' ' . $str_hours[0] . ':' . $str_hours[1] . ':00';
+                            }else{
+                                $mysql_str = 'UPDATE tbl_login_sheet SET  time_in = NULL WHERE  id ='. $id ;
+                                $this->db->query($mysql_str);
+                            }
+
+                            if (@$_POST['time_out_' . $staff->id][$d] != '') {
+                                $str_hours    = str_split(@$_POST['time_out_' . $staff->id][$d], 2);
+                                $str_hours[0] = $str_hours[0] ? ($str_hours[0] > 23 ? '00' : $str_hours[0]) : '00';
+                                $str_hours[1] = $str_hours[1] ? ($str_hours[1] > 59 ? '00' : $str_hours[1]) : '00';
+                                $post['time_out']  = $getDate . ' ' . $str_hours[0] . ':' . $str_hours[1] . ':00';
+                            }else{
+                                $post['time_out']  = '';
+                            }
+
+                            DisplayArray($hasVal);
+                            DisplayArray($post);exit;
+                            $has_pending = @$this->data['leave_data_pending'][$staff->id][$getDate];
+                            if(count($has_pending) > 0){
+                                unset($post['leave_type_id']);
+                                unset($post['day_type_id']);
+                            }else{
+
+                            }
 
                             if (count($hasVal) > 0) {
                                 $this->my_model->update('tbl_login_sheet', $post, $id);
                             } else {
                                 $this_id = $this->my_model->insert('tbl_login_sheet', $post);
                             }
-                        }
-                        if (@$_POST['sick_leave_type_id'][$staff->id][$getDate]) {
-                            $post = array(
-                                'staff_id' => $staff->id,
-                                'date' => $getDate,
-                                'user_id' => $user_id,
-                                'working_type_id' => 2,
-                                'sick_leave_type_id' => $_POST['sick_leave_type_id'][$staff->id][$getDate]
-                            );
 
-                            if (count($hasVal) > 0) {
-                                $this->my_model->update('tbl_login_sheet', $post, $id);
-                            } else {
-                                $this_id = $this->my_model->insert('tbl_login_sheet', $post);
-                            }
+                        }else{
+                            $mysql_str = 'UPDATE tbl_login_sheet SET  day_type_id = NULL, leave_type_id = NULL WHERE  id ='. $id ;
+                            $this->db->query($mysql_str);
                         }
-
                         if (isset($_POST['time_in_' . $staff->id])) {
                             if (@$_POST['time_in_' . $staff->id][$d] != '') {
                                 $str_hours    = str_split(@$_POST['time_in_' . $staff->id][$d], 2);
@@ -773,6 +854,9 @@ class Admin_Controller extends Subbie{
                                 } else {
                                     $this_id = $this->my_model->insert('tbl_login_sheet', $post);
                                 }
+                            }else{
+                                $mysql_str = 'UPDATE tbl_login_sheet SET  time_in = NULL WHERE  id ='. $id ;
+                                $this->db->query($mysql_str);
                             }
                             if (@$_POST['time_out_' . $staff->id][$d] != '') {
                                 $str_hours    = str_split(@$_POST['time_out_' . $staff->id][$d], 2);
@@ -783,7 +867,22 @@ class Admin_Controller extends Subbie{
                                 );
                                 $thisId       = count($hasVal) > 0 ? $id : $this_id;
                                 $this->my_model->update('tbl_login_sheet', $post, $thisId);
+                            }else{
+                                $post         = array(
+                                    'time_out' => ''
+                                );
+                                $thisId       = count($hasVal) > 0 ? $id : $this_id;
+                                $this->my_model->update('tbl_login_sheet', $post, $thisId);
                             }
+
+                            $post = array(
+                                'is_preview' => 0
+                            );
+
+                            $whatVal = array($this->data['thisWeek'],$this_week[$this->data['thisWeek']]);
+                            $whatFld = array('week_num','date');
+
+                            $this->my_model->update('tbl_week_pay_period',$post,$whatVal,$whatFld);
                         }
                     }
                 }
@@ -828,8 +927,10 @@ class Admin_Controller extends Subbie{
             $post = array(
                 'status_id' => 2
             );
+            $whatVal = array(true,3,$this->data['thisWeek']);
+            $whatFld = array('has_final_pay','status_id','last_week_pay');
 
-            $this->my_model->update('tbl_staff', $post, array(true,3),array('has_final_pay','status_id'));
+            $this->my_model->update('tbl_staff', $post, $whatVal,$whatFld);
         }
 
         if (isset($_POST['send_mail'])) {
@@ -930,8 +1031,11 @@ class Admin_Controller extends Subbie{
                     'seconds' => $v->hours,
                     'sick_leave_type_id' => $v->sick_leave_type_id,
                     'holiday_type_id' => $v->holiday_type_id,
+                    'leave_type_id' => $v->leave_type_id,
+                    'day_type_id' => $v->day_type_id,
                     'sick_hours' => $v->sick_hours,
                     'holiday_hours' => $v->holiday_hours,
+                    'day_hours' => $v->day_hours,
                     'dtr_id' => $v->dtr_id,
                     'date' => $v->date
                 );
@@ -945,8 +1049,110 @@ class Admin_Controller extends Subbie{
         $this->data['working_type'] = $this->my_model->getInfo('tbl_working_type');
         $this->data['working_type'][0] = '-';
 
-        $this->data['page_load'] = 'backend/dtr/new_edit_dtr_view';
-        $this->load->view('main_view',$this->data);
+        if(isset($_POST['submit_request'])){
+            unset($_POST['submit_request']);
+            $staff_id = $this->uri->segment(2);
+
+            $this->my_model->setShift();
+            $userInfo = (Object)$this->my_model->getInfo('tbl_staff', $staff_id,'id');
+
+            $leave_start = date('Y-m-d H:i:s', strtotime(str_replace("/", "-", $_POST['leave_start'])));
+            $leave_end = date('Y-m-d H:i:s', strtotime(str_replace("/", "-", $_POST['leave_end'])));
+
+            $leave_duration = $this->getLeaveDaysCount($leave_start, $leave_end, array());
+            $day_type = $_POST['leave_range'];
+            $post = array(
+                'date_requested' => date('Y-m-d H:i:s', strtotime(str_replace("/", "-", $_POST['date_requested']))),
+                'leave_start' => $leave_start,
+                'leave_end' => $leave_end,
+                'leave_range' => $_POST['leave_range'],
+                'user_id' => $staff_id,
+                'type' => $_POST['type'],
+                'reason_request' => nl2br($_POST['reason_request']),
+                'decision' => '',
+                'reason_decision' => '',
+                'actioned_by' => '',
+                'submitted_by' => $this->session->userdata('user_id')
+            );
+            $this->my_model->insert('tbl_leave',$post,false);
+            //region Audit Log
+            $log = array(
+                'update_type' => 1,
+                'user_id' => $this->session->userdata('user_id'),
+                'to' => json_encode($post)
+            );
+            $this->my_model->insert('tbl_leave_audit_log', $log, false);
+            //endregion
+
+            $this->my_model->setSelectFields(array('tbl_leave_emails.emails'));
+            $this->my_model->setNormalized('emails');
+            $what_val = 'emails != ""';
+            $emails = $this->my_model->getInfo('tbl_leave_emails',$what_val,'');
+
+            if(count($emails) > 0) {
+                $name = $userInfo->fname . " " . $userInfo->lname;
+                $subject = "Leave Application from " . $name;
+
+                $this->my_model->setLastId('holiday_type');
+                $day = $this->my_model->getInfo('tbl_holiday_type',$day_type);
+
+                $msg = "<strong>" . $name . "</strong> has requested ";
+                $msg .= $day_type != 1 ? "a " . $day ."'s Leave, " : $leave_duration . " days leave, ";
+                $msg .= "from <strong>" . date('l d/m/Y h:i a', strtotime($leave_start)) . "</strong> to <strong>" . date('l d/m/Y h:i a', strtotime($leave_end)) . "</strong>." .
+                    "<br /><br />" .
+                    "Please check the online Leave Application facility to <strong>Approve</strong> or <del>Decline</del> this request<br />" .
+                    "(by no later than < 2 days before event if under 1 week away, or if greater than 1 week away then put 7 days before event due>)";
+                $sendMailSetting = array(
+                    'subject' => $subject,
+                    'to' => $emails,
+                    'debug_type' => 2,
+                    'debug' => true
+                );
+                $send_mail = new Send_Email_Controller();
+                $debugResult = $send_mail->sendingEmail($msg, $sendMailSetting);
+                $sendMailSetting['body'] = $msg;
+                $post = array(
+                    'date' => date('Y-m-d H:i:s'),
+                    'user_id' => $this->session->userdata('user_id'),
+                    'staff_id' => $staff_id,
+                    'type' => $debugResult->type,
+                    'message' => json_encode($sendMailSetting),
+                    'debug' => $debugResult->debug
+                );
+                $this->my_model->insert('tbl_leave_email_log', $post, false);
+                redirect('timeSheetEdit');
+            }
+        }
+        if(isset($_GET['req']) && $_GET['req'] == 1){
+            $staff_id = $this->uri->segment(2);
+            $date = $this->uri->segment(3);
+            $this->data['leave_data'] = $_POST['leave_type_id'][$staff_id][$date];
+            $this->data['day_data'] = $_POST['day_type_id'][$staff_id][$date];
+
+            $this->my_model->setShift();
+            $date_selected = (Object)$this->my_model->getInfo('tbl_holiday_type',$this->data['day_data']);
+
+            $this->data['date_start'] = $date.' '.$date_selected->start_hours;
+            $this->data['date_end'] = $date.' '.$date_selected->end_hours;
+            $this->data['staff_id'] = $staff_id;
+            $this->data['leave_pay'] = $this->calculateTotalLeavePay(
+                $staff_id,$this->data['leave_data'],
+                $this->data['date_start'],$this->data['date_end'],
+                $this->data['day_data']
+            );
+            if(isset($_POST['request'])){
+                $__data['day_type_id'][$staff_id][$date] = '';
+                $__data['leave_type_id'][$staff_id][$date] = '';
+
+                $this->session->set_userdata(array('day_type_selected' => $__data['day_type_id']));
+                $this->session->set_userdata(array('leave_type_selected' => $__data['leave_type_id']));
+            }else{
+                $this->load->view('backend/dtr/dtr_leave_request_view',$this->data);
+            }
+        }else{
+            $this->data['page_load'] = 'backend/dtr/new_edit_dtr_view';
+            $this->load->view('main_view',$this->data);
+        }
     }
 
     function timeSheetDefault(){
@@ -973,7 +1179,8 @@ class Admin_Controller extends Subbie{
             $json = array();
             $ref = 1;
             $today = new DateTime();
-            $this_week = $today->format('W');
+            $this_week = date('N') >= 4 ? $today->format('W') : $today->format('W') - 1;
+            //$this_week = $today->format('W');
 
             if(count($week_in_year) > 0){
                 foreach($week_in_year as $week=>$date){
@@ -985,6 +1192,7 @@ class Admin_Controller extends Subbie{
                     $has_week_pay = $this->my_model->getInfo('tbl_week_pay_period',$whatVal,$whatFld);
                     $_week = explode('-',$week);
                     $week_has_passed = $_week[0] <= $this_week ? 1 : 0;
+                    $_added_days = $_week[0] == 30 && $_week[1] == 2015 ? '+5 days ': '+6 days ';
 
                     if(count($has_week_pay) > 0){
                         foreach($has_week_pay as $val){
@@ -998,7 +1206,7 @@ class Admin_Controller extends Subbie{
                                 'no_employee' => $val->staff_count,
                                 'locked' => $val->is_locked ? 'Yes' : 'No',
                                 'year' => date('Y',strtotime($val->date)),
-                                'month' => date('m',strtotime($val->date)),
+                                'month' => date('m',strtotime($_added_days . $val->date)),
                                 'is_locked' => $val->is_locked ? 1 : 0,
                                 'total_pay' => '$'.number_format($val->total_wage,2),
                                 'total_paye' => '$'.number_format($val->total_paye,2),
@@ -1015,7 +1223,7 @@ class Admin_Controller extends Subbie{
                             'no_employee' => 0,
                             'locked' => 'No',
                             'year' => date('Y',strtotime($date)),
-                            'month' => date('m',strtotime($date)),
+                            'month' => date('m',strtotime($_added_days . $date)),
                             'is_locked' => 0,
                             'total_pay' => '$0.00',
                             'total_paye' => '$0.00',
@@ -1408,22 +1616,25 @@ class Admin_Controller extends Subbie{
         }
 
         $this->my_model->setJoin(array(
-            'table' => array('tbl_client'),
-            'join_field' => array('id'),
-            'source_field' => array('tbl_registration.client_id'),
+            'table' => array('tbl_client','tbl_tracking_log'),
+            'join_field' => array('id','job_id'),
+            'source_field' => array('tbl_registration.client_id','tbl_registration.id'),
             'type' => 'left'
         ));
         $fields = ArrayWalk(array('id','address','client_id','is_invoice','job_name'),'tbl_registration.');
         $fields[] = 'CONCAT(tbl_client.client_code,LPAD(tbl_registration.id, 5,"0")) as job_ref';
         $this->my_model->setSelectFields($fields);
-        $job = $this->my_model->getInfo('tbl_registration');
+        $job = $this->my_model->getInfo('tbl_registration',4,'status_id');
         $this->data['job'] = array();
         if(count($job) >0){
             foreach($job as $v){
                 $address = (object)json_decode($v->address);
                 $this->data['job'][$v->id] = $v->job_ref.' ('.$v->job_name.')';
             }
+        }else{
+            $this->data['job'][''] = '-';
         }
+
         $this->my_model->setNormalized('supplier_name','id');
         $this->my_model->setSelectFields(array('id','supplier_name'));
         $this->data['supplier'] = $this->my_model->getInfo('tbl_supplier');
@@ -1474,13 +1685,71 @@ class Admin_Controller extends Subbie{
         }
 
         $id = $this->uri->segment(2);
+        $select_product = $this->uri->segment(3);
         if(!$id){
             exit;
         }
-        $this->my_model->setOrder('product_name');
-        $this->data['product_list'] = $this->my_model->getInfo('tbl_product_list',$id,'supplier_id');
+        $this->my_model->setLastId('job_name');
+        $this->data['job_name'] = $this->my_model->getInfo('tbl_registration',$id);
 
-        $this->load->view('backend/order_book/product_table_load_list_view',$this->data);
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_supplier','tbl_product_list'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_order_book.supplier_id','tbl_order_book.product_id'),
+            'type' => 'left'
+        ));
+        $fld = ArrayWalk($this->my_model->getFields('tbl_order_book'),'tbl_order_book.');
+        $fld[] = 'tbl_supplier.supplier_name';
+        $fld[] = 'tbl_product_list.product_name';
+        $fld[] = 'tbl_product_list.price';
+
+        $this->my_model->setSelectFields($fld);
+        $this->data['product_list'] = $this->my_model->getInfo('tbl_order_book',$id,'job_id');
+
+        $this->my_model->setNormalized('supplier_name','id');
+        $this->my_model->setSelectFields(array('id','supplier_name'));
+        $this->data['supplier'] = $this->my_model->getInfo('tbl_supplier');
+        $this->data['supplier'][''] = 'All Supplier';
+
+        ksort($this->data['supplier']);
+
+        if(isset($_POST['submit'])){
+            $this->session->set_userdata(array(
+                'job_id' => $_POST['job_id']
+            ));
+        }
+
+        if($select_product && $select_product == 'select'){
+            $this->load->view('backend/order_book/order_search_material',$this->data);
+        }
+        else if(isset($_GET['search']) && $_GET['search'] == 1)
+        {
+            $whatVal = '';
+            $whatFld = '';
+
+            if(isset($_POST['data_search'])){
+                $whatVal = 'product_name LIKE "%'.$_POST['input'].'%"';
+                $whatVal .= $_POST['supplier_id'] ? ' AND supplier_id ="'.$_POST['supplier_id'].'"' : '';
+                $whatFld = '';
+            }
+
+            $this->my_model->setJoin(array(
+                'table' => array('tbl_supplier'),
+                'join_field' => array('id'),
+                'source_field' => array('tbl_product_list.supplier_id'),
+                'type' => 'left'
+            ));
+            $fld = ArrayWalk($this->my_model->getFields('tbl_product_list'),'tbl_product_list.');
+            $fld[] = 'tbl_supplier.supplier_name';
+
+            $this->my_model->setSelectFields($fld);
+            $this->data['product_list'] = $this->my_model->getInfo('tbl_product_list',$whatVal,$whatFld);
+
+            $this->load->view('backend/order_book/search_product_list_view',$this->data);
+        }
+        else{
+            $this->load->view('backend/order_book/product_table_load_list_view',$this->data);
+        }
     }
 
     function invoiceCreate(){
@@ -2461,6 +2730,8 @@ class Admin_Controller extends Subbie{
         $staff = new Staff_Helper();
         $staff_data = $staff->staff_details($whatVal,'');
         $hourly_rate = $staff->staff_hourly_rate();
+        $employment_data = $staff->staff_employment(true);
+        $kiwi_data = $staff->staff_kiwi();
         $rate = $staff->staff_rate();
         $data_ = array();
         $rate_cost = array();
@@ -2468,6 +2739,7 @@ class Admin_Controller extends Subbie{
         $staff_name = '';
         if(count($staff_data) > 0){
             foreach($staff_data as $ev){
+
                 $staff_name = $ev->name;
                 $ev->rate_name = '';
                 $ev->rate_cost = 0;
@@ -2475,16 +2747,33 @@ class Admin_Controller extends Subbie{
                 $salary_type = explode(' ',$ev->description);
                 $ev->description = end($salary_type).' ('.$ev->salary_code.')';
 
-                $ev->esct_rate = $ev->esct_rate ? ($this->is_decimal($ev->esct_rate) ? number_format($ev->esct_rate, 2) . '%' : $ev->esct_rate . '%') : '';
-                $ev->kiwi      = $ev->kiwi ? $ev->kiwi . '%' : '';
-                $ev->emp_kiwi  = $ev->emp_kiwi ? $ev->emp_kiwi . '%' : '';
-
                 if($id){
-                    $end = $ev->date_last_pay != '0000-00-00' ? $ev->date_last_pay : date('Y-m-d');
-                    $week_in_year = $this->getWeekBetweenDates($ev->date_employed,$end);
                     $ref = 1;
+                    $week_in_year = array();
+                    if(count(@$employment_data[$id]) > 0){
+                        foreach(@$employment_data[$id] as $used_date=>$val){
+                            $ev->date_employed = $val->date_employed;
+                            $ev->date_last_pay = $val->date_last_pay;
+                            $ev->last_week_pay = $val->last_week_pay;
+                            $ev->has_final_pay = $val->has_final_pay;
+
+                            $end = $ev->date_last_pay ? $ev->date_last_pay : date('Y-m-d');
+                            $week_in_year[] = $this->getWeekBetweenDates($ev->date_employed,$end);
+                        }
+                    }
+                    $data_array = array();
                     if(count($week_in_year) > 0){
-                        foreach($week_in_year as $year_week=>$date){
+                        foreach($week_in_year as $key=>$data){
+                            if(count($data) > 0){
+                                foreach($data as $k=>$v){
+                                    $data_array[$k] = $v;
+                                }
+                            }
+                        }
+                    }
+                    ksort($data_array);
+                    if(count($data_array) > 0){
+                        foreach($data_array as $year_week=>$date){
                             $week_year = explode('-',$year_week);
                             if (count(@$rate[$ev->id]) > 0) {
                                 foreach (@$rate[$ev->id] as $used_date => $val) {
@@ -2505,6 +2794,23 @@ class Admin_Controller extends Subbie{
                                     }
                                 }
                             }
+
+                            if(count(@$kiwi_data[$ev->id]) > 0){
+                                foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($date) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                                        $ev->kiwi = $val->kiwi;
+                                        $ev->employer_kiwi = $val->employer_kiwi;
+                                        $ev->cec_name = $val->cec_name;
+                                        $ev->field_name = $val->field_name;
+                                        $ev->esct_rate = $val->esct_rate;
+                                    }
+                                }
+                            }
+
+                            $ev->esct_rate = $ev->esct_rate ? ($this->is_decimal($ev->esct_rate) ? number_format($ev->esct_rate, 2) : $ev->esct_rate ) : '';
+                            $ev->kiwi      = $ev->kiwi ? $ev->kiwi  : '';
+                            $ev->emp_kiwi  = $ev->emp_kiwi ? $ev->emp_kiwi  : '';
 
                             $ev->hourly_rate = 0;
                             if (count(@$hourly_rate[$ev->id]) > 0) {
@@ -2535,9 +2841,9 @@ class Admin_Controller extends Subbie{
                                     'hourly_rate' => $ev->hourly_rate ? '$'.number_format($ev->hourly_rate,2) : '',
                                     'pay_increase' =>  $rate_week_year == $year_week ? $rate_value : '',
                                     'has_pay_increase' =>  count($rate_cost) > 1 && $rate_week_year == $year_week ? 1 : 0,
-                                    'esct_rate' => $ev->esct_rate,
-                                    'kiwi' => $ev->kiwi,
-                                    'emp_kiwi' => $ev->emp_kiwi,
+                                    'esct_rate' => $ev->esct_rate ? $ev->esct_rate .'%' : '',
+                                    'kiwi' => $ev->kiwi ? $ev->kiwi .'%' : '',
+                                    'emp_kiwi' => $ev->emp_kiwi ? $ev->emp_kiwi .'%' : '',
                                     'name' => $ev->name,
                                     'frequency' => $ev->frequency,
                                     'staff_status' => $ev->staff_status,
@@ -2550,6 +2856,19 @@ class Admin_Controller extends Subbie{
                     }
                 }
                 else{
+                    if(count(@$employment_data[$ev->id]) > 0){
+                        foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                            if(
+                                strtotime($used_date) <= strtotime($week_date) ||
+                                strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_date)))){
+                                $ev->date_employed = $val->date_employed;
+                                $ev->date_last_pay = $val->date_last_pay;
+                                $ev->last_week_pay = $val->last_week_pay;
+                                $ev->has_final_pay = $val->has_final_pay;
+                            }
+                        }
+                    }
+
                     if (count(@$rate[$ev->id]) > 0) {
                         foreach (@$rate[$ev->id] as $used_date => $val) {
                             if (strtotime($used_date) <= strtotime($week_date) ||
@@ -2563,6 +2882,23 @@ class Admin_Controller extends Subbie{
                             }
                         }
                     }
+
+                    if(count(@$kiwi_data[$ev->id]) > 0){
+                        foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                            if(strtotime($start_use) <= strtotime($week_date) ||
+                                strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_date)))){
+                                $ev->kiwi = $val->kiwi;
+                                $ev->employer_kiwi = $val->employer_kiwi;
+                                $ev->cec_name = $val->cec_name;
+                                $ev->field_name = $val->field_name;
+                                $ev->esct_rate = $val->esct_rate;
+                            }
+                        }
+                    }
+
+                    $ev->esct_rate = $ev->esct_rate ? ($this->is_decimal($ev->esct_rate) ? number_format($ev->esct_rate, 2) : $ev->esct_rate) : '';
+                    $ev->kiwi      = $ev->kiwi ? $ev->kiwi  : '';
+                    $ev->emp_kiwi  = $ev->emp_kiwi ? $ev->emp_kiwi : '';
 
                     $ev->hourly_rate = 0;
                     if (count(@$hourly_rate[$ev->id]) > 0) {
@@ -2581,9 +2917,9 @@ class Admin_Controller extends Subbie{
                             'rate_cost' => $ev->rate_cost,
                             'description' => $ev->description,
                             'hourly_rate' => $ev->hourly_rate,
-                            'esct_rate' => $ev->esct_rate,
-                            'kiwi' => $ev->kiwi,
-                            'emp_kiwi' => $ev->emp_kiwi,
+                            'esct_rate' => $ev->esct_rate ? $ev->esct_rate.'%' : '',
+                            'kiwi' => $ev->kiwi ? $ev->kiwi.'%' : '',
+                            'emp_kiwi' => $ev->emp_kiwi ? $ev->emp_kiwi.'%' : '',
                             'name' => $ev->name,
                             'frequency' => $ev->frequency,
                             'staff_status' => $ev->staff_status,

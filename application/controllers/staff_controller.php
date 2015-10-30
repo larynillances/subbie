@@ -11,7 +11,6 @@ class Staff_Controller extends Subbie{
     }
     //region wage functions
     function wageTable(){
-
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
@@ -41,13 +40,16 @@ class Staff_Controller extends Subbie{
 
         $id = array();
         $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$this->data['thisYear'].'" AND (MONTH(date_last_pay) ="'.(int)$this->data['thisMonth'].'" OR MONTH(date_last_pay) ="'.(int)($this->data['thisMonth'] - 1).'")';
-        $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+        //$staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
+        $staff_ = $this->my_model->getInfo('tbl_staff_employment',$what_val,'');
 
         $week_data = array();
         if(count($staff_) > 0){
             foreach($staff_ as $row){
-                $id[] = $row->id;
-                $week_data[$row->id] = $row->last_week_pay;
+                $id[] = $row->staff_id;
+                //$id[] = $row->id;
+                $week_data[$row->staff_id] = $row->last_week_pay;
+                //$week_data[$row->id] = $row->last_week_pay;
             }
         }
         $this->data['last_pay_data'] = count($id) > 0 ? $this->getStaffLastPay($id,$this->data['thisYear'],$week_data) : array();
@@ -143,6 +145,8 @@ class Staff_Controller extends Subbie{
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $staff_data = new Staff_Helper();
         $rate = $staff_data->staff_rate();
+        $kiwi = $staff_data->staff_kiwi();
+        $this->data['employment_data'] = $staff_data->staff_employment();
 
         if(count($this->data['employee']) > 0){
             foreach($this->data['employee'] as $v){
@@ -172,11 +176,20 @@ class Staff_Controller extends Subbie{
                     foreach(@$rate[$v->id] as $row){
                         $rate_name = explode(' ',$row->rate_name);
                         $v->rate_name = $row->rate_name;
-                        $v->rate_cost = '$'.$row->rate;
+                        $v->rate_cost = '$'.$row->rate_cost;
                         $v->start_use = $row->start_use;
                         $v->rate_name_ = end($rate_name).' ('.$v->rate_cost.')';
                     }
                 }
+
+                if(count(@$kiwi[$v->id]) > 0){
+                    foreach(@$kiwi[$v->id] as $row){
+                        $v->kiwi = $row->kiwi;
+                        $v->employeer_kiwi = $row->employer_kiwi;
+                        $v->esct_rate = $row->esct_rate;
+                    }
+                }
+
                 $hours = '';
                 if(count($date) > 0){
                     foreach($date as $dv){
@@ -259,10 +272,10 @@ class Staff_Controller extends Subbie{
     }
 
     function generateStaffPaySlip(){
-        if(isset($_GET['generate'])){
-            $week = $this->uri->segment(2);
-            $month = $this->uri->segment(3);
-            $year = $this->uri->segment(4);
+        $week = $this->uri->segment(2);
+        $month = $this->uri->segment(3);
+        $year = $this->uri->segment(4);
+        if(isset($_GET['g'])){
 
             $whatVal = 'project_id = "1" AND (date_employed != "0000-00-00" AND status_id = "3") OR (last_week_pay >= "' . $week . '")';
             $staff = $this->my_model->getInfo('tbl_staff',$whatVal,'');
@@ -275,7 +288,19 @@ class Staff_Controller extends Subbie{
                     $this->generatePaySlip($week,$month,$year,$row->id);
                 }
             }
-            redirect('payPeriodSummaryReport?print=1&week=' . $week .'&month=' . $month.'&year='.$year);
+
+            $this_week = $this->getWeekDateInMonth($year,$month);
+
+            $post = array(
+                'is_preview' => 1
+            );
+
+            $whatVal = array($week,$this_week[$week]);
+            $whatFld = array('week_num','date');
+            
+            $this->my_model->update('tbl_week_pay_period',$post,$whatVal,$whatFld);
+            echo 'data';
+            //redirect('payPeriodSummaryReport?print=1&week=' . $week .'&month=' . $month.'&year='.$year);
         }
     }
 
@@ -514,40 +539,74 @@ class Staff_Controller extends Subbie{
     }
 
     function rateManage(){
-        $action = $this->uri->segment(2);
-        if(!$action){
-            exit;
-        }
-        switch($action){
-            case 'add':
-                $this->load->view('backend/staff/add_manage_rate',$this->data);
-                break;
-            default:
-                $id = $this->uri->segment(3);
-                if(!$id){
-                    exit;
+        if(isset($_GET['search']) && $_GET['search'] == 1){
+            if(isset($_POST['search_'])){
+                $whatVal = 'LOWER(rate_name) = "'.strtolower($_POST['data']).'"';
+                $is_exist = $this->my_model->getInfo('tbl_rate',$whatVal,'');
+                if(count($is_exist) > 0){
+                    foreach($is_exist as $val){
+                        echo 'This <strong>$'.number_format($val->rate_cost,2).' Rate</strong> already exists for '.$val->rate_name;
+                    }
+                }else{
+                    echo '0';
                 }
-                $this->data['rate'] = $this->my_model->getinfo('tbl_rate',$id);
-                $this->load->view('backend/staff/edit_manage_rate',$this->data);
-                break;
-        }
+            }
+        }else{
 
-        if(isset($_POST['submit'])){
-            unset($_POST['submit']);
+            $action = $this->uri->segment(2);
+            if(!$action){
+                exit;
+            }
+
             switch($action){
                 case 'add':
-                    $this->my_model->insert('tbl_rate',$_POST);
-                    redirect('paySetup');
+                    $this->load->view('backend/staff/add_manage_rate',$this->data);
+                    break;
+                case 'edit':
+                    $id = $this->uri->segment(3);
+                    if(!$id){
+                        exit;
+                    }
+                    $this->data['rate'] = $this->my_model->getinfo('tbl_rate',$id);
+                    $this->load->view('backend/staff/edit_manage_rate',$this->data);
                     break;
                 default:
                     $id = $this->uri->segment(3);
                     if(!$id){
                         exit;
                     }
-
-                    $this->my_model->update('tbl_rate',$_POST,$id);
+                    $post = array('is_deleted'=>1);
+                    $this->my_model->update('tbl_rate',$post,$id);
                     redirect('paySetup');
                     break;
+            }
+
+            if(isset($_POST['submit'])){
+                unset($_POST['submit']);
+                switch($action){
+                    case 'add':
+                        $this->my_model->insert('tbl_rate',$_POST);
+                        redirect('paySetup');
+                        break;
+                    case 'delete':
+                        $id = $this->uri->segment(3);
+                        if(!$id){
+                            exit;
+                        }
+                        $post = array('is_deleted'=>1);
+                        $this->my_model->update('tbl_rate',$post,$id);
+                        redirect('paySetup');
+                        break;
+                    default:
+                        $id = $this->uri->segment(3);
+                        if(!$id){
+                            exit;
+                        }
+
+                        $this->my_model->update('tbl_rate',$_POST,$id);
+                        redirect('paySetup');
+                        break;
+                }
             }
         }
     }
@@ -679,6 +738,17 @@ class Staff_Controller extends Subbie{
                         $this->my_model->setLastId('start_use');
                         $start_use = $this->my_model->getInfo('tbl_staff_rate',$row->id,'staff_id');
                         $row->start_use = $rate ? date('d-m-Y',strtotime($start_use)) : date('d-m-Y');
+
+                        $kiwi = $this->my_model->getInfo('tbl_staff_kiwi',$row->id,'staff_id');
+                        $row->kiwi_date_start = $row->start_use;
+                        if(count($kiwi) > 0){
+                            foreach($kiwi as $kv){
+                                $row->kiwi_id = $kv->kiwi_id;
+                                $row->employer_kiwi = $kv->employer_kiwi;
+                                $row->esct_rate_id = $kv->esct_rate_id;
+                                $row->kiwi_date_start = $kv->date_start;
+                            }
+                        }
                     }
                 }
                 $this->data['page_load'] = 'backend/staff/edit_manage_staff';
@@ -741,7 +811,7 @@ class Staff_Controller extends Subbie{
                     $_POST['status_id'] = 3;
                     $_POST['date_employed'] = $_POST['date_employed'] ? date('Y-m-d') : '';
 
-                    if(isset($_POST['kiwi_id']) && !$_POST['kiwi_id']){
+                    /*if(isset($_POST['kiwi_id']) && !$_POST['kiwi_id']){
                         unset($_POST['kiwi_id']);
                     }
                     if(isset($_POST['employeer_kiwi']) && !$_POST['employeer_kiwi']){
@@ -749,21 +819,36 @@ class Staff_Controller extends Subbie{
                     }
                     if(isset($_POST['esct_rate_id']) && !$_POST['esct_rate_id']){
                         unset($_POST['esct_rate_id']);
-                    }
+                    }*/
+
+                    $kiwi_date_start = $_POST['kiwi_date_start'];
+                    $kiwi_id = $_POST['kiwi_id'];
+                    $employeer_kiwi = $_POST['employeer_kiwi'];
+                    $esct_rate_id = $_POST['esct_rate_id'];
+
+                    unset($_POST['kiwi_date_start']);
+                    unset($_POST['kiwi_id']);
+                    unset($_POST['employeer_kiwi']);
+                    unset($_POST['esct_rate_id']);
 
                     $id = $this->my_model->insert('tbl_staff',$_POST,false);
 
-                    /*if($_POST['kiwi_id']){
+                    $post_employment = array(
+                        'date_employed' => $_POST['date_employed'],
+                        'staff_id' => $id
+                    );
+                    $this->my_model->insert('tbl_staff_employment',$post_employment,false);
+                    if($_POST['kiwi_id']){
                         $post_kiwi = array(
                             'staff_id' => $id,
-                            'kiwi_id' => $_POST['kiwi_id'],
-                            'employer_kiwi' => $_POST['employeer_kiwi'],
-                            'esct_rate_id' => $_POST['esct_rate_id'],
-                            'date_start' => date('Y-m-d',strtotime($start_use)),
+                            'kiwi_id' => $kiwi_id,
+                            'employer_kiwi' => $employeer_kiwi,
+                            'esct_rate_id' => $esct_rate_id,
+                            'date_start' => date('Y-m-d',strtotime($kiwi_date_start)),
                         );
 
                         $this->my_model->insert('tbl_staff_kiwi',$post_kiwi,false);
-                    }*/
+                    }
 
                     $this->my_model->setLastId('rate_cost');
                     @$rate_value = $this->my_model->getInfo('tbl_rate',$_POST['rate']);
@@ -822,15 +907,32 @@ class Staff_Controller extends Subbie{
                     if(count($has_rate) > 0){
                         foreach($has_rate as $value){
                             $post_rate['start_use'] = $value->start_use;
-                            if($rate_type != $_POST['rate']){
+                            $start_use_date = date('Y-m-d',strtotime($_POST['start_use']));
+                            if($rate_type != $_POST['rate'] || $start_use_date != $value->start_use){
                                 $post_rate['end_use'] = date('Y-m-d',strtotime('-1 day '.$_POST['start_use']));
-
                                 $this->my_model->insert('tbl_staff_rate',$post);
+
                             }
                             $this->my_model->update('tbl_staff_rate',$post_rate,$value->id);
                         }
                     }else{
                         $this->my_model->insert('tbl_staff_rate',$post);
+                    }
+
+                    $whatVal = array(date('Y-m-d',strtotime($_POST['date_employed'])),$id);
+                    $whatFld = array('date_employed','staff_id');
+                    $employment = $this->my_model->getInfo('tbl_staff_employment',$whatVal,$whatFld);
+                    if(count($employment) > 0){
+                        foreach($employment as $val){
+                            // do something here
+                        }
+                    }else{
+                        $post_employment = array(
+                            'date_employed' => date('Y-m-d',strtotime($_POST['date_employed'])),
+                            'staff_id' => $id
+                        );
+
+                        $this->my_model->insert('tbl_staff_employment',$post_employment,false);
                     }
 
                     unset($_POST['rate']);
@@ -851,16 +953,16 @@ class Staff_Controller extends Subbie{
                         $this->db->query($mysql_str);
                     }
 
-                    /*if($_POST['kiwi_id']){
+                    if($_POST['kiwi_id']){
                         $post_kiwi = array(
                             'staff_id' => $id,
                             'kiwi_id' => $_POST['kiwi_id'],
                             'employer_kiwi' => $_POST['employeer_kiwi'],
                             'esct_rate_id' => $_POST['esct_rate_id'],
-                            'date_start' => date('Y-m-d'),
+                            'date_start' => date('Y-m-d',strtotime($_POST['kiwi_date_start'])),
                         );
-
                         $has_kiwi = $this->my_model->getInfo('tbl_staff_kiwi',array($id,$_POST['kiwi_id']),array('staff_id','kiwi_id'));
+
                         if(count($has_kiwi) > 0){
                             foreach($has_kiwi as $val){
                                 $this->my_model->update('tbl_staff_kiwi',$post_kiwi,$val->id);
@@ -868,7 +970,11 @@ class Staff_Controller extends Subbie{
                         }else{
                             $this->my_model->insert('tbl_staff_kiwi',$post_kiwi,false);
                         }
-                    }*/
+                    }
+                    unset($_POST['kiwi_date_start']);
+                    unset($_POST['kiwi_id']);
+                    unset($_POST['employeer_kiwi']);
+                    unset($_POST['esct_rate_id']);
 
                     $_POST['bank_account'] = json_encode($_POST['bank_account']);
                     $_POST['is_email_payslip'] = $_POST['is_email_payslip'] ? 1 : 0;
@@ -1303,11 +1409,12 @@ class Staff_Controller extends Subbie{
         $this->data['year'] = $this->getYear();
         $this->data['month'] = $this->getMonth();
 
-        /*$this->my_model->setNormalized('project_name','id');
+        $this->my_model->setNormalized('project_name','id');
         $this->my_model->setSelectFields(array('id','project_name'));
+        $this->my_model->setOrder('project_name');
         $this->data['project_type'] = $this->my_model->getinfo('tbl_project_type');
 
-        ksort($this->data['project_type']);*/
+        ksort($this->data['project_type']);
 
         if(isset($_POST['search'])){
             $this->session->set_userdata(array(
@@ -1320,9 +1427,10 @@ class Staff_Controller extends Subbie{
         }
 
         $_this_date = new DateTime();
+        $default_week = date('N') >= 4 ? $_this_date->format('W') : $_this_date->format('W') - 1;
         $this->data['thisYear'] = $this->session->userdata('$_year') != '' ? $this->session->userdata('$_year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('$_month') != '' ? $this->session->userdata('$_month') : date('m');
-        $this->data['thisWeek'] = $this->session->userdata('$_week') != '' ? $this->session->userdata('$_week') : $_this_date->format('W');
+        $this->data['thisWeek'] = $this->session->userdata('$_week') != '' ? $this->session->userdata('$_week') : $default_week;
         $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
         //$this->data['thisProject'] = $this->session->userdata('$_project_type') ? $this->session->userdata('$_project_type') : 1;
 
@@ -1517,7 +1625,7 @@ class Staff_Controller extends Subbie{
 
         $this->data['loans'] = $this->my_model->getinfo('tbl_staff',$Val,$Fld);
 
-        $this->data['rate'] = $this->my_model->getinfo('tbl_rate');
+        $this->data['rate'] = $this->my_model->getinfo('tbl_rate',true,'is_deleted !=');
         $this->my_model->setShift();
         $this->data['pay_setup'] = (Object)$this->my_model->getInfo('tbl_pay_setup');
 
@@ -1601,6 +1709,8 @@ class Staff_Controller extends Subbie{
                     if(count($monthly_details[$id]) > 0){
                         foreach($monthly_details[$id] as $key=>$val){
                             $year = date('Y',strtotime($key));
+                            $week = new DateTime($key);
+                            $key = $week->format('W') == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$key)) : date('Y-m-d',strtotime('+6 days '.$key));
                             $month = date('F',strtotime($key));
                             $monthly_total_array[$key] = array(
                                 'distribution' => $val['distribution'],
@@ -1615,6 +1725,8 @@ class Staff_Controller extends Subbie{
                     if(count($set_wage_date) > 0){
                         foreach($set_wage_date as $key=>$val){
                             $year = date('Y',strtotime($key));
+                            $week = new DateTime($key);
+                            $key = $week->format('W') == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$key)) : date('Y-m-d',strtotime('+6 days '.$key));
                             $month = date('F',strtotime($key));
                             $wage_date_array[$year][$month] = $val;
                             $monthly_date[$year][$month][$key] = $val;
@@ -1625,6 +1737,8 @@ class Staff_Controller extends Subbie{
                     if(count($current_wage_date) > 0){
                         foreach($current_wage_date as $key=>$val){
                             $year = date('Y',strtotime($key));
+                            $week = new DateTime($key);
+                            $key = $week->format('W') == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$key)) : date('Y-m-d',strtotime('+6 days '.$key));
                             $month = date('F',strtotime($key));
                             $current_month[$year][$month][$key] = $val;
                         }
@@ -1787,9 +1901,11 @@ class Staff_Controller extends Subbie{
             $_POST['unemployed_date'] = date('Y-m-d',strtotime($_POST['date_last_pay']));
             $_POST['date_last_pay'] = date('Y-m-d',strtotime($_POST['date_last_pay']));
             $_POST['has_final_pay'] = 1;
-            //$_POST['status_id'] = 2;
+
             $_POST['termination_type'] = json_encode($termination_type);
             $this->my_model->update('tbl_staff',$_POST,$staff_id,'id',false);
+            $_POST['staff_id'] = $staff_id;
+            $this->my_model->insert('tbl_staff_employment',$_POST,false);
             $this->session->unset_userdata('staff_id');
             $this->session->unset_userdata('termination_type');
             redirect('employeeFinalPay');

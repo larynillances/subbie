@@ -90,9 +90,12 @@
                                     $gross_total += $data['gross'];
                                     $nett_sub_total += $data['distribution'];
                                     $gross_sub_total += $data['gross'];
+                                    $date_ = new DateTime($day);
+                                    $week_start = $date_->format('Y') == 2015 && $week == 30
+                                        ? date('d/m/Y',strtotime('-5 day '.$day)) : date('d/m/Y',strtotime('-6 day '.$day));
                                     ?>
                                     <tr>
-                                        <td><?php echo date('d-M-Y',strtotime($day))?></td>
+                                        <td><?php echo $week_start.' <strong>to</strong> '.date('d/m/Y',strtotime($day)).' <strong>[Week '.$week.']</strong>'?></td>
                                         <td><?php echo '$ '.number_format($data['gross'],2);?></td>
                                         <td><?php echo '$ '.number_format($data['distribution'],2);?></td>
                                     </tr>
@@ -143,9 +146,11 @@
                     $data = @$monthly_total_paid[$date];
                     $nett_total += $data['distribution'];
                     $gross_total += $data['gross'];
+                    $week_start = $date_->format('Y') == 2015 && $week == 30
+                        ? date('d/m/Y',strtotime('-5 day '.$date)) : date('d/m/Y',strtotime('-6 day '.$date));
                     ?>
                     <tr>
-                        <td><?php echo date('d-M-Y',strtotime($date))?></td>
+                        <td><?php echo $week_start.' <strong>to</strong> '.date('d/m/Y',strtotime($day)).' <strong>[Week '.$week.']</strong>'?></td>
                         <td><?php echo '$ '.number_format($data['gross'],2);?></td>
                         <td><?php echo '$ '.number_format($data['distribution'],2);?></td>
                     </tr>

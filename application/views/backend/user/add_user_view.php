@@ -62,7 +62,7 @@ echo form_open('','class="form-horizontal"')
                     <label for="acc_type" class="col-sm-3 control-label">Account Type</label>
                     <div class="col-sm-7">
                         <?php
-                        echo form_dropdown('account_type',$account_type,'','class="form-control input-sm" id="acc_type"');
+                        echo form_dropdown('account_type',$account_type,3,'class="form-control input-sm" id="acc_type"');
                         ?>
                     </div>
                 </div>
@@ -71,8 +71,26 @@ echo form_open('','class="form-horizontal"')
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        <button type="submit" class="btn btn-primary" name="submit">Save</button>
+        <button type="submit" class="btn btn-primary submit-btn" name="submit">Save</button>
     </div>
 <?php
 echo form_close();
 ?>
+<script>
+    $(function(e){
+        $('.submit-btn').live('click',function(e){
+            var hasEmpty = false;
+            $('.required').each(function(e){
+                if(!$(this).val()){
+                    hasEmpty = true;
+                    $(this).css({
+                        border:'1px solid #a94442'
+                    });
+                }
+            });
+            if(hasEmpty){
+                e.preventDefault();
+            }
+        });
+    })
+</script>

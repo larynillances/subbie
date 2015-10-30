@@ -66,7 +66,7 @@ echo form_close();
                                 <a href="<?php echo base_url().'pdf/invoice/'.date('Y',strtotime($iv->date)).'/'.date('F',strtotime($iv->date)).'/'.$iv->file_name?>" target="_blank">
                                     view
                                 </a>&nbsp;
-                                <a href="<?php echo base_url().'editArchiveInvoice/'.$iv->client_id.'/'.$inv_ref[0]?>">edit</a>
+                                <a href="<?php echo base_url().'editArchiveInvoice/'.$iv->client_id.'/'.$inv_ref[0].'/'.$iv->date?>">edit</a>
                                 &nbsp;
                                 <a href="<?php echo base_url().'exportArchiveInvoice/'.$iv->client_id.'/'.$iv->id?>" class="export-btn" data-type="<?php echo $inv_ref[0];?>">export</a>
                             </td>

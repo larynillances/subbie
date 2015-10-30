@@ -508,7 +508,8 @@ class Subbie extends CI_Controller{
                 }
             }
 
-        }else if($year < 2015){
+        }
+        else if($year < 2015){
             $start = date('Y-m-d',strtotime('-1 day '.$start));
             $start = date('Y-m-d',strtotime('next '.$day_start.' '.$start));
 
@@ -523,7 +524,8 @@ class Subbie extends CI_Controller{
             foreach ($endYearWeeksPeriod as $week => $day) {
                 $year_week[$day->format('W-Y')] = $day->format('Y-m-d');
             }
-        }else{
+        }
+        else{
 
             $day_start = 'monday';
             $start = date('Y-m-d',strtotime('-1 day '.$start));
@@ -665,6 +667,7 @@ class Subbie extends CI_Controller{
 
         $day = strtotime($start_date) > strtotime('2015-07-26') ? 'monday' : 'tuesday';
         $begin = new DateTime("first $day of $y-$m");
+        $begin = $begin->modify('-2 day');
 
         $end = new DateTime("last $day of $y-$m");
         $end = $end->modify( '+1 day' );
@@ -689,7 +692,6 @@ class Subbie extends CI_Controller{
                 $date[$week_num] = $next_day;
             }
         }
-
         if(count($date_range) > 0){
             foreach($date_range as $dv){
                 $this_date = $dv->format('Y-m-d');
@@ -861,12 +863,16 @@ class Subbie extends CI_Controller{
     function getWeeksNumberInMonth($year, $month){
         $days = $this->getFirstNextLastDay($year,$month);
         $thisDays = array();
-
         if(count($days) > 0){
             foreach($days as $key=>$v){
-                $thisDays[$key] = $key;
+
+                $week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$v)) : date('Y-m-d',strtotime('+6 days '.$v));
+                if(date('m',strtotime($week_end)) == $month){
+                    $thisDays[$key] = $key;
+                }
             }
         }
+
         $days_array = $thisDays;
         return $days_array;
     }
@@ -977,7 +983,8 @@ class Subbie extends CI_Controller{
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $rate = $staff_data->staff_rate();
         $hourly_rate = $staff_data->staff_hourly_rate();
-        //$kiwi_data = $staff_data->staff_kiwi();
+        $employment_data = $staff_data->staff_employment(true);
+        $kiwi_data = $staff_data->staff_kiwi();
 
         if(count($set_wage_date) > 0){
             foreach($set_wage_date as $key=>$dv){
@@ -990,6 +997,20 @@ class Subbie extends CI_Controller{
                         if(strtotime($key) <= strtotime(date('Y-m-d'))){
                             $ev->start_use = '';
                             //$ev->kiwi = '';
+                            if(count(@$employment_data[$ev->id]) > 0){
+                                foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                                    if(
+                                        strtotime($used_date) <= strtotime($dv) ||
+                                        strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                        $ev->date_employed = $val->date_employed;
+                                        $ev->date_last_pay = $val->date_last_pay;
+                                        $ev->last_week_pay = $val->last_week_pay;
+                                        $ev->has_final_pay = $val->has_final_pay;
+                                    }
+                                }
+                            }
+                            $_week_val = $ev->last_week_pay ? $ev->last_week_pay : $_week;
+                            $key_val = $ev->date_last_pay != '0000-00-00' ? $ev->date_last_pay : $key;
 
                             if(count(@$rate[$ev->id]) > 0){
                                 foreach(@$rate[$ev->id] as $start_use=>$val){
@@ -1002,33 +1023,34 @@ class Subbie extends CI_Controller{
                                 }
                             }
 
-                            /*if(count(@$kiwi_data[$ev->id]) > 0){
+                            if(count(@$kiwi_data[$ev->id]) > 0){
                                 foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
                                     if(strtotime($start_use) <= strtotime($key) ||
                                         strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
                                         $ev->kiwi = $val->kiwi;
-                                        $ev->employer_kiwi = $val->employer_kiwi;
+                                        $ev->emp_kiwi = $val->employer_kiwi;
                                         $ev->field_name = $val->field_name;
+                                        $ev->cec_name = $val->cec_name;
                                         $ev->esct_rate = $val->esct_rate;
                                     }
                                 }
-                            }*/
+                            }
 
                             $then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
                             $then = new DateTime($then);
 
-                            $now = date('Y-m-d H:i:s',strtotime($key));
+                            $now = date('Y-m-d H:i:s',strtotime($key_val));
                             $now = new DateTime($now);
 
                             $sinceThen = $then->diff($now);
 
-                            $leave = $this->countLeaveTaken($ev->id,$key);
+                            $leave = $this->countLeaveTaken($ev->id,$key_val);
 
                             $holiday_leave_taken = $leave['holiday_leave'];
                             $sick_leave_taken = $leave['sick_leave'];
 
-                            $overall_holiday_leave = $this->getAnnualLeave($ev->id,$key);
-                            $overall_sick_leave = $this->getSickLeave($ev->id,$key);
+                            $overall_holiday_leave = $this->getAnnualLeave($ev->id,$key_val);
+                            $overall_sick_leave = $this->getSickLeave($ev->id,$key_val);
 
                             $total_holiday_leave = $overall_holiday_leave - $holiday_leave_taken;
                             $total_sick_leave = $overall_sick_leave - $sick_leave_taken;
@@ -1039,14 +1061,14 @@ class Subbie extends CI_Controller{
                             $ev->kiwi_ = 0;
                             $ev->st_loan = 0;
 
-                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key,$ev->id) : 1;
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key_val,$ev->id) : 1;
                             $ev->gross = $ev->rate_cost * $hours;
                             $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
                             //$ev->gross = $ev->gross != 0 ? floatval(number_format($ev->gross,0,'.','')):'0.00';
                             $ev->kiwi_ = 0;
                             $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
 
-                            $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key,$ev->gross_,$kiwi);
+                            $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key_val,$ev->gross_,$kiwi);
                             if(count($data_) > 0){
                                 $ev->tax = $data_['tax'];
                                 $ev->m_paye = $data_['m_paye'];
@@ -1063,15 +1085,15 @@ class Subbie extends CI_Controller{
                             }
 
                             $ev->nz_account_ = $ev->nz_account ? $ev->nz_account + ($hours * $ev->hourly_rate) : 0;
-                            $ev->flight_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['flight_debt'];
+                            $ev->flight_debt = @$this->data['total_bal'][$ev->id][$_year][$_week_val]['flight_debt'];
                             $ev->flight_deduct = $ev->flight_debt > 0 ?
                                 ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
 
-                            $ev->visa_debt = @$this->data['total_bal'][$ev->id][$_year][$_week]['visa_debt'];
+                            $ev->visa_debt = @$this->data['total_bal'][$ev->id][$_year][$_week_val]['visa_debt'];
                             $ev->visa_deduct = $ev->visa_debt > 0 ?
                                 ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
 
-                            $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week]['balance'];
+                            $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week_val]['balance'];
                             $ev->installment = $ev->balance > 0 ?
                                 ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
 
@@ -1092,7 +1114,7 @@ class Subbie extends CI_Controller{
 
                                 $ev->annual_pay = $sinceThen->y == 0 ? (($ev->total_gross + $ev->gross_) * 0.08) : ($ev->gross_ * $total_holiday_leave);
                                 $ev->annual_pay_ = number_format($ev->annual_pay,2,'.','');
-                                $annual_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key,$ev->annual_pay_,'','','','',true);
+                                $annual_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key_val,$ev->annual_pay_,'','','','',true);
 
                                 $ev->annual_tax = 0;
                                 if(count($annual_) > 0){
@@ -1109,7 +1131,7 @@ class Subbie extends CI_Controller{
                                         'total_account_two' => $ev->total_account_two,
                                         'total_nz_account' => $ev->total_nz_account,
                                         'distribution' => floatval($ev->distribution),
-                                        'last_date_pay' => $key,
+                                        'last_date_pay' => $key_val,
                                         'hours' => floatval($hours),
                                         'tax' => floatval($ev->tax),
                                         'gross' => floatval($ev->gross_),
@@ -1136,7 +1158,7 @@ class Subbie extends CI_Controller{
                                         'total_account_two' => $ev->total_account_two,
                                         'total_nz_account' => $ev->total_nz_account,
                                         'distribution' => floatval($ev->distribution),
-                                        'last_date_pay' => $key,
+                                        'last_date_pay' => $key_val,
                                         'hours' => floatval($hours),
                                         'tax' => floatval($ev->tax),
                                         'gross' => floatval($ev->gross_),
@@ -1194,7 +1216,7 @@ class Subbie extends CI_Controller{
         $wage_data = new Wage_Controller();
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $rate = $staff_data->staff_rate();
-        //$kiwi_data = $staff_data->staff_kiwi();
+        $kiwi_data = $staff_data->staff_kiwi();
         $hourly_rate = $staff_data->staff_hourly_rate();
 
         $_id = array();
@@ -1231,17 +1253,18 @@ class Subbie extends CI_Controller{
                                 }
                             }
 
-                            /*if(count(@$kiwi_data[$ev->id]) > 0){
+                            if(count(@$kiwi_data[$ev->id]) > 0){
                                 foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
                                     if(strtotime($start_use) <= strtotime($key) ||
                                         strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
                                         $ev->kiwi = $val->kiwi;
-                                        $ev->employer_kiwi = $val->employer_kiwi;
+                                        $ev->emp_kiwi = $val->employer_kiwi;
                                         $ev->field_name = $val->field_name;
+                                        $ev->cec_name = $val->cec_name;
                                         $ev->esct_rate = $val->esct_rate;
                                     }
                                 }
-                            }*/
+                            }
 
                             $ev->tax = 0;
                             $ev->m_paye = 0;
@@ -1307,7 +1330,7 @@ class Subbie extends CI_Controller{
                                 @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
                                 @$ev->total_account_two +=  floatval($ev->account_two);
                                 @$ev->total_nz_account +=  floatval($ev->nz_account_);
-
+                                //$week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$key)) : date('Y-m-d',strtotime('+6 days '.$key));
                                 if($is_details){
                                     /*$wage_total_data[$ev->id][$last_day] = array(
                                         'distribution' => floatval($final_pay),
@@ -1427,7 +1450,9 @@ class Subbie extends CI_Controller{
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $rate = $staff_data->staff_rate();
         $hourly_rate = $staff_data->staff_hourly_rate();
-        //$kiwi_data = $staff_data->staff_kiwi();
+        $employment_data = $staff_data->staff_employment();
+        $leave_data = $staff_data->staff_leave_application('','',true);
+        $kiwi_data = $staff_data->staff_kiwi();
         $fortnightlyDate = $this->get_staff_fortnightly_start_week();
 
         switch($type){
@@ -1445,18 +1470,34 @@ class Subbie extends CI_Controller{
                         $_year = $_date->format('Y');
                         $_week = (int)$_date->format('W');
                         $week_num = $_date->format('W');
-                        $week_year = $week_num.'-'.$_year;
+                        $week_year = $_date->format('W-Y');
                         $fortnightly = @$fortnightlyDate[$week_year];
 
                         if(count($staff_list) > 0){
                             foreach($staff_list as $ev){
-                                $date_employed = strtotime($ev->date_employed) <= strtotime($dv);
+                                $leave_ = @$leave_data[$ev->id][$week_year];
+                                if(count(@$employment_data[$ev->id]) > 0){
+                                    foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                                        if(
+                                            strtotime($used_date) <= strtotime($dv) ||
+                                            strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                            $ev->date_employed = $val->date_employed;
+                                            $ev->date_last_pay = $val->date_last_pay;
+                                            $ev->last_week_pay = $val->last_week_pay;
+                                            $ev->has_final_pay = $val->has_final_pay;
+                                        }
+                                    }
+                                }
+
+                                $date_employed = strtotime($ev->date_employed) <= strtotime($dv) || strtotime($ev->date_employed) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)));
                                 $last_pay = $ev->date_last_pay != '0000-00-00' && strtotime($ev->date_last_pay) >= strtotime($dv);
                                 $last_week_pay = $ev->last_week_pay && $ev->last_week_pay >= $week_num;
+                                $has_hours = floatval($this->getTotalHours($dv,$ev->id));
 
                                 if(($ev->date_employed != "0000-00-00" && $date_employed && $ev->status_id == 3)
                                     || ($last_week_pay && $last_pay && $date_employed)
                                     || ($date_employed && $last_pay)
+                                    || ($date_employed && $has_hours > 0 && $ev->status_id != 3)
                                 ){
                                     $leave = $this->countLeaveTaken($ev->id,$dv);
 
@@ -1493,6 +1534,19 @@ class Subbie extends CI_Controller{
                                         }
                                     }
 
+                                    if(count(@$kiwi_data[$ev->id]) > 0){
+                                        foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                                            if(strtotime($start_use) <= strtotime($dv) ||
+                                                strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                                $ev->kiwi = $val->kiwi;
+                                                $ev->emp_kiwi = $val->employer_kiwi;
+                                                $ev->field_name = $val->field_name;
+                                                $ev->esct_rate = $val->esct_rate;
+                                                $ev->cec_name = $val->cec_name;
+                                            }
+                                        }
+                                    }
+
                                     $this->data['balance'][$ev->id] = array(
                                         'balance' => $ev->balance,
                                         'flight_debt' => $ev->flight_debt,
@@ -1507,6 +1561,12 @@ class Subbie extends CI_Controller{
                                     //$hours = $this->getWageTypeHoursValue($ev->id,$ev->wage_type,$ev->frequency_id,$dv);
                                     $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->id) : ($fortnightly ? 1 : 0);
                                     $ev->gross = $hours ? $ev->rate_cost * $hours : 0;
+
+                                    if(count($leave_) > 0){
+                                        $_leave_data = $this->staffLeavePay($ev->id);
+                                        $hours = maxValueInArray($_leave_data,'hours');
+                                        $ev->gross = maxValueInArray($_leave_data,'gross');
+                                    }
                                     $ev->gross_ = number_format($ev->gross,2,'.','');
                                     //$ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.000';
 
@@ -1562,6 +1622,7 @@ class Subbie extends CI_Controller{
                                             'ird_num' => $ev->ird_num,
                                             'tax_number' => $ev->tax_number,
                                             'tax_code' => $ev->tax_code,
+                                            'project_id' => $ev->project_id,
                                             'gross' => $ev->gross_,
                                             'rate_cost' => $ev->rate_cost,
                                             'hours' => $ev->wage_type != 1 ? $hours : ($hours ? 40 : 0),
@@ -1657,19 +1718,19 @@ class Subbie extends CI_Controller{
                                     /*$mv->kiwi = '';
                                     $mv->emp_kiwi = '';
                                     $mv->cec_name = '';
-                                    $mv->field_name = '';
+                                    $mv->field_name = '';*/
 
                                     if(count(@$kiwi_data[$mv->id]) > 0){
                                         foreach(@$kiwi_data[$mv->id] as $start_use=>$val){
                                             if(strtotime($start_use) <= strtotime($dv) ||
                                                 strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
                                                 $mv->kiwi = $val->kiwi;
-                                                $mv->employer_kiwi = $val->employer_kiwi;
+                                                $mv->emp_kiwi = $val->employer_kiwi;
                                                 $mv->field_name = $val->field_name;
                                                 $mv->esct_rate = $val->esct_rate;
                                             }
                                         }
-                                    }*/
+                                    }
 
                                     $mv->hours = $monthly_hours;
                                     $mv->gross_ = number_format($mv->hours * $mv->rate_cost,2,'.','');
@@ -1794,9 +1855,13 @@ class Subbie extends CI_Controller{
         $_date = new DateTime($date);
         $_year = $_date->format('Y');
         $_week = (int)$_date->format('W');
+        $week_year = $_date->format('W-Y');
         $rate = $staff_data->staff_rate();
         $hourly_rate = $staff_data->staff_hourly_rate();
-        //$kiwi_data = $staff_data->staff_kiwi();
+        $employment_data = $staff_data->staff_employment();
+        $leave_data = $staff_data->staff_leave_application('','',true);
+        $kiwi_data = $staff_data->staff_kiwi();
+
 
         if(count($data['staff'])>0){
             foreach($data['staff'] as $v){
@@ -1808,6 +1873,20 @@ class Subbie extends CI_Controller{
                 $v->code = $v->currency_code != 'NZD' ? $v->currency_code : 'PHP';
                 $v->currency_symbols = $v->symbols;
                 $v->symbols = $v->currency_code != 'NZD' ? $v->symbols : 'Php';
+
+                $leave_ = @$leave_data[$v->id][$week_year];
+                if(count(@$employment_data[$v->id]) > 0){
+                    foreach(@$employment_data[$v->id] as $used_date=>$val){
+                        if(
+                            strtotime($used_date) <= strtotime($date) ||
+                            strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
+                            $v->date_employed = $val->date_employed;
+                            $v->date_last_pay = $val->date_last_pay;
+                            $v->last_week_pay = $val->last_week_pay;
+                            $v->has_final_pay = $val->has_final_pay;
+                        }
+                    }
+                }
 
                 if(count(@$rate[$v->id]) > 0){
                     foreach(@$rate[$v->id] as $start_date=>$val){
@@ -1834,7 +1913,7 @@ class Subbie extends CI_Controller{
                 /*$v->kiwi = '';
                 $v->emp_kiwi = '';
                 $v->cec_name = '';
-                $v->field_name = '';
+                $v->field_name = '';*/
 
                 if(count(@$kiwi_data[$v->id]) > 0){
                     foreach(@$kiwi_data[$v->id] as $start_use=>$val){
@@ -1843,15 +1922,22 @@ class Subbie extends CI_Controller{
                             $v->kiwi = $val->kiwi;
                             $v->employer_kiwi = $val->employer_kiwi;
                             $v->field_name = $val->field_name;
+                            $v->cec_name = $val->cec_name;
                             $v->esct_rate = $val->esct_rate;
                         }
                     }
-                }*/
+                }
 
                 $converted_amount = $v->currency_code != 'NZD' ? 1 : $phpCurrency;
                 $v->converted_amount = $converted_amount;
                 $v->nz_account_ = $v->nz_account ? ($v->nz_account + ($v->hours * $v->hourly_rate)) : 0;
                 $v->gross = $v->rate_cost * $v->hours;
+                if(count($leave_) > 0){
+                    $_leave_data = $this->staffLeavePay($v->id);
+                    $v->hours = maxValueInArray($_leave_data,'hours');
+                    $v->non_working_hours = $v->hours;
+                    $v->gross = maxValueInArray($_leave_data,'gross');
+                }
                 $v->gross_ = $v->gross != 0 ? number_format($v->gross,2,'.',''):'0.00';
                 //$v->gross = $v->gross != 0 ? number_format($v->gross,0,'.',''):'0.00';
 
@@ -1980,7 +2066,7 @@ class Subbie extends CI_Controller{
         $this->data['staff'] = $this->my_model->getinfo('tbl_staff',$whatVal,'');
         $staff_data = new Staff_Helper();
         $rate = $staff_data->staff_rate();
-        //$kiwi_data = $staff_data->staff_kiwi();
+        $kiwi_data = $staff_data->staff_kiwi();
         if(count($date) >0){
             foreach($date as $dv){
                 if(count($this->data['staff'])>0){
@@ -2005,22 +2091,23 @@ class Subbie extends CI_Controller{
                             }
                         }
 
-                        /*$mv->kiwi = '';
+                       /* $mv->kiwi = '';
                         $mv->emp_kiwi = '';
                         $mv->cec_name = '';
-                        $mv->field_name = '';
+                        $mv->field_name = '';*/
 
                         if(count(@$kiwi_data[$mv->id]) > 0){
                             foreach(@$kiwi_data[$mv->id] as $start_use=>$val){
                                 if(strtotime($start_use) <= strtotime($date) ||
                                     strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
                                     $mv->kiwi = $val->kiwi;
-                                    $mv->employer_kiwi = $val->employer_kiwi;
+                                    $mv->emp_kiwi = $val->employer_kiwi;
                                     $mv->field_name = $val->field_name;
+                                    $mv->cec_name = $val->cec_name;
                                     $mv->esct_rate = $val->esct_rate;
                                 }
                             }
-                        }*/
+                        }
 
                         if($monthly_hours != 0){
                             $mv->hours = $monthly_hours;
@@ -2846,7 +2933,7 @@ class Subbie extends CI_Controller{
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $staff_data = new Staff_Helper();
         $rate = $staff_data->staff_rate();
-        //$kiwi_data = $staff_data->staff_kiwi();
+        $kiwi_data = $staff_data->staff_kiwi();
         if(!$is_count){
             if(count($staff) > 0){
                 foreach($staff as $v){
@@ -2865,7 +2952,7 @@ class Subbie extends CI_Controller{
                     /*$v->kiwi = '';
                     $v->emp_kiwi = '';
                     $v->cec_name = '';
-                    $v->field_name = '';
+                    $v->field_name = '';*/
 
                     if(count(@$kiwi_data[$v->id]) > 0){
                         foreach(@$kiwi_data[$v->id] as $start_use=>$val){
@@ -2873,11 +2960,12 @@ class Subbie extends CI_Controller{
                                 strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
                                 $v->kiwi = $val->kiwi;
                                 $v->employer_kiwi = $val->employer_kiwi;
+                                $v->cec_name = $val->cec_name;
                                 $v->field_name = $val->field_name;
                                 $v->esct_rate = $val->esct_rate;
                             }
                         }
-                    }*/
+                    }
 
                     $v->hours = $this->getWageTypeHoursValue($v->id,$v->wage_type,$v->frequency,$date);
                     $v->gross = $v->rate_cost * $v->hours;
@@ -2993,7 +3081,7 @@ class Subbie extends CI_Controller{
         $staff_data = new Staff_Helper();
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
         $rate = $staff_data->staff_rate();
-        //$kiwi_list = $staff_data->staff_kiwi();
+        $kiwi_list = $staff_data->staff_kiwi();
         $end = date('Y-m-d');
         $staff = array();
         if(count($staff_list) > 0){
@@ -3023,15 +3111,15 @@ class Subbie extends CI_Controller{
                     }
                 }
 
-                /*$kiwi_val = '';
+                //$kiwi_val = '';
                 if(count(@$kiwi_list[$id]) > 0){
                     foreach(@$kiwi_list[$id] as $start_use=>$val){
                         if(strtotime($start_use) <= strtotime($date) ||
                             strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$date)))){
-                            $kiwi_val = $val->kiwi;
+                            $kiwi_data = $val->kiwi;
                         }
                     }
-                }*/
+                }
 
                 $gross = $hours * $rate_cost;
                 $kiwi_ = $kiwi_data ? 'kiwi_saver_'.$kiwi_data : '';
@@ -3059,5 +3147,361 @@ class Subbie extends CI_Controller{
                 $this->session->unset_userdata('list_type_id');
             }
         }
+    }
+
+    function getLeaveDaysCount($start, $end, $holidays){
+        $datesInBetween = $this->createDateRangeArray($start, $end);
+
+        if(count($holidays) > 0){
+            foreach($holidays as $h){
+                if(in_array($h, $datesInBetween)){
+                    $key = array_search($h, $datesInBetween);
+                    unset($datesInBetween[$key]);
+                }
+            }
+        }
+        $count = count($datesInBetween);
+
+        $s = strtotime($start);
+        $e = strtotime($end);
+        $start_hour = date('H', $s);
+        $end_hour = date('H', $e);
+
+        if((in_array(date('Y-m-d'), $datesInBetween) && $start_hour >= 13) || $start_hour >= 13){
+            $count -= 0.5;
+        }
+        if((in_array(date('Y-m-d'), $datesInBetween) && $end_hour <= 12) || $end_hour <= 12){
+            $count -= 0.5;
+        }
+        return $count;
+    }
+
+    function createDateRangeArray($strDateFrom, $strDateTo)
+    {
+        // takes two dates formatted as YYYY-MM-DD and creates an
+        // inclusive array of the dates between the from and to dates.
+
+        // could test validity of dates here but I'm already doing
+        // that in the main script
+
+        $aryRange=array();
+
+        $iDateFrom=mktime(1,0,0,substr($strDateFrom,5,2),     substr($strDateFrom,8,2),substr($strDateFrom,0,4));
+        $iDateTo=mktime(1,0,0,substr($strDateTo,5,2),     substr($strDateTo,8,2),substr($strDateTo,0,4));
+
+        if ($iDateTo>=$iDateFrom)
+        {
+            array_push($aryRange,date('Y-m-d',$iDateFrom)); // first entry
+            while ($iDateFrom<$iDateTo)
+            {
+                $iDateFrom+=86400; // add 24 hours
+                array_push($aryRange,date('Y-m-d',$iDateFrom));
+            }
+        }
+        return $aryRange;
+    }
+
+    function getLeaveWeeklyPay($id = '',$date,$type = 1,$project_id = 1){
+        $start = new DateTime($date);
+        $start_date = $start->format('Y-m-d');
+
+        $end = new DateTime($date);
+        $end_date = $end->modify('-12 months');
+
+        $week_data = $this->getWeekBetweenDates($end_date->format('Y-m-d'),$start_date);
+
+        $gross_data = array();
+
+        $whatVal = array(false);
+        $whatFld = array('is_unemployed');
+
+        if($project_id){
+            $whatVal[] = $project_id;
+            $whatFld[] = 'project_id';
+        }
+
+        if($id){
+            $whatVal = array($id);
+            $whatFld = array('tbl_staff.id');
+        }
+
+        $staff_data = new Staff_Helper();
+        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
+
+        $rate = $staff_data->staff_rate();
+        $employment_data = $staff_data->staff_employment();
+
+        $total_gross = 0;
+        if(count($week_data) > 0){
+            foreach($week_data as $key=>$dv){
+                if(count($staff_list) > 0){
+                    foreach($staff_list as $ev){
+
+                        if(count(@$employment_data[$ev->id]) > 0){
+                            foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                                if(
+                                    strtotime($used_date) <= strtotime($dv) ||
+                                    strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                    $ev->date_employed = $val->date_employed;
+                                    $ev->date_last_pay = $val->date_last_pay;
+                                    $ev->last_week_pay = $val->last_week_pay;
+                                    $ev->has_final_pay = $val->has_final_pay;
+                                }
+                            }
+                        }
+
+                        if(strtotime($dv) <= strtotime(date('Y-m-d'))){
+                            $ev->start_use = '';
+
+                            if(count(@$rate[$ev->id]) > 0){
+                                foreach(@$rate[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($dv) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                        $ev->rate_name = $val->rate_name;
+                                        $ev->rate_cost = $val->rate;
+                                        $ev->start_use = $val->start_use;
+                                    }
+                                }
+                            }
+
+                            $ev->tax = 0;
+                            $ev->m_paye = 0;
+                            $ev->me_paye = 0;
+                            $ev->kiwi_ = 0;
+                            $ev->st_loan = 0;
+
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($dv,$ev->id) : 1;
+                            if(floatval($hours) > 0){
+                                $ev->gross = $ev->rate_cost * $hours;
+                                $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
+                                $total_gross += floatval($ev->gross_);
+
+                                $gross_data[$ev->id][$dv] = array(
+                                    'date' => $dv,
+                                    'gross' => floatval($ev->gross_),
+                                    'hours' => $hours,
+                                    'total_gross' => $total_gross
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $gross_data;
+    }
+
+    function staffLeavePay($id,$is_request = false,$leave_start = ''){
+        $staff_data = new Staff_Helper();
+        $array = array();
+        if(!$is_request){
+            $leave = $staff_data->staff_leave_application($id,'tbl_staff.id',true);
+
+            if(count($leave[$id]) > 0){
+                foreach($leave[$id] as $val){
+                    $leave_start = date('Y-m-d',strtotime('-1 week '.$val->leave_start));
+                    $array = $this->getLeaveWeeklyPay($id,$leave_start);
+                }
+            }
+        }
+        else{
+            if($leave_start){
+                $array = $this->getLeaveWeeklyPay($id,$leave_start);
+            }
+        }
+        return $array;
+    }
+
+    function calculateTotalLeavePay($id,$leave_type,$leave_start,$leave_end,$day_type,$holiday = array()){
+
+        $whatVal = array($id);
+        $whatFld = array('tbl_staff.id');
+
+        $year = date('Y',strtotime($leave_start));
+
+        $staff_data = new Staff_Helper();
+        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
+        $set_wage_date = $this->getPaymentStartDate($year);
+        $wage_total_data = array();
+        $wage_data = new Wage_Controller();
+        $this->data['total_bal'] = $wage_data->get_year_total_balance();
+        $rate = $staff_data->staff_rate();
+        $hourly_rate = $staff_data->staff_hourly_rate();
+        $employment_data = $staff_data->staff_employment(true);
+        $kiwi_data = $staff_data->staff_kiwi();
+        $total_holiday_leave = $this->getLeaveDaysCount($leave_start,$leave_end,$holiday);
+        $total_holiday_leave = $total_holiday_leave ? $total_holiday_leave : 0;
+
+        if(count($set_wage_date) > 0){
+            foreach($set_wage_date as $key=>$dv){
+                $_date = new DateTime($key);
+                $_year = $_date->format('Y');
+                $_week = $_date->format('W');
+                if(count($staff_list) > 0){
+                    foreach($staff_list as $ev){
+
+                        if(strtotime($key) <= strtotime(date('Y-m-d',strtotime($leave_end)))){
+                            $ev->start_use = '';
+                            if(count(@$employment_data[$ev->id]) > 0){
+                                foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                                    if(
+                                        strtotime($used_date) <= strtotime($dv) ||
+                                        strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                        $ev->date_employed = $val->date_employed;
+                                        $ev->date_last_pay = $val->date_last_pay;
+                                        $ev->last_week_pay = $val->last_week_pay;
+                                        $ev->has_final_pay = $val->has_final_pay;
+                                    }
+                                }
+                            }
+                            $_week_val = $ev->last_week_pay ? $ev->last_week_pay : $_week;
+                            $key_val = $ev->date_last_pay != '0000-00-00' ? $ev->date_last_pay : $key;
+
+                            if(count(@$rate[$ev->id]) > 0){
+                                foreach(@$rate[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($key) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
+                                        $ev->rate_name = $val->rate_name;
+                                        $ev->rate_cost = $val->rate;
+                                        $ev->start_use = $val->start_use;
+                                    }
+                                }
+                            }
+
+                            if(count(@$kiwi_data[$ev->id]) > 0){
+                                foreach(@$kiwi_data[$ev->id] as $start_use=>$val){
+                                    if(strtotime($start_use) <= strtotime($key) ||
+                                        strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
+                                        $ev->kiwi = $val->kiwi;
+                                        $ev->emp_kiwi = $val->employer_kiwi;
+                                        $ev->field_name = $val->field_name;
+                                        $ev->cec_name = $val->cec_name;
+                                        $ev->esct_rate = $val->esct_rate;
+                                    }
+                                }
+                            }
+
+                            $then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
+                            $then = new DateTime($then);
+
+                            $now = date('Y-m-d H:i:s',strtotime($key_val));
+                            $now = new DateTime($now);
+
+                            $sinceThen = $then->diff($now);
+
+                            $ev->tax = 0;
+                            $ev->m_paye = 0;
+                            $ev->me_paye = 0;
+                            $ev->kiwi_ = 0;
+                            $ev->st_loan = 0;
+
+                            $leave_hours = $total_holiday_leave * 7.5;
+                            $work_hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key_val,$ev->id) : 1;
+                            $hours = $day_type != 1 ? $leave_hours : $leave_hours;
+                            $ev->gross = $ev->rate_cost * $hours;
+                            $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
+                            $ev->kiwi_ = 0;
+                            $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
+
+                            $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key_val,$ev->gross_,$kiwi);
+                            if(count($data_) > 0){
+                                $ev->tax = $data_['tax'];
+                                $ev->m_paye = $data_['m_paye'];
+                                $ev->me_paye = $data_['me_paye'];
+                                $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
+                                $ev->st_loan = $ev->has_st_loan ? $data_['st_loan'] : 0;
+                            }
+
+                            $ev->hourly_rate = 0;
+                            if(count(@$hourly_rate[$ev->id]) > 0){
+                                foreach(@$hourly_rate[$ev->id] as $val){
+                                    $ev->hourly_rate = $val->hourly_rate;
+                                }
+                            }
+
+                            $ev->nz_account_ = $ev->nz_account ? $ev->nz_account + ($hours * $ev->hourly_rate) : 0;
+                            $ev->flight_debt = @$this->data['total_bal'][$ev->id][$_year][$_week_val]['flight_debt'];
+                            $ev->flight_deduct = $ev->flight_debt > 0 ?
+                                ($ev->flight_debt <= $ev->flight_deduct ? $ev->flight_debt : $ev->flight_deduct) : 0;
+
+                            $ev->visa_debt = @$this->data['total_bal'][$ev->id][$_year][$_week_val]['visa_debt'];
+                            $ev->visa_deduct = $ev->visa_debt > 0 ?
+                                ($ev->visa_debt <= $ev->visa_deduct ? $ev->visa_debt : $ev->visa_deduct) : 0;
+
+                            $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week_val]['balance'];
+                            $ev->installment = $ev->balance > 0 ?
+                                ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
+
+                            $ev->recruit = $ev->visa_deduct ? $ev->gross_ * 0.03 : 0;
+                            $ev->admin = $ev->visa_deduct ? $ev->gross_ * 0.01 : 0;
+                            $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
+
+                            $ev->distribution = $ev->nett - $ev->installment;
+                            $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+
+                            if($ev->gross > 0){
+                                @$ev->total_distribution +=  floatval($ev->distribution);
+                                @$ev->total_gross +=  floatval($ev->gross_);
+                                @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
+                                @$ev->total_account_two +=  floatval($ev->account_two);
+                                @$ev->total_nz_account +=  floatval($ev->nz_account_);
+
+                                $ev->annual_pay = 0;
+                                $ev->annual_pay_ = number_format($ev->annual_pay,2,'.','');
+
+                                if($sinceThen->y == 0){
+                                    switch($leave_type){
+                                        case 1:
+                                            $ev->annual_pay = $sinceThen->y == 0 ? (($ev->total_gross + $ev->gross_) * 0.08) : ($ev->gross_ * $total_holiday_leave);
+                                            $ev->annual_pay_ = number_format($ev->annual_pay,2,'.','');
+                                            break;
+                                        case 2:
+                                            break;
+                                        case 3:
+                                            break;
+                                        case 4:
+                                            break;
+                                        case 5:
+                                            break;
+                                        case 6:
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
+                                $annual_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key_val,$ev->annual_pay_,'','','','',true);
+
+                                $ev->annual_tax = 0;
+                                if(count($annual_) > 0){
+                                    $ev->annual_tax = $annual_['tax'];
+                                }
+
+                                $wage_total_data[$ev->id] = array(
+                                    'total_distribution' => $ev->total_distribution,
+                                    'total_gross' => floatval($ev->total_gross + $ev->gross_),
+                                    'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
+                                    'total_account_one' => $ev->total_account_one,
+                                    'total_account_two' => $ev->total_account_two,
+                                    'total_nz_account' => $ev->total_nz_account,
+                                    'distribution' => floatval($ev->distribution),
+                                    'last_date_pay' => $key_val,
+                                    'hours' => floatval($hours),
+                                    'tax' => floatval($ev->tax),
+                                    'gross' => floatval($ev->gross_),
+                                    'annual_leave_pay' => floatval($ev->annual_pay),
+                                    'annual_tax' => $ev->annual_tax,
+                                    'last_week' => $_week,
+                                    'calculation_type' => $sinceThen->y == 0 ? '8%' : 'Avg. Weekly',
+                                    'total_holiday_leave' => $total_holiday_leave
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $wage_total_data;
     }
 }

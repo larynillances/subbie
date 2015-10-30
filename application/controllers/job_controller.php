@@ -485,7 +485,7 @@ class Job_Controller extends Subbie{
                 if(isset($_GET['archive'])){
                     $this->getInvoiceData($client_id,'',$inv_ref,true);
                 }else{
-                    $uri = $this->uri->segment(5) ? $this->uri->segment(5) : '';
+                    $uri = $this->uri->segment(4) ? $this->uri->segment(4) : '';
                     $this->getInvoiceData($client_id,$uri);
                 }
                 $this->data['dir'] = 'pdf/invoice/'.date('Y/F',strtotime($date));
@@ -529,13 +529,13 @@ class Job_Controller extends Subbie{
         
         $ref = $this->uri->segment(3);
         $client_id = $this->uri->segment(2);
-
-        if(!$ref && !$client_id){
+        $date = $this->uri->segment(4);
+        if(!$ref && !$client_id && !$date){
             exit;
         }
 
         $this->getInvoiceData($client_id,'',$ref,true);
-
+        $this->data['date'] = $date;
         $this->data['page_load'] = 'backend/invoice/edit_job_invoice_view';
         $this->load->view('main_view',$this->data);
     }

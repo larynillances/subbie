@@ -1,5 +1,5 @@
 <div style="padding: 5px">
-    <input type="button" name="addSupplier" class="btn btn-success add-supplier" value="Add Supplier">
+    <input type="button" name="addSupplier" class="btn btn-success btn-sm add-supplier" value="Add Supplier">
 </div>
 <table class="table table-colored-header">
     <thead>
@@ -52,17 +52,15 @@
 <script>
     $(function(){
         $('.add-supplier').click(function(e){
-            $(this).newForm.addNewForm({
+            $(this).modifiedModal({
                 title: 'Add Supplier',
-                url: bu + 'manageSupplier/add',
-                toFind:'.form-horizontal'
+                url: bu + 'manageSupplier/add'
             });
         });
         $('.edit-supplier').click(function(e){
-            $(this).newForm.addNewForm({
+            $(this).modifiedModal({
                 title: 'Edit Client',
-                url: bu + 'manageSupplier/edit/' + this.id,
-                toFind:'.form-horizontal'
+                url: bu + 'manageSupplier/edit/' + this.id
             });
         });
     });

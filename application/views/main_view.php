@@ -56,7 +56,7 @@
     <script src="<?php echo base_url() . "plugins/multi-select/js/bootstrap-multiselect.js" ?>"></script>
     <script src="<?php echo base_url() . "plugins/js/fileinput.js" ?>"></script>
     <script>
-        $.ajaxSetup({ cache: false });
+        $.ajaxSetup({ cache: true });
         jQuery(document).ready(function($){
             // Get current url
             // Select an a element that has the matching href and apply a class of 'active'. Also prepend a - to the content of the link
@@ -93,12 +93,12 @@
 </div>
 
 <!--large modal-->
-<div class="modal fade this-modal bs-example-modal-lg largeModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+<div class="modal fade this-modal bs-example-modal-lg largeModal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" aria-labelledby="myLargeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                <h4 class="modal-title">Add Invoice Entry</h4>
+                <h4 class="modal-title my-title">Add Invoice Entry</h4>
             </div>
             <div class="page-loader lg-page-load"></div>
         </div><!-- /.modal-content -->
@@ -106,7 +106,7 @@
 </div><!-- /.modal -->
 
 <!--default modal-->
-<div class="modal fade my-modal defaultModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+<div class="modal fade my-modal defaultModal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" aria-labelledby="myLargeModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -119,7 +119,7 @@
 </div><!-- /.modal -->
 
 <!--small modal-->
-<div class="modal fade bs-example-modal-sm sm-modal smallModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+<div class="modal fade bs-example-modal-sm sm-modal smallModal" tabindex="-1" data-backdrop="static" data-keyboard="false" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <div class="modal-header">
@@ -145,12 +145,14 @@
             e.preventDefault();
             var url = bu + 'invoiceCreate';
             content.load(url);
+            title.html('New Invoice Entry');
             $('.this-modal').modal();
         });
 
         $('.orderBookInputBtn').click(function(e){
             e.preventDefault();
             var url = bu + 'orderBookInput';
+            title.html('New Material Order');
             page.load(url);
             $('.my-modal').modal();
         });
@@ -161,11 +163,6 @@
             var url = bu + 'quotation/new';
             page.load(url);
             $('.my-modal').modal();
-            /*$(this).newForm.addNewForm({
-                title: 'New Quote Request',
-                url: bu + 'quotation/new',
-                toFind:'.form-horizontal'
-            });*/
         });
     });
 </script>

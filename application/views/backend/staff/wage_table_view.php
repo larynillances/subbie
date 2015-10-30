@@ -7,13 +7,13 @@
         <div class="form-group">
             <label class="col-sm-1 control-label">Status:</label>
             <div class="col-sm-1" style="margin-left: -20px;">
-                <?php echo form_dropdown('staff_status',$staff_status,$status,'class="form-control input-sm" style="width:120%;"')?>
+                <?php echo form_dropdown('staff_status',$staff_status,$status,'class="form-control input-sm" style="width:110%;"')?>
             </div>
             <div class="col-sm-2" style="margin-left: -10px;">
                 <?php echo form_dropdown('project_type',$project_type,$project,'class="form-control input-sm"')?>
             </div>
             <div class="col-sm-1">
-                <input type="submit" name="go" class="btn btn-success input-sm" style="padding: 5px 10px;" value="Go" >
+                <input type="submit" name="go" class="btn btn-success btn-sm" style="padding: 5px 10px;" value="Go" >
             </div>
             <div class="col-sm-1">
                 <span style="font-size: 18px;margin: 2px 0 0 -58px;">
@@ -37,6 +37,7 @@
                 <th rowspan="2">ESCT</th>
                 <th rowspan="2">CPR<br/>Start Date</th>
                 <th rowspan="2">&nbsp;</th>
+                <th rowspan="2">Employment<br/>Periods</th>
                 <th rowspan="2">Bank Account</th>
                 <th colspan="2">Loans</th>
                 <th rowspan="2">Status</th>
@@ -54,8 +55,21 @@
             if(count($employee)>0):
                 foreach($employee as $v):
                     $print_option = '| <a href="#" id="'. $v->id .'" class="print-staff-btn">print</a>';
+                    $has_last_pay = $v->has_final_pay && $v->status_id != 3 ? 'class="has-last-pay"' : '';
+                    $v->date_employed = $v->date_employed != '0000-00-00' ? $v->date_employed : '';
+                    $date_employed = $v->date_employed ? date('d/m/Y',strtotime($v->date_employed)) : '&nbsp;';
+                    $employment_period = '';
+                    $employment_ = @$employment_data[$v->id];
+                    if(count($employment_) > 0){
+                        foreach($employment_ as $val){
+                            $unemployed_date = $val->date_last_pay  != '0000-00-00' && $val->date_last_pay  ? date('d/m/Y',strtotime($val->date_last_pay)) : 'Present';
+                            $v->date_employed = $val->date_employed != '0000-00-00' && $val->date_employed ? $val->date_employed : '';
+                            $date_employed = $v->date_employed ? date('d/m/Y',strtotime($val->date_employed)) : '&nbsp;';
+                            $employment_period .= $date_employed." to ".$unemployed_date."\n";
+                        }
+                    }
                     ?>
-                    <tr>
+                    <tr <?php echo $has_last_pay;?> >
                         <td style="text-align: left!important;"><?php echo $v->name;?></td>
                         <td><?php echo $v->ird_num;?></td>
                         <td><span class="tooltip-class" title="<?php echo $v->frequency.' '.$v->salary_type;?>"><?php echo $v->description;?></span></td>
@@ -67,6 +81,7 @@
                         <td><?php echo $v->esct_rate ? $v->esct_rate : '';?></td>
                         <td><?php echo $v->start_use ? date('d/m/Y',strtotime($v->start_use)) : '';?></td>
                         <td><a href="#" class="tooltip-class pay-rate-list-btn" id="<?php echo $v->id;?>" data-value="<?php echo $v->name.' Pay Rate List';?>" title="Pay Rate List"><i class="glyphicon glyphicon-list"></i></a></td>
+                        <td><span class="tooltip-class" title="<?php echo $employment_period;?>"><?php echo $date_employed;?></span></td>
                         <td><?php echo $v->bank_account;?></td>
                         <td><?php echo $v->installment ? '$'.number_format($v->installment,2) : ''?></td>
                         <td><?php echo $v->balance ? '$'.number_format($v->balance,2) : ''?></td>
@@ -77,18 +92,18 @@
                             if($v->status_id == 3){
                                 ?>
                                 <a href="<?php echo base_url('manageStaff/edit/'.$v->id)?>" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
-                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id;?>" class="delete-staff-btn"><span class="glyphicon glyphicon-arrow-right"></a>
+                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id;?>" data-string="<?php echo $v->name;?>" class="delete-staff-btn"><span class="glyphicon glyphicon-arrow-right"></a>
                             <?php
                             }else if($v->status_id == 2){
                                 ?>
                                 <a href="<?php echo base_url('manageStaff/edit/'.$v->id)?>" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
-                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?current=1';?>" class="move-to-current-btn move-btn tooltip-class" data-value="Move to Current" data-placement="left" title="Move to Current">Cur.</a>&nbsp;
-                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?archive=1';?>" class="move-to-archive-btn move-btn tooltip-class"  data-value="Move to Archive" data-placement="left" title="Move to Archive">Arc.</a>
+                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?current=1';?>" class="move-to-current-btn move-btn tooltip-class" data-value="Current" data-current="Active" data-string="<?php echo $v->name;?>" data-placement="left" title="Move to Current">Cur.</a>&nbsp;
+                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?archive=1';?>" class="move-to-archive-btn move-btn tooltip-class"  data-value="Archive" data-current="Active" data-string="<?php echo $v->name;?>" data-placement="left" title="Move to Archive">Arc.</a>
                             <?php
                             }else{
                                 ?>
                                 <a href="<?php echo base_url('manageStaff/edit/'.$v->id)?>" class="edit-staff-btn" id="<?php echo $v->id;?>"><span class="glyphicon glyphicon-pencil"></a>&nbsp;
-                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?current=1';?>" class="move-to-current-btn move-btn tooltip-class" data-value="Move to Current" data-placement="left" title="Move to Current">Cur.</a>&nbsp;
+                                <a href="<?php echo base_url().'manageStaff/delete/'.$v->id.'?current=1';?>" class="move-to-current-btn move-btn tooltip-class" data-value="Move to Current" data-current="Archive" data-string="<?php echo $v->name;?>" data-placement="left" title="Move to Current">Cur.</a>&nbsp;
                             <?php
                             }
                             ?>
@@ -99,7 +114,7 @@
             else:
                 ?>
                 <tr>
-                    <td colspan="15" class="empty-table">No data was found.</td>
+                    <td colspan="16" class="empty-table">No data was found.</td>
                 </tr>
             <?php
             endif;
@@ -108,22 +123,13 @@
         </table>
     </div>
 </div>
+<style>
+    .table .has-last-pay td{
+        background: #e5e095;
+    }
+</style>
 <script>
     $(function(e){
-        /*$('.add-staff-btn').click(function(e){
-            var url = bu + 'manageStaff/add';
-            $(this).modifiedModal({
-                url: url,
-                title: 'Add Staff'
-            });
-        });
-        $('.edit-staff-btn').click(function(e){
-            var url = bu + 'manageStaff/edit/' + this.id;
-            $(this).modifiedModal({
-                url: url,
-                title: 'Edit Staff'
-            });
-        });*/
         $('.pay-rate-list-btn').click(function(e){
             var url = bu + 'payRatePeriods?id=' + this.id;
             $(this).modifiedModal({
@@ -147,7 +153,7 @@
                 '</div>';
             $(this).modifiedModal({
                 html:ele,
-                title: 'Delete Staff',
+                title: 'Move to Active',
                 type: 'small'
             });
             var link = this.href;
@@ -163,13 +169,14 @@
 
         $('.move-btn').click(function(e){
             e.preventDefault();
-            var title_ = $(this).data('value');
-            var msg = $(this).hasClass('move-to-archive-btn') ? 'Archive' : 'Current';
+            var title_ = 'Move to ' + $(this).data('value');
+            var msg_str = 'Do you want to move <strong>' + $(this).data('string') + '</strong> from this list of ';
+                msg_str += $(this).data('current') + ' Employee Records, to the ' + $(this).data('value') + ' Staff Members List?';
             var ele =
                 '<div class="modal-body">' +
                     '<div class="row">' +
                         '<div class="col-sm-12">' +
-                            'Do you want to move this Employee from the List of ' + msg + ' Staff Members?' +
+                            msg_str +
                         '</div>' +
                     '</div>' +
                 '</div>' +
