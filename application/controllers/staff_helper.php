@@ -278,13 +278,41 @@ class Staff_Helper extends CI_Controller{
         return $employment_data;
     }
 
+    function stat_holiday($year){
+        $whatValue = array($year,1,false);
+        $whatFld = array('YEAR(date) =','type','is_reminder');
+        $holiday = $this->my_model->getInfo('tbl_holiday',$whatValue,$whatFld);
+        $data = array();
+        if(count($holiday) > 0){
+            foreach($holiday as $val){
+                $data[$val->date] = $val;
+            }
+        }
+
+        return $data;
+    }
+
+    function adjustment($year,$month){
+        $whatValue = array($year,$month);
+        $whatFld = array('YEAR(date) =','MONTH(date) =');
+        $adjustment = $this->my_model->getInfo('tbl_adjustment',$whatValue,$whatFld);
+        $data = array();
+        if(count($adjustment) > 0){
+            foreach($adjustment as $val){
+                $data[$val->staff_id][$val->date] = (Object)$val;
+            }
+        }
+
+        return $data;
+    }
+
     function staff_leave_application($whatVal = '',$whatFld = '',$by_week = false){
         $this->my_model->setJoin(array(
             'table' => array(
                 'tbl_leave_decision',
                 'tbl_leave_type',
                 'tbl_staff',
-                'tbl_holiday_type'
+                'tbl_day_type'
             ),
             'join_field' => array(
                 'id','id','id','id'
@@ -302,10 +330,10 @@ class Staff_Helper extends CI_Controller{
         $fld[] = 'tbl_leave_type.type as leave_type';
         $fld[] = 'tbl_leave_decision.decision as decision_type';
         $fld[] = 'WEEK(leave_start, 1 ) as week';
-        $fld[] = 'tbl_holiday_type.holiday_type as day_type';
-        $fld[] = 'tbl_holiday_type.id as range_type';
-        $fld[] = 'tbl_holiday_type.day_number';
-        $fld[] = 'tbl_holiday_type.hours';
+        $fld[] = 'tbl_day_type.holiday_type as day_type';
+        $fld[] = 'tbl_day_type.id as range_type';
+        $fld[] = 'tbl_day_type.day_number';
+        $fld[] = 'tbl_day_type.hours';
 
         $this->my_model->setSelectFields($fld);
         if(!$whatVal && !$whatFld){
@@ -322,7 +350,8 @@ class Staff_Helper extends CI_Controller{
         if(count($leave) > 0){
             foreach($leave as $row){
                 $date = $this->createDateRangeArray($row->leave_start,$row->leave_end);
-                $leave_days_count = $this->getLeaveDaysCount($row->leave_start,$row->leave_end,array());
+                $holiday = $this->subbie_date_helper->holidays;
+                $leave_days_count = $this->getLeaveDaysCount($row->leave_start,$row->leave_end,$holiday);
 
                 if(count($date) > 0){
                     foreach($date as $val){

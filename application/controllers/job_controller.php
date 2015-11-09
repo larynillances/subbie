@@ -485,7 +485,7 @@ class Job_Controller extends Subbie{
                 if(isset($_GET['archive'])){
                     $this->getInvoiceData($client_id,'',$inv_ref,true);
                 }else{
-                    $uri = $this->uri->segment(4) ? $this->uri->segment(4) : '';
+                    $uri = $this->uri->segment(5) ? $this->uri->segment(5) : '';
                     $this->getInvoiceData($client_id,$uri);
                 }
                 $this->data['dir'] = 'pdf/invoice/'.date('Y/F',strtotime($date));
@@ -606,6 +606,8 @@ class Job_Controller extends Subbie{
                 ));
                 $this->my_model->setShift();
                 $invoice = (Object)$this->my_model->getInfo('tbl_invoice',array($v->reference,$v->client_id),array('inv_ref','client_id'));
+
+                $v->debits = floatval($v->debits);
 
                 $this->data['statement_data'][$date][] = (object)array(
                     'id' => $v->id,
@@ -841,6 +843,7 @@ class Job_Controller extends Subbie{
                     as job_ref';
         $fields[] = 'tbl_registration.job_name as reg_job_name';
         $fields[] = 'tbl_invoice.job_id';
+        $fields[] = 'tbl_credit_note.note';
 
         $this->my_model->setSelectFields($fields);
         $whatVal = array($id,true);

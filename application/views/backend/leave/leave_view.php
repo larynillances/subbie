@@ -33,7 +33,7 @@
         margin: 10px 0;
         height: 400px;
         border: 1px solid #000000;
-        font-size: 11px!important;
+        font-size: 12px!important;
     }
     .slick-row{
         font-size: 12px!important;
@@ -60,7 +60,7 @@
     }
 
     .is_approved{
-        background: #45ff96;
+        background: #45ff96!important;
     }
     .is_disapproved{
         background: #ff5951!important;
@@ -138,8 +138,8 @@
                     echo form_dropdown('status', $decision, '', 'class="status form-control input-sm"');
                     ?>
                 </div>
-                <div class="col-sm-2">
-                    <a href="<?php echo base_url() . "staffLeaveAdd"; ?>" class="addLeave">
+                <div class="col-sm-1">
+                    <a href="<?php echo base_url() . "staffLeaveAdd"; ?>" class="addLeave" style="font-size: 20px;">
                         <i class="fa fa-plus tooltip-class" title="Request Leave"></i>
                     </a>
                 </div>
@@ -199,6 +199,7 @@ if(in_array($account_type, array(1,2,4))) {
             ?>
             {id: "date", name: "Date", field: "date", width: 60,cssClass:"text-center"},
             {id: "user", name: "Name", field: "user", width: 90, cssClass:"text-center"},
+            {id: "leave_type", name: "Type", field: "type", width: 60, cssClass:"text-center"},
             {id: "reason", name: "Reason", field: "reason", width: 100, cssClass: "reason", formatter: htmlFormatter},
             {id: "range_date", name: "Range", field: "range_date", width: 150,cssClass:"text-center range"},
             {id: "duration", name: "Duration", field: "duration", width: 50,cssClass:"text-center"},
@@ -222,6 +223,7 @@ if(in_array($account_type, array(1,2,4))) {
     $(function(e){
         var type = $('.type');
         var status = $('.status');
+        var sDp = $('.sDp');
         var addLeave = $('.addLeave');
         leaveData = <?php echo $leave ? $leave : '[]'; ?>;
 
@@ -267,7 +269,6 @@ if(in_array($account_type, array(1,2,4))) {
                 $('.slick-cell').removeClass('selected');
                 leaveGrid.resetActiveCell();
                 var filterData = {
-                    fId: fDp.val(),
                     dp: sDp.val(),
                     type: type.val(),
                     status: status.val()
@@ -276,15 +277,16 @@ if(in_array($account_type, array(1,2,4))) {
                 leaveDataView.refresh();
             };
             function myFilter(item, args) {
-
                 var match = true;
-                match = args.fId ? item.franchise_id == args.fId : match;
                 match = args.dp ? item.user_id == args.dp : match;
-                match = args.type ? item.type_id == args.type : match;
-                match = args.status ? item.status_id == args.status : match;
+                match = match && args.type ? item.type_id == args.type : match;
+                match = match && args.status ? item.status_id == args.status : match;
 
                 return match;
             }
+            sDp.change(function(e) {
+                setFilterArgs();
+            });
             type.change(function(e) {
                 setFilterArgs();
             });

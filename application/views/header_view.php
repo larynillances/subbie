@@ -13,7 +13,8 @@ switch($this->session->userdata('account_type')){
                 'supplierList' => 'Supplier List',
                 'clientList' => 'Client List',
                 'invoiceList' => 'Invoice List',
-                'payIntegrityCheck' => 'Pay Integrity Check'
+                'payIntegrityCheck' => 'Pay Integrity Check',
+                'staffHoliday' => 'Holiday',
             ),
             'New' => array(
                 'newJobRequestForm' => 'Job Request',

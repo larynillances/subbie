@@ -1,8 +1,7 @@
 <?php
-echo form_open('','class="form-horizontal"');
+echo form_open('','class="form-horizontal form-data"');
 unset($leave_type['']);
 unset($holiday['']);
-$pay = @$leave_pay[$staff_id];
 ?>
     <div class="modal-body">
         <div class="row">
@@ -62,7 +61,7 @@ $pay = @$leave_pay[$staff_id];
                         foreach($a as $i){
                             echo '<div style="display: table-cell;">';
                             foreach($i as $id=>$txt){
-                                echo '<label>&nbsp;&nbsp;<input type="radio" name="type" value="' . $id . '" ' . ($leave_data == $id ? 'checked' : '') . '/>&nbsp;' . $txt . '</label>';
+                                echo '<label style="white-space: nowrap!important;">&nbsp;&nbsp;<input type="radio" name="type" class="leave_type" value="' . $id . '" ' . ($leave_data == $id ? 'checked' : '') . '/>&nbsp;' . $txt . '</label>';
                             }
                             echo '</div>';
                         }
@@ -76,17 +75,8 @@ $pay = @$leave_pay[$staff_id];
                     <textarea class="form-control input-sm text-area-class required" name="reason_request" style="min-height: 50px;"></textarea>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="control-label col-sm-3">Ordinary Weekly Pay:</label>
-                <div class="col-sm-4">
-                    <input type="text" class="form-control input-sm" value="<?php echo @$pay['gross'] ? '$ '.number_format(@$pay['gross'],2) : '$ 0.00'?>" readonly>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="control-label col-sm-3">Ave. Weekly Pay:</label>
-                <div class="col-sm-4">
-                    <input type="text" class="form-control input-sm" value="<?php echo @$pay['annual_leave_pay'] ? '$ '.number_format(@$pay['annual_leave_pay'],2) : '$ 0.00'?>" readonly>
-                </div>
+            <div class="container-fluid">
+                <div class="leave-report-view"></div>
             </div>
         </div>
     </div>
@@ -103,8 +93,22 @@ echo form_close();
         var leave_range = $('.leave_range');
         var leave_start = $('#leave_start');
         var leave_end = $('#leave_end');
-
+        var leave_type = $('.leave_type');
+        var staff_id = <?php echo $this->uri->segment(2);?>;
+        var date = '<?php echo $this->uri->segment(3);?>';
         var thisDate = new Date();
+        var leave_report = $('.leave-report-view');
+        var data = $('.form-horizontal').serializeArray();
+
+        $(this).newForm.addLoadingForm();
+        var loadReport = function(data){
+            leave_report.html('');
+            leave_report.load(bu + 'timeSheetEdit/' + staff_id + '/' + date + '?req=1&type=1',data,function(){
+                $(this).newForm.removeLoadingForm();
+            });
+        };
+        
+        loadReport(data);
 
         $('#date_requested').datetimepicker({
             format: "DD/MM/YYYY hh:mm a",
@@ -128,6 +132,10 @@ echo form_close();
                 leave_end.data("DateTimePicker").setMinDate(moment(date));
                 var end = leaveRangeSet(d, 2);
                 leave_end.data("DateTimePicker").setValue(moment(end));
+
+                data = $('.form-data').serializeArray();
+                $(this).newForm.addLoadingForm();
+                loadReport(data);
             });
         leave_end
             .datetimepicker({
@@ -143,6 +151,10 @@ echo form_close();
 
                 leave_end.data("DateTimePicker").setValue(moment(d));
                 leave_start.data("DateTimePicker").setMaxDate(e.date);
+
+                data = $('.form-data').serializeArray();
+                $(this).newForm.addLoadingForm();
+                loadReport(data);
             });
         leave_range.change(function(e){
             if(leave_start.data('date')){
@@ -155,6 +167,17 @@ echo form_close();
                 ee = leaveRangeSet(ee, 2);
                 leave_end.data("DateTimePicker").setValue(moment(ee));
             }
+
+            data = $('.form-data').serializeArray();
+            console.log(data);
+            $(this).newForm.addLoadingForm();
+            loadReport(data);
+        });
+
+        leave_type.change(function(e){
+            data = $('.form-data').serializeArray();
+            $(this).newForm.addLoadingForm();
+            loadReport(data);
         });
 
         $('#submit-btn').click(function(e){

@@ -98,7 +98,7 @@ echo form_open('staffLeaveEdit/'.$this->uri->segment(2).$_is_dtr,'class="form-ho
         <tr style="vertical-align: top;">
             <td>Kind of Leave:</td>
             <td>
-                <div class="col-sm-6">
+                <div class="col-sm-7">
                     <?php
                     $limit = 5;
                     $s = ceil(count($type)/$limit);
@@ -107,7 +107,7 @@ echo form_open('staffLeaveEdit/'.$this->uri->segment(2).$_is_dtr,'class="form-ho
                         foreach($a as $i){
                             echo '<div style="display: table-cell;">';
                             foreach($i as $id=>$txt){
-                                echo '<label>&nbsp;&nbsp;<input type="radio" name="type" value="' . $id . '" ' . ($leave->type == $id ? 'checked' : '') . '/>&nbsp;' . $txt . '</label>';
+                                echo '<label style="white-space: nowrap!important;">&nbsp;&nbsp;<input type="radio" name="type" value="' . $id . '" ' . ($leave->type == $id ? 'checked' : '') . '/>&nbsp;' . $txt . '</label>';
                             }
                             echo '</div>';
                         }

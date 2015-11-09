@@ -34,6 +34,12 @@ echo form_open('','class="form-horizontal" role="form"');
                 <input type="text" name="price" class="form-control input-sm number required" value="<?php echo @$credit_note->price;?>">
             </div>
         </div>
+        <div class="form-group">
+            <label class="control-label col-sm-4">Note:</label>
+            <div class="col-sm-8">
+                <textarea name="note" class="form-control input-sm" style="min-height: 200px"><?php echo @$credit_note->note;?></textarea>
+            </div>
+        </div>
     </div>
     <div class="modal-footer">
         <button type="submit" class="btn btn-primary submit-btn" name="submit">Submit</button>

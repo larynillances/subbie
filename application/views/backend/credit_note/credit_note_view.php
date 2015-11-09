@@ -63,7 +63,12 @@ echo form_open('','class="form-horizontal"');
                         <a href="#" class="edit-credit-btn" id="<?php echo $v->id;?>" data-value="<?php echo $v->job_ref;?>"><?php echo $v->job_ref;?></a>
                         <input type="hidden" name="reference" value="<?php echo $v->job_ref;?>">
                     </td>
-                    <td style="text-align: left;padding-left: 20px!important;"><?php echo $v->job_id != 0 ? $v->reg_job_name : $v->job_name;?></td>
+                    <td style="text-align: left;padding-left: 20px!important;">
+                        <?php
+                        echo $v->job_id != 0 ? $v->reg_job_name : $v->job_name;
+                        echo $v->note ? '<br/><br/><strong>Note: <br/>' . $v->note . '</strong>' : '';
+                        ?>
+                    </td>
                     <td><?php echo $v->area;?></td>
                     <td><?php echo '$'.number_format($v->price,2);?></td>
                     <td><?php echo '$'.number_format($this_total,2);?></td>
@@ -132,20 +137,28 @@ echo form_open('','class="form-horizontal"');
 <?php
 echo form_close();
 ?>
+<style>
+    .form-horizontal{
+        font-size: 13px!important;
+    }
+</style>
 <script>
     $(function(e){
         var content = $('.sm-load-page');
         $('.add-credit').click(function(){
             var url = bu + 'manageCreditNote/add/<?php echo $this->uri->segment(2)?>';
-            $('.modal-title').html('Add Credit Note');
-            content.load(url);
-            $('.sm-modal').modal();
+
+            $(this).modifiedModal({
+                url:  url,
+                title: 'Add Credit Note'
+            });
         });
         $('.edit-credit-btn').click(function(){
             var url = bu + 'manageCreditNote/edit/<?php echo $this->uri->segment(2)?>/' + this.id;
-            $('.modal-title').html('Edit Credit Note');
-            content.load(url);
-            $('.sm-modal').modal();
+            $(this).modifiedModal({
+                url:  url,
+                title: 'Edit Credit Note'
+            });
         });
         $('.archive-btn-class').click(function(e){
             e.preventDefault();

@@ -51,20 +51,26 @@
     }
 </style>
 <div id="content" style="width: 850px;margin: 0 auto;">
-    <div class="row">
-        <div class="col-sm-3 pull-right">
-            <button type="button" class="btn btn-sm btn-success send-payslip" <?php echo $has_email != 1 ? 'disabled' : '';?>><i class="glyphicon glyphicon-send"></i> Send</button>
-            <a href="<?php echo base_url('printPaySlip/'.$this->uri->segment(2).'/'.$this->uri->segment(3));?>" target="_blank" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-print"></i> Print</a>
-            <a href="<?php echo base_url('wageTable');?>" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
+    <?php
+    if(!isset($_GET['dtr'])){
+        ?>
+        <div class="row">
+            <div class="col-sm-3 pull-right">
+                <button type="button" class="btn btn-sm btn-success send-payslip" <?php echo $has_email != 1 ? 'disabled' : '';?>><i class="glyphicon glyphicon-send"></i> Send</button>
+                <a href="<?php echo base_url('printPaySlip/'.$this->uri->segment(2).'/'.$this->uri->segment(3));?>" target="_blank" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-print"></i> Print</a>
+                <a href="<?php echo base_url('wageTable');?>" class="btn btn-sm btn-primary"><i class="glyphicon glyphicon-arrow-left"></i> Back</a>
+            </div>
+            <div class="col-sm-8">
+                <?php
+                $_warning_no_email = '<div class="alert alert-danger warning-msg" role="alert"><strong>Warning!</strong>This person has no email address.</div>';
+                $_warning_manual_send = '<div class="alert alert-danger warning-msg" role="alert"><strong>Warning!</strong>This person has an email address but prefer to send manually.</div>';
+                echo !$has_email ? $_warning_no_email : ($has_email == 2 ? $_warning_manual_send : '');
+                ?>
+            </div>
         </div>
-        <div class="col-sm-8">
-            <?php
-            $_warning_no_email = '<div class="alert alert-danger warning-msg" role="alert"><strong>Warning!</strong>This person has no email address.</div>';
-            $_warning_manual_send = '<div class="alert alert-danger warning-msg" role="alert"><strong>Warning!</strong>This person has an email address but prefer to send manually.</div>';
-            echo !$has_email ? $_warning_no_email : ($has_email == 2 ? $_warning_manual_send : '');
-            ?>
-        </div>
-    </div>
+    <?php
+    }
+    ?>
     <div class="content">
         <?php
         $date = $this->uri->segment(3);
@@ -526,17 +532,23 @@
         ?>
     </div>
 </div>
-<script>
-    $(function(){
-        $('.send-payslip').click(function(){
-            $(this).modifiedModal({
-                url: bu + 'sendStaffPaySlip<?php echo '/'.$this->uri->segment(2).'/'.$this->uri->segment(3).'/'.$this->uri->segment(4).'?type='.$_GET['type']?>',
-                title: 'Send Pay Slip',
-                type: 'small'
+<?php
+if(!isset($_GET['dtr'])){
+    ?>
+    <script>
+        $(function(){
+            $('.send-payslip').click(function(){
+                $(this).modifiedModal({
+                    url: bu + 'sendStaffPaySlip<?php echo '/'.$this->uri->segment(2).'/'.$this->uri->segment(3).'/'.$this->uri->segment(4).'?type='.$_GET['type']?>',
+                    title: 'Send Pay Slip',
+                    type: 'small'
+                });
+            });
+            jQuery(window).load(function () {
+                $(this).newForm.removeLoadingForm();
             });
         });
-        jQuery(window).load(function () {
-            $(this).newForm.removeLoadingForm();
-        });
-    });
-</script>
+    </script>
+<?php
+}
+?>

@@ -39,9 +39,10 @@
             if(count($staff) > 0 && in_array($account_type,$account)){
                 ?>
                 <span class="pull-right" style="margin-right: 15px;">
-                <a href="<?php echo base_url().'payPeriodSummaryReport?print=1&week=' . $thisWeek . '&month=' . $thisMonth . '&year=' . $thisYear?>" class="btn btn-sm btn-primary preview-btn" name="preview" target="_blank" <?php echo $preview_btn_class;?> >Preview</a>
-                <button class="btn btn-sm btn-danger commit-btn" name="commit"  <?php echo $commit_btn_class;?>>Commit</button>
-            </span>
+                    <!--<a href="<?php /*echo base_url().'exportPayValues/' . $thisWeek . '/' . $thisMonth . '/' . $thisYear*/?>" class="btn btn-sm btn-success preview-btn" target="_blank" <?php /*echo $preview_btn_class;*/?> >Export</a>-->
+                    <a href="<?php echo base_url().'payPeriodSummaryReport?print=1&week=' . $thisWeek . '&month=' . $thisMonth . '&year=' . $thisYear?>" class="btn btn-sm btn-primary preview-btn" name="preview" target="_blank" <?php echo $preview_btn_class;?> >Preview</a>
+                    <button class="btn btn-sm btn-danger commit-btn" name="commit"  <?php echo $commit_btn_class;?>>Commit</button>
+                </span>
             <?php
             }else{
                 ?>
@@ -98,6 +99,7 @@
                     $getDate =  $dt->setISODate($thisYear,$week_number,$whatDay)->format('Y-m-d');
                     $day = date('Y-m-d', strtotime($getDate));
                     $d = date('j',strtotime($getDate));
+                    $_d = date('N',strtotime($getDate));
                     $today = date('Y-m-d', strtotime($getDate)) == date('Y-m-d') ? 'today' : '';
                     $this_month = date('m', strtotime($getDate)) == $thisMonth ? '' : 'not-this-month';
                     $ref = 0;
@@ -105,10 +107,11 @@
                     $week_end = $_week->format('W') != 30 ? date('Y-m-d',strtotime('+6 days '.$getDate)) : date('Y-m-d',strtotime('+5 days '.$getDate));
                     $type = 0;
                     $range_type = 0;
-
+                    $has_holiday = array_key_exists($getDate,$stat_holiday) ? 'has-holiday' : '';
+                    $is_stat_holiday = array_key_exists($getDate,$stat_holiday) ? 1 : 0;
                     if(count($staff)>0):
                         ?>
-                        <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr;?>" style="border-bottom: 2px solid #0000ff">
+                        <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr.' '.$has_holiday;?>" style="border-bottom: 2px solid #0000ff">
                             <td style="vertical-align: middle;font-weight: bold;" rowspan="<?php echo count($staff) + 1?>">
                                 <?php
                                 echo date('l', strtotime($getDate)).'<br/>'.
@@ -142,8 +145,9 @@
 
                             $style = $ref == (count($staff) - 1) ? 'style="border-bottom: 2px solid #0000ff!important"' : '';
                             $has_pending_request = @$pending->leave_in_hours ? 'has-pending' : '';
+                            $_class = $today.' '.$this_month.' '.$is_locked_dtr.' '.$has_pending_request.' '.$disable_input.' '.$has_holiday;
                             ?>
-                            <tr class="<?php echo $today.' '.$this_month.' '.$is_locked_dtr.' '.$has_pending_request.' '.$disable_input;?>" <?php echo $style;?>>
+                            <tr class="<?php echo $_class;?>" <?php echo $style;?>>
                                 <td style="background: #34386a;color: white;font-style: italic;vertical-align: middle;width: 20%;">
                                     <?php
                                     echo $v->fname.' '.$v->lname;
@@ -225,16 +229,16 @@
                                             if($hasInfo){
                                                 $thisTime = $thisDtr[$day];
 
-                                                $break_deduction = BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out']);
-                                                $break_deduction_seconds = BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out'],true);
+                                                $break_deduction = $staff_leave->range_type == 2 ? 0 : BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out']);
+                                                $break_deduction_seconds = $staff_leave->range_type = 2 ? 0 : BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out'],true);
 
                                                 $valid_time = @floatval($thisTime['time_in']) > 0 && @floatval($thisTime['time_out']) > 0;
 
                                                 @$totalHours[$v->id] += count(@$staff_leave) == 0 && $valid_time ? (@$thisTime['seconds'] - $break_deduction_seconds) : 0;
 
                                                 $dtr_id = @$thisTime['dtr_id'];
-                                                echo count($staff_leave) == 0 && @$thisTime['hours'] > 0 ? number_format(@$thisTime['hours'] - $break_deduction,2) : '&nbsp;';
-                                                echo count($staff_leave) == 0 && @$thisTime['hours'] > 0 ? '&nbsp;<a href="#" style="color: red;float: right;" class="tooltip-class" title="'.($break_deduction_seconds/60).' minutes Meal Break deducted.">?</a>' : '';
+                                                echo @$thisTime['hours'] > 0 ? number_format(@$thisTime['hours'] - $break_deduction,2) : '&nbsp;';
+                                                echo @$thisTime['hours'] > 0 ? '&nbsp;<a href="#" style="color: red;float: right;" class="tooltip-class" title="'.($break_deduction_seconds/60).' minutes Meal Break deducted.">?</a>' : '';
                                             }else{
                                                 echo '&nbsp;';
                                             }
@@ -323,25 +327,28 @@
                                             if($hasInfo){
                                                 $thisTime = $thisDtr[$day];
 
-                                                $break_deduction = BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out']);
-                                                $break_deduction_seconds = BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out'],true);
+                                                $break_deduction = $range_type == 2 ?  0 : BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out']);
+                                                $break_deduction_seconds = $range_type == 2 ? 0 : BreakTimeDeduction(@$thisTime['time_in'],@$thisTime['time_out'],true);
 
                                                 $valid_time = @floatval($thisTime['time_in']) > 0 && @floatval($thisTime['time_out']) > 0;
 
                                                 @$totalHours[$v->id] += $valid_time ? (@$thisTime['seconds'] - $break_deduction_seconds) : 0;
 
                                                 $dtr_id = @$thisTime['dtr_id'];
-                                                echo @$thisTime['hours'] > 0 ? number_format(@$thisTime['hours'] - $break_deduction,2) : '&nbsp;';
-                                                echo @$thisTime['hours'] > 0 ? '&nbsp;<a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class" title="'.($break_deduction_seconds/60).' minutes Meal Break deducted.">?</a>' : '';
+                                                echo @$thisTime['hours'] > 0 ?
+                                                    ($is_stat_holiday && !in_array($_d,array(6,7)) ? '<span class="tooltip-class" title="Worked Hours">WH:</span>'.number_format(@$thisTime['hours'] - $break_deduction,2)
+                                                        : number_format(@$thisTime['hours'] - $break_deduction,2) ) : '&nbsp;';
+                                                echo @$thisTime['hours'] > 0 ? '&nbsp;<a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class" title="'.($break_deduction_seconds/60).' minutes Meal Break deducted.">?</a><br/>' : '';
                                             }else{
                                                 echo '&nbsp;';
                                             }
                                         }else{
                                             echo '&nbsp;';
                                         }
+                                        echo $is_stat_holiday && !in_array($_d,array(6,7))  ? ($v->rate_cost ? '<span class="tooltip-class" title="Holiday Pay">HP:8 [$'.number_format((8 * $v->rate_cost),2).']</span>' : '&nbsp;')  : '&nbsp;';
                                         echo @$pending->leave_in_hours && !@$pending->decision ? '&nbsp;<a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class has-pending-request" id="pending_' . @$pending->id . '" data-date="'.$getDate.'" data-staff="'.$v->id.'" data-value="'. $v->fname . ' ' . $v->lname .'" title="Leave Request still Pending Approval."><i class="glyphicon glyphicon-asterisk"></i></a>' : '';
                                         echo '&nbsp;';
-                                        echo '<strong class="incomplete-request" ' . ($__leave_type && $__day_type && !@$pending->leave_in_hours ? '' : 'style="display: none;"') . '><a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class has-incomplete-request" id="incomplete_' . @$pending->id . '" data-date="'.$getDate.'" data-staff="'.$v->id.'" data-value="'. $v->fname . ' ' . $v->lname .'" title="Incomplete Leave Request">#</strong>';
+                                        echo '<strong class="incomplete-request" ' . ($__leave_type && $__day_type && !@$pending->leave_in_hours ? '' : 'style="display: none;"') . '><a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class has-incomplete-request" id="incomplete_' . @$pending->id . '" data-date="'.$getDate.'" data-staff="'.$v->id.'" data-value="'. $v->fname . ' ' . $v->lname .'" title="Incomplete Leave Request">#</a></strong>';
                                         ?>
                                     </td>
                                     <td style="background:#87be90;vertical-align: middle">
@@ -382,6 +389,9 @@
                         $hours = $total/3600;
                         $holiday_total = 0;
                         $sick_total = 0;
+                        $name = $v->fname.' '.$v->lname;
+                        $attr = 'id="' . $v->id . '" data-title="'.$name.'"';
+
                         if(count($totalHolidayHours[$v->id]) > 0){
                             foreach($totalHolidayHours[$v->id] as $data){
                                 $holiday_total += $data['holiday'];
@@ -389,9 +399,20 @@
                         }
                         ?>
                         <tr class="info">
-                            <td colspan="6" style="text-align: right;"><strong><?php echo $v->fname.' '.$v->lname?></strong></td>
-                            <td><strong><?php echo number_format($hours,2);?></strong></td>
-                            <td><strong><?php echo number_format($holiday_total,2);?></strong></td>
+                            <td colspan="6" style="text-align: right;">
+                                <strong><?php echo $name?></strong>
+                            </td>
+                            <td>
+                                <strong><?php echo number_format($hours,2);?></strong>
+                            </td>
+                            <td>
+                                <strong><?php echo number_format($holiday_total,2);?></strong>
+                                <strong class="pull-right">
+                                    <a href="#" class="pay-adjustment" <?php echo $attr;?> >
+                                        <i class="glyphicon glyphicon-pencil"></i>
+                                    </a>
+                                </strong>
+                            </td>
                             <!--<td><strong><?php /*echo number_format($sick_total,2);*/?></strong></td>-->
                         </tr>
                         <?php
@@ -401,9 +422,15 @@
                 ?>
 
                 <tr class="danger">
-                    <td colspan="6" style="text-align: right;text-transform: uppercase"><strong>Total Hours</strong></td>
-                    <td><strong><?php echo number_format($hoursValue,2);?></strong></td>
-                    <td><strong><?php echo number_format($holidayHours,2);?></strong></td>
+                    <td colspan="6" style="text-align: right;text-transform: uppercase">
+                        <strong>Total Hours</strong>
+                    </td>
+                    <td>
+                        <strong><?php echo number_format($hoursValue,2);?></strong>
+                    </td>
+                    <td>
+                        <strong><?php echo number_format($holidayHours,2);?></strong>
+                    </td>
                     <!--<td><strong><?php /*echo number_format($sickLeaveHours,2);*/?></strong></td>-->
                 </tr>
                 </tbody>
@@ -417,6 +444,9 @@
 <style>
     .not-this-month{
         background: #8b8b8b !important;
+    }
+    table.table tbody .has-holiday td{
+        background: #b4776b !important;
     }
     .form-class div{
         padding: 2px;
@@ -463,7 +493,25 @@
         var week_ = <?php echo $thisWeek;?>;
         var month_ = <?php echo $thisMonth;?>;
         var year_ = <?php echo $thisYear;?>;
+        var adjustment = $('.pay-adjustment');
         var r_id = <?php echo isset($_GET['r_id']) ? $_GET['r_id'] : 0;?>;
+        var form_name = '<?php echo $this->session->userdata('active_dtr') ? $this->session->userdata('active_dtr') : 0;?>';
+
+        adjustment.click(function(e){
+            e.preventDefault();
+            var data = [];
+            data.push(
+                {name:'week',value:week_},
+                {name:'month',value:month_},
+                {name:'year',value:year_}
+            );
+            $(this).modifiedModal({
+                url: bu + 'payAdjustment/' + this.id,
+                title: 'Pay Adjustment for ' + $(this).data('title'),
+                data: data,
+                type: 'large'
+            });
+        });
 
         hours
             .numberOnly({
@@ -473,41 +521,56 @@
                 maxCharLen:4
             });
 
-        hours.on('keyup, keydown', function(e){
-            var _this = $(this);
-            _this.removeAttr('style');
-            var day_type = $(this).parent().parent().find('.day-type').val();
-            day_type = day_type ? day_type : 0;
-            var option = validateTime(day_type,_this.val());
-            var tooltip_msg = _this.hasClass('time_in') ? 'Minimum time allowed is 1200.' : 'Maximum time allowed is 1300.';
-            if (e.keyCode == 9 &&  (_this.val().length < 4 || (parseInt(day_type) && !option))) {  //tab pressed
-                e.preventDefault(); // stops its action
-                _this
-                    .css({
-                        border: '1px solid #ff0000',
-                        background: '#e5a6a6'
-                    })
-                    .attr({
-                        'data-original-title' : _this.val().length < 4 ? 'Please input a valid time.' : tooltip_msg
-                    })
-                    .tooltip('show');
-            }else{
-                /*if(day_type){
-                    var data = $('.form-open').serializeArray();
-
-                    data.push({name:'submit',value:1});
-                    var msg_str = $('.msg-str');
-                    msg_str.css({'display':'none'});
-                    $.post(bu + 'timeSheetEdit',
-                        data,
-                        function(data){
-                            if(data){
-                                msg_str.css({'display':'inline'});
-                            }
-                        }
-                    );
-                }*/
+        hours.on({
+            focusin : function(e){
+                $(this).tooltip('show');
+            },
+            mouseenter: function(e){
+                $(this).tooltip('hide');
+            },
+            mouseout: function(e){
+                $(this).tooltip('hide');
             }
+        });
+        hours
+            .on('keyup, keydown', function(e){
+                var _this = $(this);
+                _this.removeAttr('style');
+                var day_type = $(this).parent().parent().find('.day-type').val();
+                day_type = day_type ? day_type : 0;
+                var option = validateTime(day_type,_this.val());
+                var tooltip_msg = _this.hasClass('time_in') ? 'Minimum time allowed is 1200.' : 'Maximum time allowed is 1300.';
+                if (e.keyCode == 9 &&  (_this.val().length < 4 || (parseInt(day_type) && !option))) {  //tab pressed
+                    e.preventDefault(); // stops its action
+                    _this
+                        .css({
+                            border: '1px solid #ff0000',
+                            background: '#e5a6a6'
+                        })
+                        .attr({
+                            'data-original-title' : _this.val().length < 4 ? 'Please input a valid time.' : tooltip_msg
+                        })
+                        .tooltip('show');
+                }
+                $.post(bu + 'checkTrackingLogPage',
+                    {active: 1,form_name: $(this).attr('name')},
+                    function(data){
+                    }
+                );
+            })
+            .on('focusin, focusout',function(e){
+            var data = $("input[value!=''],select[value!='']").serializeArray();
+            data.push({name:'submit',value:1});
+            var msg_str = $('.msg-str');
+            msg_str.css({'display':'none'});
+            $.post(bu + 'timeSheetEdit',
+                data,
+                function(data){
+                    if(data){
+                        msg_str.css({'display':'inline'});
+                    }
+                }
+            );
         });
 
         function validateTime(day, time){
@@ -536,6 +599,17 @@
                 scrollTop: $("#pending_" + r_id).offset().top - 351
             }, 2000);
         }
+        if(form_name != 0){
+            var input = $('input[name="' + form_name + '"]');
+            if(input.length){
+                $('html,body,table').animate({
+                    scrollTop: input.offset().top - 351
+                }, 2000);
+            }
+
+            //input.focus();
+        }
+
         $('.has-pending-request').click(function(){
             var staff_name = $(this).data('value');
             var str = this.id;
@@ -811,9 +885,11 @@
                                          send_mail:1
                                      },
                                      function(data){
-                                         has_return = 1;
-                                         $(this).newForm.removeLoadingForm();
-                                         location.replace(bu + 'timeSheetEdit');
+                                         $.post(bu + 'exportPayValues/' + week_ + '/' + month_ + '/' + year_,{submit:1},function(data){
+                                             has_return = 1;
+                                             $(this).newForm.removeLoadingForm();
+                                             location.replace(bu + 'timeSheetEdit');
+                                         });
                                      }
                                  );
                              }

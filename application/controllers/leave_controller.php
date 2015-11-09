@@ -4,6 +4,7 @@ include 'subbie.php';
 
 class Leave_Controller extends Subbie{
 
+    //region Leave
     function staffLeave(){
         if($this->session->userdata('is_logged_in') != true){
             redirect('');
@@ -19,8 +20,7 @@ class Leave_Controller extends Subbie{
         $this->data['staff'][''] = 'Staff';
         ksort( $this->data['staff']);
 
-        //$holidays_array = $this->estimator_datehelper->holidays;
-        $holidays_array = array();
+        $holidays_array = $this->subbie_date_helper->holidays;
         $fields = array(
             'tbl_leave.id',
             'DATE_FORMAT(tbl_leave.date_requested, "%d/%m/%Y") as date',
@@ -121,14 +121,15 @@ class Leave_Controller extends Subbie{
                 $emails = $this->my_model->getInfo('tbl_leave_emails');
 
                 $this->my_model->setLastId('holiday_type');
-                $day = $this->my_model->getInfo('tbl_holiday_type',$day_type);
+                $day = $this->my_model->getInfo('tbl_day_type',$day_type);
                 if(count($emails) > 0) {
                     $this->my_model->setShift();
                     $userInfo = (Object)$this->my_model->getInfo('tbl_staff', $user_id);
 
                     $name = $userInfo->fname . " " . $userInfo->lname;
                     $subject = "Leave Application from " . $name;
-                    $leave_duration = $this->getLeaveDaysCount($leave_start, $leave_end, array());
+                    $holiday = $this->subbie_date_helper->holidays;
+                    $leave_duration = $this->getLeaveDaysCount($leave_start, $leave_end, $holiday);
                     //$leave_duration = floor((strtotime($leave_end) - strtotime($leave_start)) / (60 * 60 * 24));
                     $msg = "<strong>" . $name . "</strong> has requested ";
                     $msg .= $day_type != 1 ? "a " . $day ."'s Leave, " : $leave_duration . " days leave, ";
@@ -212,11 +213,11 @@ class Leave_Controller extends Subbie{
                     $userInfo = (Object)$this->my_model->getInfo('tbl_staff', $post['user_id'],'id');
 
                     $this->my_model->setLastId('holiday_type');
-                    $day = $this->my_model->getInfo('tbl_holiday_type',$day_type);
+                    $day = $this->my_model->getInfo('tbl_day_type',$day_type);
 
                     $name = $userInfo->fname . " " . $userInfo->lname;
                     $subject = $name . " Confirmation for Leave Application";
-                    $holidays_array = array();
+                    $holidays_array = $this->subbie_date_helper->holidays;
                     $leave_duration = $this->getLeaveDaysCount($leave_start, $leave_end, $holidays_array);
 
                     $this->my_model->setLastId('decision');
@@ -621,9 +622,318 @@ class Leave_Controller extends Subbie{
 
         $this->my_model->setNormalized('holiday_type','id');
         $this->my_model->setSelectFields(array('id','holiday_type'));
-        $leave_range = $this->my_model->getInfo('tbl_holiday_type');
+        $leave_range = $this->my_model->getInfo('tbl_day_type');
         $this->data['leave_range'] = $hasEmpty ? array('' => 'Leave Range') : array();
         $this->data['leave_range'] += $leave_range;
     }
-    
+    //endregion
+
+    //region Holiday
+    function staffHoliday(){
+        if($this->session->userdata('is_logged_in') != true){
+            redirect('');
+        }
+
+        $this->data['page_load'] = 'backend/holiday/holiday_view';
+
+        $this->holidayDropDown(1);
+
+        $page = isset($_GET['p']) ? $_GET['p'] : 1;
+        $isPrint = isset($_GET['isPrint']) ? $_GET['isPrint'] : 0;
+        $limit = 20;
+        $p = (($page -1) * $limit);
+
+        if(isset($_POST['filter'])){
+            $this->data['isFilter'] = 1;
+            unset($_POST['filter']);
+            $this->session->set_userdata(array(
+                'holidayFilter' => $_POST
+            ));
+        }
+        if(isset($_POST['clearFilter'])){
+            $this->session->set_userdata(array(
+                'holidayFilter' => array(
+                    'isExpandAll' => $_POST['isExpandAll']
+                )
+            ));
+        }
+        $holidayFilter = $this->session->userdata('holidayFilter') ? $this->session->userdata('holidayFilter') : array('isExpandAll' => 1);
+        $holidayFilter = (Object)$holidayFilter;
+        $this->data['holidayFilter'] = $holidayFilter;
+
+        $whatField = array('');
+        $whatVal = array('tbl_holiday.id IS NOT NULL');
+        if(@$holidayFilter->year){
+            $whatField[] = 'YEAR(tbl_holiday.date) =';
+            $whatVal[] = $holidayFilter->year;
+        }
+        if(@$holidayFilter->type){
+            $whatField[] = 'tbl_holiday.type';
+            $whatVal[] = $holidayFilter->type;
+        }
+        if(@$holidayFilter->holiday){
+            $whatField[] = 'tbl_holiday.holiday LIKE';
+            $whatVal[] = "%" . $holidayFilter->holiday . "%";
+        }
+        if(@$holidayFilter->franchise){
+            if(!in_array("all", $holidayFilter->franchise)){
+                $f = $holidayFilter->franchise;
+                $f[] = "all";
+                $c = $this->holidayFilterParser('tbl_holiday.franchise_id', $f);
+                $whatField[] = '';
+                $whatVal[] = $c;
+            }
+        }
+
+        $field = ArrayWalk($this->my_model->getFields('tbl_holiday', array('type')), 'tbl_holiday.');
+        $field[] = 'tbl_holiday_type.type';
+        $this->my_model->setSelectFields($field);
+        $this->my_model->setOrder('tbl_holiday.date', 'ASC');
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_holiday_type'),
+            'join_field' => array('id'),
+            'source_field' => array('tbl_holiday.type')
+        ));
+        $config = $this->my_model->model_config;
+        $h = $this->my_model->getInfo('tbl_holiday', $whatVal, $whatField);
+        $h_count = count($h);
+        $total_pages = ceil($h_count/$limit);
+
+        $this->my_model->model_config = $config;
+        $hasLimit = $isPrint && !isset($_GET['p']) ? 0 : 1;
+        if($hasLimit){
+            $this->my_model->setConfig($limit, $p,true);
+        }
+        $holidays = $this->my_model->getInfo('tbl_holiday', $whatVal, $whatField);
+
+        if(count($holidays) > 0){
+            foreach($holidays as $v){
+                if($v->type == 1){
+                    $v->date = date('Y') . "-" . date('m-d', strtotime($v->date));
+                }
+            }
+        }
+
+        $this->my_model->setSelectFields('holiday');
+        $this->my_model->setGroupBy('holiday');
+        $this->my_model->setNormalized('holiday');
+        $title_json = $this->my_model->getInfo('tbl_holiday');
+        if(count($title_json) > 0){
+            foreach($title_json as $k=>$v){
+                $title_json[$k] = html_entity_decode($v);
+            }
+        }
+
+        $this->data['holidays'] = $holidays;
+        $this->data['title_json'] = str_replace("&#039;", "'", json_encode($title_json));
+        $this->data['total_pages'] = $total_pages;
+        $this->data['page'] = $page;
+
+        if($isPrint){
+            $this->load->view('backend/holiday/holiday_view_print', $this->data);
+        }
+        else{
+            $this->load->view('main_view', $this->data);
+        }
+    }
+
+    private function holidayFilterParser($field, $array){
+        $condition = array();
+        if(count($array) > 0){
+            foreach($array as $v){
+                $condition[] = $field . ' LIKE \'%"' . $v . '"%\'';
+            }
+        }
+        $c = count($condition) > 0 ? '(' . implode(" OR ", $condition) . ')' : '';
+        return $c;
+    }
+    private function holidayArrayDataGet($needle, $search, $glue = "<br />"){
+        $string = array();
+        if(count($needle) > 0){
+            foreach($needle as $v){
+                if(array_key_exists($v, $search)){
+                    $string[] = $search[$v];
+                }
+            }
+        }
+        $s = count($string) > 0 ? implode($glue, $string) : '';
+        return $s;
+    }
+
+    function staffHolidayAdd(){
+        if($this->session->userdata('is_logged_in') != true){
+            redirect('');
+        }
+
+        if(isset($_POST['holiday'])){
+            $post = array(
+                'date' => date('Y-m-d', strtotime(str_replace("/", "-", $_POST['date']))),
+                'holiday' => $_POST['holiday'],
+                'description' => nl2br($_POST['description']),
+                'type' => $_POST['type'],
+                'franchise_id' => json_encode(isset($_POST['franchise_id']) ? $_POST['franchise_id'] : array()),
+                'merchant_id' => json_encode(isset($_POST['merchant_id']) ? $_POST['merchant_id'] : array()),
+                'branch_id' => json_encode(isset($_POST['branch_id']) ? $_POST['branch_id'] : array())
+            );
+            if($_POST['date_to']){
+                $post['date_to'] = date('Y-m-d', strtotime(str_replace("/", "-", $_POST['date_to'])));
+            }
+            $this->my_model->insert('tbl_holiday', $post, false);
+
+            redirect('staffHoliday');
+        }
+
+        $this->holidayDropDown();
+
+        $this->load->view('backend/holiday/holiday_add', $this->data);
+    }
+
+    function staffHolidayCopy(){
+        if($this->session->userdata('is_logged_in') != true){
+            redirect('');
+        }
+
+        $id = isset($_GET['id']) ? $_GET['id'] : '';
+        $year = isset($_GET['year']) ? $_GET['year'] : date('Y');
+
+        if(isset($_POST['holiday_id'])){
+            if(count($_POST['holiday_id']) > 0){
+                $field = $this->my_model->getFields('tbl_holiday', array('id'));
+                $this->my_model->setSelectFields($field);
+                $h = $this->my_model->getInfo('tbl_holiday', array(date('Y'), $_POST['holiday_id']), array('YEAR(date) !=', 'id'));
+                if(count($h) > 0){
+                    foreach($h as $v){
+                        $post = (Array)$v;
+                        $post['date'] = $year . '-' . date('m-d', strtotime($post['date']));
+                        $itExist = count($this->my_model->getInfo('tbl_holiday', $post['date'], 'date')) > 0;
+                        if(!$itExist){
+                            $this->my_model->insert('tbl_holiday', $post, false);
+                        }
+                    }
+                }
+            }
+
+            redirect('staffHoliday');
+        }
+
+        if($id){
+            $whatField = array('id');
+            $whatVal = array($id);
+            $this->my_model->setOrder('tbl_holiday.date', 'ASC');
+            $this->my_model->setShift();
+            $holiday_copy = (Object)$this->my_model->getInfo('tbl_holiday', $whatVal, $whatField);
+        }
+        else{
+            $holidayFilter =  (Object)$this->session->userdata('holidayFilter');
+
+            $whatField = array('YEAR(date) !=', '');
+            $whatVal = array(
+                $year,
+                '(SELECT COUNT(h.id) FROM tbl_holiday h WHERE h.date = tbl_holiday.date) = 1'
+            );
+            if(@$holidayFilter->year){
+                $whatField[] = 'YEAR(tbl_holiday.date) =';
+                $whatVal[] = $holidayFilter->year;
+            }
+            if(@$holidayFilter->type){
+                $whatField[] = 'tbl_holiday.type';
+                $whatVal[] = $holidayFilter->type;
+            }
+            if(@$holidayFilter->holiday){
+                $whatField[] = 'tbl_holiday.holiday LIKE';
+                $whatVal[] = "%" . $holidayFilter->holiday . "%";
+            }
+            $this->my_model->setSelectFields(array('id', 'holiday', 'date', 'date_to'));
+            $this->my_model->setOrder('tbl_holiday.date', 'ASC');
+            $holiday_copy = $this->my_model->getInfo('tbl_holiday', $whatVal, $whatField);
+        }
+        $this->data['holiday_copy'] = $holiday_copy;
+        $this->data['year'] = $year;
+
+        if($id){
+            $this->holidayDropDown();
+            $this->load->view('backend/holiday/holiday_copy', $this->data);
+        }
+        else{
+            $this->load->view('backend/holiday/holiday_copy_all', $this->data);
+        }
+    }
+
+    function staffHolidayEdit(){
+        if($this->session->userdata('is_logged_in') != true){
+            redirect('');
+        }
+
+        $whatId = $this->uri->segment(2);
+        if(!$whatId){
+            redirect('staffLeave');
+        }
+
+        if(isset($_POST['holiday'])){
+            $post = array(
+                'date' => date('Y-m-d', strtotime(str_replace("/", "-", $_POST['date']))),
+                'holiday' => $_POST['holiday'],
+                'description' => nl2br($_POST['description']),
+                'type' => $_POST['type'],
+                'franchise_id' => json_encode(isset($_POST['franchise_id']) ? $_POST['franchise_id'] : array()),
+                'merchant_id' => json_encode(isset($_POST['merchant_id']) ? $_POST['merchant_id'] : array()),
+                'branch_id' => json_encode(isset($_POST['branch_id']) ? $_POST['branch_id'] : array())
+            );
+            $this->my_model->update('tbl_holiday', $post, $whatId, 'id', false);
+            $this->my_model->mysqlString(
+                'UPDATE tbl_holiday SET date_to = ' .
+                ($_POST['date_to'] ? '"' . date('Y-m-d H:i:s', strtotime(str_replace("/", "-", $_POST['date_to']))) . '"' : 'NULL') .
+                ' WHERE id = ' . $whatId, true
+            );
+
+            redirect('staffHoliday');
+        }
+
+        $this->holidayDropDown();
+
+        $this->my_model->setShift();
+        $this->data['holiday'] = (Object)$this->my_model->getInfo('tbl_holiday', $whatId);
+
+        $this->load->view('backend/holiday/holiday_edit', $this->data);
+    }
+
+    private function holidayDropDown($hasEmpty = 0){
+        $this->my_model->setSelectFields(array('type', 'id'));
+        $this->my_model->setNormalized('type', 'id');
+        $type = $this->my_model->getInfo('tbl_holiday_type');
+        $this->data['type'] = $hasEmpty ? array('' => 'Type') : array();
+        $this->data['type'] += $type;
+
+
+        $year = array();
+        for($i = date('Y', strtotime('+5 years')); $i >= 2012; $i --){
+            $year[$i] = $i;
+        }
+        $this->data['year'] = $hasEmpty ? array('' => 'Year') : array();
+        $this->data['year'] += $year;
+
+        $yearAdvance = array();
+        for($i = date('Y', strtotime('+5 year')); $i >= 2012; $i --){
+            $yearAdvance[$i] = $i;
+        }
+        $this->data['yearAdvance'] = $hasEmpty ? array('' => 'Year') : array();
+        $this->data['yearAdvance'] += $yearAdvance;
+    }
+
+    function staffHolidayDelete(){
+        if($this->session->userdata('is_logged_in') != true){
+            redirect('');
+        }
+
+        $whatId = isset($_POST['id']) ? $_POST['id'] : '';
+        $r = 0;
+        if($whatId){
+            $this->my_model->delete('tbl_holiday', $whatId);
+            $r = 1;
+        }
+
+        echo $r;
+    }
+//endregion
+
 }

@@ -248,9 +248,13 @@ class Staff_Controller extends Subbie{
         $this->data['staff'] = $payslip['staff'];
         $this->data['file_name'] = $filename;
         if(isset($_GET['view']) && $_GET['view'] == 1){
-            $this->data['page_name'] .= ' for <strong>'.$payslip['staff_name'].'</strong>';
-            $this->data['page_load'] = 'backend/staff/payslip_view';
-            $this->load->view('main_view',$this->data);
+            if(isset($_GET['dtr']) && $_GET['dtr'] == 1){
+                $this->load->view('backend/staff/payslip_view',$this->data);
+            }else{
+                $this->data['page_name'] .= ' for <strong>'.$payslip['staff_name'].'</strong>';
+                $this->data['page_load'] = 'backend/staff/payslip_view';
+                $this->load->view('main_view',$this->data);
+            }
         }
         else{
             $has_value = $this->my_model->getInfo('tbl_pdf_archive',array($filename.'.pdf',$staff_id),array('file_name','staff_id'));
@@ -823,7 +827,7 @@ class Staff_Controller extends Subbie{
 
                     $kiwi_date_start = $_POST['kiwi_date_start'];
                     $kiwi_id = $_POST['kiwi_id'];
-                    $employeer_kiwi = $_POST['employeer_kiwi'];
+                    $employer_kiwi = $_POST['employeer_kiwi'];
                     $esct_rate_id = $_POST['esct_rate_id'];
 
                     unset($_POST['kiwi_date_start']);
@@ -842,7 +846,7 @@ class Staff_Controller extends Subbie{
                         $post_kiwi = array(
                             'staff_id' => $id,
                             'kiwi_id' => $kiwi_id,
-                            'employer_kiwi' => $employeer_kiwi,
+                            'employer_kiwi' => $employer_kiwi,
                             'esct_rate_id' => $esct_rate_id,
                             'date_start' => date('Y-m-d',strtotime($kiwi_date_start)),
                         );
@@ -1661,7 +1665,6 @@ class Staff_Controller extends Subbie{
         if(isset($_POST['month'])){
             $_month = str_pad($_POST['month'],2,'0',STR_PAD_LEFT);
             $week = $this->getWeeksNumberInMonth($_POST['year'],$_month);
-            ksort($week);
             echo json_encode($week);
         }
     }

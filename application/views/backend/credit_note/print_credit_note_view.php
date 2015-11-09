@@ -143,7 +143,12 @@ ob_start();
                     <td style="vertical-align: top;">
                         <?php echo $v->job_ref;?>
                     </td>
-                    <td style="text-align: left;padding-left: 20px!important;"><?php echo $v->job_id != 0 ? $v->reg_job_name : $v->job_name;?></td>
+                    <td style="text-align: left;padding-left: 20px!important;">
+                        <?php
+                        echo $v->job_id != 0 ? $v->reg_job_name : $v->job_name;
+                        echo $v->note ? '<br/><br/><strong>Note: <br/>' . $v->note . '</strong>' : '';
+                        ?>
+                    </td>
                     <td><?php echo $v->area;?></td>
                     <td><?php echo '$'.number_format($v->price,2);?></td>
                     <td><?php echo '$'.number_format($this_total,2);?></td>

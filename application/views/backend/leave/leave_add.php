@@ -95,7 +95,7 @@ echo form_open('');
         <tr style="vertical-align: top;">
             <td>Kind of Leave:</td>
             <td>
-                <div class="col-sm-6">
+                <div class="col-sm-7">
                     <?php
                     $limit = 5;
                     $s = ceil(count($type)/$limit);
@@ -104,7 +104,7 @@ echo form_open('');
                         foreach($a as $i){
                             echo '<div style="display: table-cell;">';
                             foreach($i as $id=>$txt){
-                                echo '<label>&nbsp;&nbsp;<input type="radio" name="type" value="' . $id . '" />&nbsp;' . $txt . '</label>';
+                                echo '<label style="white-space: nowrap!important;">&nbsp;&nbsp;<input type="radio" name="type" value="' . $id . '" />&nbsp;' . $txt . '</label>';
                             }
                             echo '</div>';
                         }
@@ -121,7 +121,7 @@ echo form_open('');
                 <div class="col-sm-10">
                     <div style="border: 1px solid #000000;">
                         <div style="background: #000000;color: #ffffff;padding: 10px;font-weight: bold;">State the reason for request/application</strong></div>
-                        <textarea name="reason_request" class="form-contol input-sm required" style="width: 100%;height: 100px;resize: none;"></textarea>
+                        <textarea name="reason_request" class="form-control input-sm required" style="width: 100%;height: 100px;resize: none;"></textarea>
                     </div>
                 </div>
             </td>
@@ -156,7 +156,7 @@ echo form_open('');
                         <div style="border: 1px solid #000000;">
                             <div style="background: #000000;color: #ffffff;padding: 10px;font-weight: bold;">Reason for
                                 Decision</strong></div>
-                            <textarea name="reason_decision" class="form-contol input-sm" style="width: 100%;height: 100px;resize: none;"></textarea>
+                            <textarea name="reason_decision" class="form-control input-sm" style="width: 100%;height: 100px;resize: none;"></textarea>
                         </div>
                     </div>
                 </td>

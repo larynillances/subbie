@@ -82,7 +82,7 @@
         </div>
     </div>
 </div>
-<div class="container" style="width: 1300px;">
+<div class="container" style="width: 1200px;">
     <h2 class="page-header"><?php echo $page_name;?></h2>
     <?php $this->load->view($page_load);?>
 </div>

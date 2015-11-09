@@ -146,13 +146,7 @@ echo form_close();
                                     <td>Accom.:</td>
                                     <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['accommodation'],2) : '$ 0.00';?></td>
                                     <td>Transport:</td>
-                                    <td colspan="5"><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
-                                </tr>
-                                <tr>
-                                    <td>Holiday Taken:</td>
-                                    <td><?php echo $last_pay['holiday_leave_taken'].' ('.$last_pay['overall_holiday_leave'].')'?></td>
-                                    <td>Holiday Remaining:</td>
-                                    <td><?php echo $last_pay['total_holiday_leave'].' ('.$last_pay['overall_holiday_leave'].')'?></td>
+                                    <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
                                     <td>ACC Levy:</td>
                                     <td>&nbsp;</td>
                                     <td>Loan Repay:</td>
@@ -163,6 +157,14 @@ echo form_close();
                                         echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
                                         ?>
                                     </td>
+                                </tr>
+                                <tr>
+                                    <td>Holiday Taken:</td>
+                                    <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                    <td>Holiday Remaining:</td>
+                                    <td><?php echo $val['total_holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                    <td>Holiday Pay:</td>
+                                    <td><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
                                 </tr>
                                 <?php
                                 if($val['has_nz_account']){
@@ -212,7 +214,8 @@ echo form_close();
                                     <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$'.number_format($final_pay,2);?></strong></td>
                                 </tr>
                                 <?php
-                            }else{
+                            }
+                            else{
                                 ?><tr>
                                 <td>Hours worked:</td>
                                 <td><?php echo number_format($val['hours'],2)?></td>
@@ -237,13 +240,7 @@ echo form_close();
                                     <td>Accom.:</td>
                                     <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['accommodation'],2) : '$ 0.00';?></td>
                                     <td>Transport:</td>
-                                    <td colspan="5"><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
-                                </tr>
-                                <tr>
-                                    <td>Holiday Taken:</td>
-                                    <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
-                                    <td>Holiday Remaining:</td>
-                                    <td><?php echo $val['total_holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                    <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
                                     <td>ACC Levy:</td>
                                     <td>&nbsp;</td>
                                     <td>Loan Repay:</td>
@@ -254,6 +251,14 @@ echo form_close();
                                         echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
                                         ?>
                                     </td>
+                                </tr>
+                                <tr>
+                                    <td>Holiday Taken:</td>
+                                    <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                    <td>Holiday Remaining:</td>
+                                    <td><?php echo $val['total_holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                    <td>Holiday Pay:</td>
+                                    <td><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
                                 </tr>
                                 <?php
                                 if($val['has_nz_account']){
@@ -286,7 +291,8 @@ echo form_close();
                                 <?php
                                 }
                             }
-                        }else{
+                        }
+                        else{
                             ?>
                             <tr>
                                 <td>Hours worked:</td>
@@ -312,13 +318,7 @@ echo form_close();
                                 <td>Accom.:</td>
                                 <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['accommodation'],2) : '$ 0.00';?></td>
                                 <td>Transport:</td>
-                                <td colspan="5"><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
-                            </tr>
-                            <tr>
-                                <td>Holiday Taken:</td>
-                                <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
-                                <td>Holiday Remaining:</td>
-                                <td><?php echo $val['total_holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                <td><?php echo $val['hours'] > 0 ? '$ '.number_format($val['transport'],2) : '$ 0.00';?></td>
                                 <td>ACC Levy:</td>
                                 <td>&nbsp;</td>
                                 <td>Loan Repay:</td>
@@ -329,6 +329,14 @@ echo form_close();
                                     echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
                                     ?>
                                 </td>
+                            </tr>
+                            <tr>
+                                <td>Holiday Taken:</td>
+                                <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                <td>Holiday Remaining:</td>
+                                <td><?php echo $val['total_holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
+                                <td>Holiday Pay:</td>
+                                <td><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
                             </tr>
                             <?php
                             if($val['has_nz_account']){

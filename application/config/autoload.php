@@ -64,7 +64,7 @@ $autoload['libraries'] = array('database', 'session','form_validation','encrypt'
 |	$autoload['helper'] = array('url', 'file');
 */
 
-$autoload['helper'] = array('form','url','date','directory','text','download','utils_helper');
+$autoload['helper'] = array('form','url','date','directory','text','download','utils_helper','my_json_helper');
 
 
 /*
@@ -109,7 +109,7 @@ $autoload['language'] = array();
 |
 */
 
-$autoload['model'] = array('my_model');
+$autoload['model'] = array('my_model','subbie_date_helper');
 
 
 /* End of file autoload.php */

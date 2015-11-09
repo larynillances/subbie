@@ -12,6 +12,7 @@
  * <examples>
  *
  * @property my_model                     $my_model
+ * @property subbie_date_helper           $subbie_date_helper
  */
 
 class my_models

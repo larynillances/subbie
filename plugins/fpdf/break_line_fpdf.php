@@ -69,8 +69,8 @@ class PDF_Break_Line extends FPDF
         $this->Ln($this->lineBreak);
 
         $this->SetFont($headerOption->FontFamily, $headerOption->FontStyle, $headerOption->FontSizePt);
-        $this->SetTextColor($headerOption->TextColor->r, $headerOption->TextColor->g, $headerOption->TextColor->b);
-        $this->SetFillColor($headerOption->FillColor->r, $headerOption->FillColor->g, $headerOption->FillColor->b);
+        //$this->SetTextColor($headerOption->TextColor->r, $headerOption->TextColor->g, $headerOption->TextColor->b);
+        //$this->SetFillColor($headerOption->FillColor->r, $headerOption->FillColor->g, $headerOption->FillColor->b);
         $this->SetFills($headerOption->Fills);
         $this->widths = $headerOption->Widths;
         $this->aligns = $headerOption->Aligns;
@@ -80,8 +80,8 @@ class PDF_Break_Line extends FPDF
         //to roll back the options to normal
         $defaultOption = $this->defaultOption;
         $this->SetFont($defaultOption->FontFamily, $defaultOption->FontStyle, $defaultOption->FontSizePt);
-        $this->SetTextColor($defaultOption->TextColor->r, $defaultOption->TextColor->g, $defaultOption->TextColor->b);
-        $this->SetFillColor($defaultOption->FillColor->r, $defaultOption->FillColor->g, $defaultOption->FillColor->b);
+        //$this->SetTextColor($defaultOption->TextColor->r, $defaultOption->TextColor->g, $defaultOption->TextColor->b);
+        //$this->SetFillColor($defaultOption->FillColor->r, $defaultOption->FillColor->g, $defaultOption->FillColor->b);
         $this->SetFills($defaultOption->Fills);
         $this->widths = $defaultOption->Widths;
         $this->aligns = $defaultOption->Aligns;

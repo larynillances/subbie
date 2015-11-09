@@ -70,31 +70,20 @@ ob_start();
 
     <body>
     <div id="content">
-        <script type="text/php">
-                if ( isset($pdf) ) {
-                $font = Font_Metrics::get_font("verdana");;
-                $size = 6;
-                $color = array(0,0,0);
-                $text_height = Font_Metrics::get_font_height($font, $size);
+        <script type='text/php'>
+          if ( isset($pdf) ) {
+            $font = Font_Metrics::get_font('helvetica', 'normal');
+            $size = 9;
+            $y = $pdf->get_height() - 24;
+            $x = $pdf->get_width() - 60 - Font_Metrics::get_text_width('1/1', $font, $size);
+            $pdf->page_text($x, $y, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, $size);
 
-                $foot = $pdf->open_object();
-
-                $w = $pdf->get_width();
-                $h = $pdf->get_height();
-
-                // Draw a line along the bottom
-                $y = $h - $text_height - 24;
-                $pdf->line(14, $y, $w - 14, $y, $color, 0.5);
-
-                $pdf->close_object();
-                $pdf->add_object($foot, "all");
-
-                $text = "Page {PAGE_NUM} of {PAGE_COUNT}";
-                // Center the text
-                $width = Font_Metrics::get_text_width("Page 1 of 2", $font, $size);
-                $pdf->page_text($w / 2 - $width / 2, $y, $text, $font, $size, $color);
-                }
-            </script>
+            $date = date("d/m/Y g:i:s a");
+            $y = $pdf->get_height() - 24;
+            $x = $pdf->get_width() - 800 - Font_Metrics::get_text_width('1/1', $font, $size);
+            $pdf->page_text($x, $y, 'Printed : '. $date, $font, 8, array(0, 0, 0));
+          }
+        </script>
         <table class="table table-invoice">
             <thead>
             <tr>
