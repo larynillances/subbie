@@ -103,7 +103,8 @@
                         <th colspan="4" style="padding: 10px;border: 1px solid #000000">Pay Advice Slip for the Pay Period Ended:
                             <?php
                             echo $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));
-                            echo '&nbsp;[Week '.$week.']'
+                            echo '&nbsp;[Week '.$week.']';
+                            echo $v->is_on_acc_leave ? ($v->acc_pay ? '' : '<br/><strong style="color: red;">On ACC - Nil Pay</strong>') : '';
                             ?>
                         </th>
                     </tr>
@@ -140,7 +141,8 @@
                             ?>
                             <td class="bold-text" style="text-align: center" colspan="2">Loans</td>
                         <?php
-                        }else{
+                        }
+                        else{
                             ?>
                             <td class="bold-text">Position: <?php echo $v->position;?></td>
                             <td class="bold-text">Start Date: <?php echo $start_date;?></td>
@@ -166,7 +168,24 @@
                     }
                     ?>
                     <tr style="vertical-align: top">
-                        <td >Wage Gross: <span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                        <td>
+                            <table style="font-size: 13px;border-collapse: collapse;">
+                                <tr>
+                                    <td style="text-align: right">Wage Gross:</td>
+                                    <td style="padding-left: 5px;"><span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                                </tr>
+                                <?php
+                                if($v->is_on_acc_leave && $v->acc_pay){
+                                  ?>
+                                    <tr>
+                                        <td style="text-align: right">ACC Pay:</td>
+                                        <td style="padding-left: 5px;"><span><?php echo $v->acc_pay ? '$'.number_format($v->acc_pay,2) : 'Nil';?></span></td>
+                                    </tr>
+                                <?php
+                                }
+                                ?>
+                            </table>
+                        </td>
                         <td class="deduction-column">
                             <table class="deduction-table">
                                 <tr>
@@ -180,7 +199,7 @@
                                     <tr>
                                         <td></td>
                                         <td>PAYE</td>
-                                        <td><?php echo number_format($v->tax,2);?></td>
+                                        <td><?php echo @$v->tax ? @number_format($v->tax,2) : '$ 0.00';?></td>
                                     </tr>
                                     <tr>
                                         <td><?php echo @$balance_data['flight_debt'] ? '$'.@$balance_data['flight_debt'] : '&nbsp;';?></td>
@@ -218,12 +237,13 @@
                                         <td><?php echo $v->total_install;?></td>
                                     </tr>
                                 <?php
-                                }else{
+                                }
+                                else{
                                     ?>
                                     <tr>
                                         <td>&nbsp;</td>
                                         <td>PAYE</td>
-                                        <td><?php echo $v->tax ? number_format($v->tax,2,'.','') : '0.00';?></td>
+                                        <td><?php echo @$v->tax ? @number_format($v->tax,2,'.','') : '0.00';?></td>
                                     </tr>
                                     <tr>
                                         <td>&nbsp;</td>
@@ -276,7 +296,13 @@
                                     <td>&nbsp;</td>
                                 </tr>
                                 <tr>
-                                    <td><?php echo !$v->nz_account ? ($v->distribution ? '$ '.number_format($v->distribution,2) : '') : '';?></td>
+                                    <td>
+                                        <?php
+                                        if(!$v->nz_account){
+                                            echo $v->adjustment_ ? '$ '.number_format($v->orig_net,2) : ($v->distribution ? '$ '.number_format($v->distribution,2) : '');
+                                        }
+                                        ?>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>&nbsp;</td>
@@ -297,7 +323,9 @@
                                     <td>&nbsp;</td>
                                 </tr>
                                 <tr>
-                                    <td>&nbsp;</td>
+                                    <?php
+                                    echo !$v->nz_account && $v->adjustment_ ? '<td>Adjustment: ' . $v->adjustment_ . '</td>' : '<td>&nbsp;</td>';
+                                    ?>
                                 </tr>
                                 <?php
                                 if($v->nz_account != ''){
@@ -398,7 +426,14 @@
                                     <tbody>
                                     <tr>
                                         <td>
-                                            <strong><?php echo $v->distribution ? '$'.number_format($v->distribution,2) : '';?></strong>
+                                            <strong>
+                                                <?php
+                                                echo $v->adjustment_ ? '$ '.number_format($v->orig_net,2) : ($v->distribution ? '$ '.number_format($v->distribution,2) : '');
+                                                ?>
+                                            </strong><br/><br/>
+                                            <?php
+                                            echo $v->adjustment_ ? '<span>Adjust: </span>' . $v->adjustment_ : '&nbsp;';
+                                            ?>
                                         </td>
                                         <td>
                                             <strong><?php echo @$total['distribution'] ? '$'.number_format(@$total['distribution'],2) : '';?></strong>

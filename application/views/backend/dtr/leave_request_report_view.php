@@ -1,5 +1,5 @@
 <fieldset>
-    <legend style="font-size: 16px;;">Annual Pay Details</legend>
+    <legend style="font-size: 16px;;"><?php echo $leave_type;?> Pay Details</legend>
     <div class="form-group">
         <label class="control-label col-sm-3">Ordinary Gross:</label>
         <div class="col-sm-6">
@@ -19,7 +19,7 @@
         </div>
     </div><br/>
     <div class="form-group">
-        <label class="control-label col-sm-3" for="annual-pay">Annual Leave Days owing:</label>
+        <label class="control-label col-sm-3" for="annual-pay"><?php echo $leave_type;?> Days owing:</label>
         <div class="col-sm-6">
             <input type="text" class="input-sm form-control" id="annual-pay" value="<?php echo $pay_data['total_holiday_leave']?>" readonly>
         </div>
@@ -37,14 +37,14 @@
         </div>
     </div>
     <div class="form-group" style="white-space: nowrap!important;">
-        <label class="control-label col-sm-3" for="annual-pay">Annual Leave Pay:</label>
+        <label class="control-label col-sm-3" for="annual-pay"><?php echo $leave_type;?> Pay:</label>
         <div class="col-sm-6">
             <input type="text" class="input-sm form-control" id="annual-pay" value="<?php echo '$ '.number_format($pay_data['annual_leave_pay'],2)?>" readonly>
         </div>
         <label class="control-label">Method: <?php echo '('.$pay_data['calculation_type'].')';?></label>
     </div>
     <div class="form-group">
-        <label class="control-label col-sm-3" for="annual-pay">Annual Leave PAYE:</label>
+        <label class="control-label col-sm-3" for="annual-pay"><?php echo $leave_type;?> PAYE:</label>
         <div class="col-sm-6">
             <input type="text" class="input-sm form-control" id="annual-pay" value="<?php echo '$ '.number_format($pay_data['annual_tax'],2)?>" readonly>
         </div>

@@ -94,12 +94,13 @@ echo form_close();
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">Copy All Holiday</h4>
+                <h4 class="modal-title">Copy All Holiday <?php echo @$holidayFilter->year ? ' from ' . @$holidayFilter->year : ''?><span class="to-date"></span></h4>
             </div>
             <div class="modal-body center" style="text-align: center;">
                 <div class="modal-body-delete-txt">
                     <?php
-                    echo form_dropdown('copyYear', $yearAdvance, '', 'class="copyYear form-control input-sm"');
+                    unset($yearAdvance[@$holidayFilter->year]);
+                    echo form_dropdown('copyYear', $yearAdvance, '', 'class="copyYear form-control input-sm copyYear-dp"');
                     ?>
                 </div>
                 <div style="margin: 10px 0;">
@@ -302,6 +303,18 @@ if($total_pages > 1){
         collapseBtn.click(function(e){
             isIssueCollapseBtn = 1;
         });
+
+        $('.copyYear-dp').change(function(e){
+            var toDate = $('.to-date');
+            toDate.html('');
+            console.log($(this).val());
+            if($(this).val()){
+                var str = ' to ' + $(this).val();
+                toDate.html(str);
+            }
+
+        });
+
         $('.issueBody')
             .stop()
             .on('shown.bs.collapse', function () {

@@ -800,7 +800,7 @@ class Leave_Controller extends Subbie{
             if(count($_POST['holiday_id']) > 0){
                 $field = $this->my_model->getFields('tbl_holiday', array('id'));
                 $this->my_model->setSelectFields($field);
-                $h = $this->my_model->getInfo('tbl_holiday', array(date('Y'), $_POST['holiday_id']), array('YEAR(date) !=', 'id'));
+                $h = $this->my_model->getInfo('tbl_holiday', $_POST['holiday_id'], 'id');
                 if(count($h) > 0){
                     foreach($h as $v){
                         $post = (Array)$v;

@@ -49,6 +49,12 @@ echo form_open('','class="form-horizontal"')
                     </div>
                 </div>
                 <div class="form-group">
+                    <label for="alias" class="col-sm-3 control-label">Alias</label>
+                    <div class="col-sm-6">
+                        <input type="text" class="form-control input-sm required" id="alias" name="alias">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label for="active" class="col-sm-3 control-label">Active</label>
                     <div class="col-sm-8">
                         <div class="checkbox">

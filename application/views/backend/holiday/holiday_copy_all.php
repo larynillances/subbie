@@ -8,7 +8,7 @@
 
 <div class="list-group">
     <?php
-    echo form_open('', 'class="holidayForm"');
+    echo form_open('staffHolidayCopy?year=' . $year, 'class="holidayForm"');
     echo '<div class="list-group-item active">Copy to Year ' . $year . '</div>';
     if(count($holiday_copy) > 0){
         foreach($holiday_copy as $v){

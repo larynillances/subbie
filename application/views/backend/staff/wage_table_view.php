@@ -7,9 +7,9 @@
         <div class="form-group">
             <label class="col-sm-1 control-label">Status:</label>
             <div class="col-sm-1" style="margin-left: -20px;">
-                <?php echo form_dropdown('staff_status',$staff_status,$status,'class="form-control input-sm" style="width:110%;"')?>
+                <?php echo form_dropdown('staff_status',$staff_status,$status,'class="form-control input-sm" style="width:130%;"')?>
             </div>
-            <div class="col-sm-2" style="margin-left: -10px;">
+            <div class="col-sm-2" style="margin-left: -5px;">
                 <?php echo form_dropdown('project_type',$project_type,$project,'class="form-control input-sm"')?>
             </div>
             <div class="col-sm-1">

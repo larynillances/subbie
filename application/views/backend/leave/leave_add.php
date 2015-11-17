@@ -139,11 +139,11 @@ echo form_open('');
                         <?php
                         if (count($decision) > 0) {
                             echo '<div style="display: table-row;">';
+                            echo '<div style="display: table-cell;">';
                             foreach ($decision as $id => $txt) {
-                                echo '<div style="display: table-cell;">';
-                                echo '<label>&nbsp;&nbsp;<input type="radio" name="decision" value="' . $id . '"/>&nbsp;' . $txt . '</label>';
-                                echo '</div>';
+                                echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label><input type="radio" name="decision" value="' . $id . '"/>&nbsp;' . $txt . '</label>';
                             }
+                            echo '</div>';
                             echo '</div>';
                         }
                         ?>

@@ -11,7 +11,8 @@ class Job_Controller extends Subbie{
     }
 
     function trackingLog(){
-
+        //$wage = new Wage_Controller();
+        //DisplayArray($wage->getTotalHoursInMonth(2015,4,15));exit;
         $this->my_model->setNormalized('status','id');
         $this->my_model->setSelectFields(array('id','status'));
         $this->data['job_status'] = $this->my_model->getInfo('tbl_job_status');
@@ -161,7 +162,6 @@ class Job_Controller extends Subbie{
         $this->load->view('main_view',$this->data);
     }
 
-
     function invoiceList(){
 
         $action = $this->uri->segment(2);
@@ -214,8 +214,8 @@ class Job_Controller extends Subbie{
         }
 
         $this->data['invoice'] = array();
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
         $this->data['whatYear'] = date('Y');
         $this->data['whatMonth'] = date('m');
 
@@ -429,7 +429,9 @@ class Job_Controller extends Subbie{
 
                     $this->my_model->update('tbl_invoice',$_POST,$inv_id);
                     if($this->uri->segment(6)){
-                        redirect('editArchiveInvoice/'.$client_id.'/'.$this->uri->segment(5));
+                        $this->my_model->setShift();
+                        $date_ = $this->my_model->getInfo('tbl_invoice',$inv_id);
+                        redirect('editArchiveInvoice/'.$client_id.'/'.$this->uri->segment(5).'/'.$date_['date']);
                     }else{
                         redirect('jobInvoice/'.$client_id.'/'.$inv_id);
                     }
@@ -485,7 +487,7 @@ class Job_Controller extends Subbie{
                 if(isset($_GET['archive'])){
                     $this->getInvoiceData($client_id,'',$inv_ref,true);
                 }else{
-                    $uri = $this->uri->segment(5) ? $this->uri->segment(5) : '';
+                    $uri = $this->uri->segment(5) ? $this->uri->segment(5) : $this->uri->segment(4);
                     $this->getInvoiceData($client_id,$uri);
                 }
                 $this->data['dir'] = 'pdf/invoice/'.date('Y/F',strtotime($date));
@@ -634,8 +636,8 @@ class Job_Controller extends Subbie{
     function archiveStatement(){
         
         $this->data['pdf_statement'] = array();
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
         $this->data['whatYear'] = date('Y');
         $this->data['whatMonth'] = date('m');
         $this->data['page_load'] = 'backend/statement/archive_statement_view';
@@ -909,8 +911,8 @@ class Job_Controller extends Subbie{
 
     function archiveCreditNote(){
         $this->data['invoice_list'] = array();
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
         $this->data['whatYear'] = date('Y');
         $this->data['whatMonth'] = date('m');
         $this->data['client_key'] = '';

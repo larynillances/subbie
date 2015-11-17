@@ -27,6 +27,7 @@ class Wage_Controller extends CI_Controller{
         $this->data['m_paye']['weekly'] = $this->my_model->getInfo('tbl_tax',1,'frequency_id');
 
     }
+
     function get_total_hours($date,$id,$action = 'weekly'){
         $hours_gain = array();
         $year = date('Y',strtotime($date));
@@ -69,7 +70,6 @@ class Wage_Controller extends CI_Controller{
         return $hoursValue;
     }
 
-
     function get_total_hours_in_month($date,$id,$action = 'weekly'){
         $totalHours = array();
         $hours_gain = array();
@@ -82,7 +82,7 @@ class Wage_Controller extends CI_Controller{
         $start_fin_day = date('N',strtotime($start_fin_month));
         $end_fin_month = $year.'-03-31';
         $end_fin_day = date('N',strtotime($end_fin_month));
-        $last_day_of_march = $this->last_day_of_month($year);
+        $last_day_of_march = last_day_of_month($year);
 
         $week_data = StartWeekNumber($week,$year);
         $dt = new DateTime;
@@ -154,12 +154,6 @@ class Wage_Controller extends CI_Controller{
         }
         $hoursValue = number_format((@$totalHours[$id]/3600),2);
         return $hoursValue;
-    }
-
-    function last_day_of_month($year,$month = 'March',$day="Tuesday"){
-        $_day = $year > 2015 ? 'Monday' : $day;
-        $day = new DateTime(sprintf("Last $_day of $month %s", $year));
-        return $day->format('Y-m-d');
     }
 
     function get_year_total_balance($id = ''){
@@ -407,5 +401,161 @@ class Wage_Controller extends CI_Controller{
         $rate = $this->my_model->getInfo('tbl_staff_rate',$whatVal,$whatFld);
 
         return $rate;
+    }
+
+    function getTotalHoursInMonth($year,$month,$week = '',$id = '',$action = 'weekly'){
+        $totalHours = array();
+        $hours_gain = array();
+
+        $start_fin_month = $year.'-04-01';
+        $start_fin_day = date('N',strtotime($start_fin_month));
+        $end_fin_month = $year.'-03-31';
+        $end_fin_day = date('N',strtotime($end_fin_month));
+        $last_day_of_march = last_day_of_month($year);
+        $get_week = getWeekDateInMonth($year,$month);
+
+        $week_data = StartWeekNumber($week,$year);
+        $dt = new DateTime;
+        $num = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+
+        $this->my_model->setSelectFields(array(
+            'IF(time_out != "" AND time_in != "", TIMESTAMPDIFF(SECOND, time_in, time_out) , 0) as hours',
+            'time_in','time_out','staff_id','date',
+            'id as dtr_id','working_type_id'
+        ));
+        $whatVal = array($year);
+        $whatFld = array('YEAR(date)=');
+        if($week){
+            $whatVal[] = $week;
+            $whatFld[] = 'WEEK(date,1) =';
+        }
+        if($month){
+            $whatVal[] = $month;
+            $whatFld[] = 'MONTH(date) =';
+        }
+        if($id){
+            $whatVal[] = $id;
+            $whatFld[] = 'tbl_login_sheet.staff_id';
+        }
+        $dtr = $this->my_model->getinfo('tbl_login_sheet', $whatVal,$whatFld);
+        $staff_id = array();
+        if(count($dtr) >0){
+            foreach($dtr as $dv){
+                $time_in = strtotime(date('g:i a',strtotime($dv->time_in)));
+                $time_out = strtotime(date('g:i a',strtotime($dv->time_out)));
+                $break_time_deduction = 0;
+                $hours = 0;
+                if($time_in > 0 && $time_out > 0){
+                    $break_time_deduction = BreakTimeDeduction($dv->time_in,$dv->time_out,true);
+                    $hours = $dv->hours;
+                }
+
+                $hours_gain[$dv->staff_id][$dv->date] = $hours > 0 ? ($hours - $break_time_deduction) : 0;
+                $staff_id[$dv->staff_id] = $dv->staff_id;
+            }
+        }
+
+        $date = $get_week[$week];
+        $_start_day = $start_fin_month == $date ? $start_fin_day : $week_data['start_day'];
+
+        $_end_day = $date == $last_day_of_march ? $end_fin_day : $week_data['end_day'];
+        switch($action){
+            case 'weekly':
+                for($whatDay=$_start_day; $whatDay<=$_end_day; $whatDay++){
+                    $getDate =  $dt->setISODate($year, $week , $whatDay)->format('Y-m-d');
+                    $day = date('Y-m-d', strtotime($getDate));
+                    if(count($staff_id) > 0){
+                        foreach($staff_id as $val){
+                            $thisDtr = array_key_exists($val, $hours_gain) ? $hours_gain[$val] : array();
+                            if(count($thisDtr) > 0){
+                                $hasInfo = array_key_exists($day, $thisDtr);
+
+                                if($hasInfo){
+                                    $thisTime = $thisDtr[$day];
+                                    @$totalHours[$val] += @$thisTime;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                for($whatDay=1; $whatDay<=$num; $whatDay++){
+                    //$whatDate = $year.'-'.$month.'-'.$whatDay;
+                    $date = mktime(0, 0, 0, $month,$whatDay,$year);
+                    $thisDate = date('Y-m-d',$date);
+
+                    if(count($staff_id) > 0){
+                        foreach($staff_id as $val){
+                            $thisDtr = array_key_exists($val, $hours_gain) ? $hours_gain[$val] : array();
+                            if(count($thisDtr) > 0){
+                                $hasInfo = array_key_exists($thisDate, $thisDtr);
+
+                                if($hasInfo){
+                                    $thisTime = $thisDtr[$thisDate];
+                                    @$totalHours[$val] += @$thisTime;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+
+        $hoursValue = array();
+        if(count($totalHours) > 0){
+            foreach($totalHours as $key=>$val){
+                $hoursValue[$key] = number_format((@$val/3600),2);
+            }
+        }
+
+        return $hoursValue;
+    }
+
+    function getFirstNextLastDay($y, $m, $week = '')
+    {
+        $start_date = $y.'-'.$m.'-01';
+        $start_day = date('l',strtotime($start_date));
+
+        $day = strtotime($start_date) > strtotime('2015-07-26') ? 'monday' : 'tuesday';
+        $begin = new DateTime("first $day of $y-$m");
+        $begin = $begin->modify('-2 day');
+
+        $end = new DateTime("last $day of $y-$m");
+        $end = $end->modify( '+1 day' );
+
+        $interval = DateInterval::createFromDateString('next '.$day);
+        $date_range = new DatePeriod($begin, $interval ,$end);
+        $date = array();
+        $year = date('Y');
+        $week_number = date('W');
+        $days = array();
+        for($day_=1; $day_<=7; $day_++)
+        {
+            $days[strtolower(date('l',strtotime($year."W".$week_number.$day_)))] = $day_;
+        }
+        if(strtolower($start_day) != $day){
+
+            if($days[strtolower($start_day)] > $days[$day]){
+
+                $date_ = new DateTime($start_date);
+                $week_num = $date_->format('W');
+                $next_day = date('Y-m-d',strtotime('last '. $day .' '.$start_date));
+                $date[$week_num] = $next_day;
+            }
+        }
+        if(count($date_range) > 0){
+            foreach($date_range as $dv){
+                $this_date = $dv->format('Y-m-d');
+                $week_num = $dv->format('W');
+                $date[$week_num] = $this_date;
+            }
+        }
+        $data = array();
+        if($week){
+            @$data[$week] = $date[$week];
+        }
+
+        return $week ? $data : $date;
     }
 }

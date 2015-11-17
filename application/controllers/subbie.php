@@ -353,7 +353,7 @@ class Subbie extends CI_Controller{
         $start_fin_day = date('N',strtotime($start_fin_month));
         $end_fin_month = $year.'-03-31';
         $end_fin_day = date('N',strtotime($end_fin_month));
-        $last_day_of_march = $this->last_day_of_month($year);
+        $last_day_of_march = last_day_of_month($year);
 
         $week_data = StartWeekNumber($week,$year);
         $dt = new DateTime;
@@ -425,560 +425,6 @@ class Subbie extends CI_Controller{
         return $hoursValue;
     }
 
-    function getWeekInYear($end_year,$start = 2){
-        $year_week = array();
-
-        if($end_year == 2015){
-            $first_year_week_period = new DatePeriod(
-                new DateTime("$end_year-W01-$start"),
-                new DateInterval('P1W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-
-            $second_year_week_period = new DatePeriod(
-                new DateTime("2015-W31-1"),
-                new DateInterval('P1W'),
-                new DateTime("2015-12-31T23:59:59Z")
-            );
-            foreach ($first_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-            }
-            foreach ($second_year_week_period as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-            }
-        }else if($end_year < 2015){
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$end_year-W01-$start"),
-                new DateInterval('P1W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-            }
-        }else{
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$end_year-W01-1"),
-                new DateInterval('P1W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-            }
-        }
-
-        return $year_week;
-    }
-
-    function getWeekBetweenDates($start,$end,$day_start = 'tuesday'){
-        $year = date('Y',strtotime($start));
-        $end_year = date('Y',strtotime($end));
-        $year_week = array();
-
-        if($year == 2015 || $end_year == 2015){
-            $_start_date = new DateTime($start);
-            $_start_week = $_start_date->format('W');
-            $_day = $_start_week > 30 ? 'monday' : $day_start;
-            $start = date('Y-m-d',strtotime('-1 day '.$start));
-            $start = date('Y-m-d',strtotime('next '.$_day.' '.$start));
-
-            $_end_date = new DateTime($end);
-            $_end_week = $_end_date->format('W');
-            $_day = $_end_week > 30 ? 'monday' : $day_start;
-            $end = date('Y-m-d',strtotime('+1 day '.$end));
-            $end = date('Y-m-d',strtotime('last '.$_day.' '.$end));
-
-            $first_year_week_period = new DatePeriod(
-                new DateTime("$start"),
-                new DateInterval('P1W'),
-                new DateTime($end."T23:59:59Z")
-            );
-
-            foreach ($first_year_week_period as $week => $day) {
-                $year_week[$day->format('W-Y')] = $day->format('Y-m-d');
-            }
-
-            if($_start_week <= 30 &&  $_end_week >= 30){
-                $second_year_week_period = new DatePeriod(
-                    new DateTime("$year-W31-1"),
-                    new DateInterval('P1W'),
-                    new DateTime($end."T23:59:59Z")
-                );
-
-                foreach ($second_year_week_period as $week => $day) {
-                    $year_week[$day->format('W-Y')] = $day->format('Y-m-d');
-                }
-            }
-
-        }
-        else if($year < 2015){
-            $start = date('Y-m-d',strtotime('-1 day '.$start));
-            $start = date('Y-m-d',strtotime('next '.$day_start.' '.$start));
-
-            $end = date('Y-m-d',strtotime('+1 day '.$end));
-            $end = date('Y-m-d',strtotime('last '.$day_start.' '.$end));
-
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$start"),
-                new DateInterval('P1W'),
-                new DateTime($end."T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $day) {
-                $year_week[$day->format('W-Y')] = $day->format('Y-m-d');
-            }
-        }
-        else{
-
-            $day_start = 'monday';
-            $start = date('Y-m-d',strtotime('-1 day '.$start));
-            $start = date('Y-m-d',strtotime('next '.$day_start.' '.$start));
-
-            $end = date('Y-m-d',strtotime('+1 day '.$end));
-            $end = date('Y-m-d',strtotime('last '.$day_start.' '.$end));
-
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$start"),
-                new DateInterval('P1W'),
-                new DateTime($end."T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $day) {
-                $year_week[$day->format('W-Y')] = $day->format('Y-m-d');
-            }
-        }
-
-        return $year_week;
-    }
-
-    function getWeekInYearBetweenDates($end_year,$start_year = 2014,$start = 2,$start_week = 1, $interval = 1){
-        $year_week = array();
-        $start_week = str_pad($start_week,2,'0',STR_PAD_LEFT);
-        if($end_year == 2015){
-            $first_year_week_period = new DatePeriod(
-                new DateTime("$start_year-W$start_week-$start"),
-                new DateInterval('P'.$interval.'W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-
-            $second_year_week_period = new DatePeriod(
-                new DateTime("$start_year-W31-1"),
-                new DateInterval('P'.$interval.'W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-            foreach ($first_year_week_period as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-                }
-            }
-            foreach ($second_year_week_period as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-                }
-            }
-        }else if($end_year < 2015){
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$start_year-W$start_week-$start"),
-                new DateInterval('P'.$interval.'W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-                }
-            }
-            $second_year_week_period = new DatePeriod(
-                new DateTime("$start_year-W31-1"),
-                new DateInterval('P'.$interval.'W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-            foreach ($second_year_week_period as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-                }
-            }
-        }else{
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$start_year-W$start_week-1"),
-                new DateInterval('P'.$interval.'W'),
-                new DateTime("$end_year-12-31T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('W-Y')] = $tuesday->format('Y-m-d');
-                }
-            }
-        }
-
-        return $year_week;
-    }
-
-    function getYearNumWeek($year,$start = 2){
-        $year_week = array();
-        if($year == 2015){
-            $first_year_week_period = new DatePeriod(
-                new DateTime("$year-W01-$start"),
-                new DateInterval('P1W'),
-                new DateTime("$year-12-31T23:59:59Z")
-            );
-
-            $second_year_week_period = new DatePeriod(
-                new DateTime("$year-W31-1"),
-                new DateInterval('P1W'),
-                new DateTime("$year-12-31T23:59:59Z")
-            );
-            foreach ($first_year_week_period as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
-                }
-            }
-            foreach ($second_year_week_period as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
-                }
-            }
-        }else if($year < 2015){
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$year-W01-$start"),
-                new DateInterval('P1W'),
-                new DateTime("$year-12-31T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
-                }
-            }
-        }else{
-            $endYearWeeksPeriod = new DatePeriod(
-                new DateTime("$year-W01-1"),
-                new DateInterval('P1W'),
-                new DateTime("$year-12-31T23:59:59Z")
-            );
-            foreach ($endYearWeeksPeriod as $week => $tuesday) {
-                if($tuesday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$tuesday->format('Y-m-d')] = $tuesday->format('Y-m-d');
-                }
-            }
-        }
-
-        return $year_week;
-    }
-
-    function getFirstNextLastDay($y, $m)
-    {
-        $start_date = $y.'-'.$m.'-01';
-        $start_day = date('l',strtotime($start_date));
-
-        $day = strtotime($start_date) > strtotime('2015-07-26') ? 'monday' : 'tuesday';
-        $begin = new DateTime("first $day of $y-$m");
-        $begin = $begin->modify('-2 day');
-
-        $end = new DateTime("last $day of $y-$m");
-        $end = $end->modify( '+1 day' );
-
-        $interval = DateInterval::createFromDateString('next '.$day);
-        $date_range = new DatePeriod($begin, $interval ,$end);
-        $date = array();
-        $year = date('Y');
-        $week_number = date('W');
-        $days = array();
-        for($day_=1; $day_<=7; $day_++)
-        {
-            $days[strtolower(date('l',strtotime($year."W".$week_number.$day_)))] = $day_;
-        }
-        if(strtolower($start_day) != $day){
-
-            if($days[strtolower($start_day)] > $days[$day]){
-
-                $date_ = new DateTime($start_date);
-                $week_num = $date_->format('W');
-                $next_day = date('Y-m-d',strtotime('last '. $day .' '.$start_date));
-                $date[$week_num] = $next_day;
-            }
-        }
-        if(count($date_range) > 0){
-            foreach($date_range as $dv){
-                $this_date = $dv->format('Y-m-d');
-                $week_num = $dv->format('W');
-                $date[$week_num] = $this_date;
-            }
-        }
-        return $date;
-    }
-
-    function getPaymentStartDate($year,$month = 'April',$day = 'tuesday',$start = 2){
-
-        $month_day = $year.'-04-01';
-        $next_day = $this->first_day_of_month($year,$month,$day);
-        $next_day = date('Y-m-d',strtotime('-1 day '.$next_day));
-        $date = new DateTime($month_day);
-        $week = $date->format("W");
-
-        $end_year = $year + 1;
-        $end_month_day = $end_year.'-03-31';//$this->first_day_of_month($end_year,$month,$day);
-        //$this_month = date('m',strtotime($end_month_day));
-        //$this_day = date('d',strtotime($end_month_day));
-        $whatDay = date('N',strtotime($month_day));
-        $year_week = array();
-
-        if($year == 2015){
-
-            $start_week =  new DatePeriod(
-                new DateTime("$year-W$week-$whatDay"),
-                new DateInterval('P1W'),
-                new DateTime("$next_day T23:59:59Z")
-            );
-            foreach ($start_week as $week => $monday) {
-                if($monday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-                }
-
-            }
-
-            $_date = new DateTime($next_day);
-            $_week = $_date->format("W");
-
-            $weeksPeriod = new DatePeriod(
-                new DateTime("$year-W$_week-$start"),
-                new DateInterval('P1W'),
-                new DateTime("2015-07-26T23:59:59Z")
-            );
-            foreach ($weeksPeriod as $week => $monday) {
-                if($monday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-                }
-            }
-            $start = 1;
-            $weeksPeriod = new DatePeriod(
-                new DateTime("$year-W31-$start"),
-                new DateInterval('P1W'),
-                new DateTime("$end_month_day T23:59:59Z")
-            );
-            foreach ($weeksPeriod as $week => $monday) {
-                if($monday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-                }
-            }
-        }else if($year > 2015){
-            $start = 1;
-            $start_week =  new DatePeriod(
-                new DateTime("$year-W$week-$whatDay"),
-                new DateInterval('P1W'),
-                new DateTime("$next_day T23:59:59Z")
-            );
-            foreach ($start_week as $week => $monday) {
-                if($monday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-                }
-            }
-
-            $_date = new DateTime($next_day);
-            $_week = $_date->format("W");
-
-            $weeksPeriod = new DatePeriod(
-                new DateTime("$year-W$_week-$start"),
-                new DateInterval('P1W'),
-                new DateTime("2015-07-26T23:59:59Z")
-            );
-
-            foreach ($weeksPeriod as $week => $monday) {
-                if($monday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-                }
-            }
-        }else{
-            $weeksPeriod = new DatePeriod(
-                new DateTime("$year-W$week-$start"),
-                new DateInterval('P1W'),
-                new DateTime("$end_year-03-31T23:59:59Z")
-            );
-            $year_week = array();
-            foreach ($weeksPeriod as $week => $monday) {
-                if($monday->format('Y-m-d') <= date('Y-m-d')){
-                    $year_week[$monday->format('Y-m-d')] = $monday->format('W');
-                }
-            }
-        }
-
-        return $year_week;
-    }
-
-    function first_day_of_month($year,$month = 'April',$day="Tuesday"){
-        $_day = $year > 2015 ? 'Monday' : $day;
-        $day = new DateTime(sprintf("First $_day of $month %s", $year));
-        return $day->format('Y-m-d');
-    }
-
-    function last_day_of_month($year,$month = 'March',$day="Tuesday"){
-        $_day = $year > 2015 ? 'Monday' : $day;
-        $day = new DateTime(sprintf("Last $_day of $month %s", $year));
-        return $day->format('Y-m-d');
-    }
-
-    function getWeekDays($m,$d,$y,$std = 2){
-        $arr = array(
-            $y . '-12-29', $y . '-12-30', $y . '-12-31'
-        );
-        $_day = "$y-$m-$d";
-        $_year = in_array($_day, $arr) ? $y + 1 : $y;
-        $date = mktime(0, 0, 0, $m,$d,$_year);
-        $week = (int)date('W', $date);
-        $dt = new DateTime();
-        $this->data['days_of_week'] = array();
-        $ref = 0;
-        $date_ = new DateTime($date);
-        $start_ = StartWeekNumber($date_->format('W'),$y);
-
-        for($whatDay=$start_['start_day']; $whatDay<=$start_['end_day']; $whatDay++){
-            $getDate =  $dt->setISODate($y, $week , $whatDay)->format('Y-m-d');
-            $this->data['days_of_week'][$ref] = $getDate;
-            $ref++;
-        }
-
-        return $this->data['days_of_week'];
-    }
-
-    function getNumberOfWeeks($year, $month){
-        $days = $this->getFirstNextLastDay($year,$month);
-        $this->data['days'] = array();
-        $thisDays = array();
-        if(count($days) > 0){
-            foreach($days as $v){
-                $thisDays[$v] = $this->getWeeks($v,date('l',strtotime($v)));
-            }
-        }
-        $this->data['days'] = $thisDays;
-        return $this->data['days'];
-    }
-
-    function getDaysInWeek($year = '',$week_number = ''){
-
-        $days = array();
-        $year = $year ? $year : date('Y');
-        $week_number = $week_number ? $week_number : date('W');
-
-        $week_start = StartWeekNumber($week_number,$year);
-        $_start_day = $week_start['start_day'];
-        $_end_day = $week_start['end_day'];
-
-        $dt = new DateTime();
-
-        for($day=$_start_day; $day<=$_end_day; $day++)
-        {
-
-            $getDate =  $dt->setISODate($year,$week_number,$day)->format('Y-m-d');
-
-            $date = new DateTime($getDate);
-            $days[$date->format('Y-m-d')] = $date->format('l');
-        }
-
-        return $days;
-    }
-
-    function getWeeksNumberInMonth($year, $month){
-        $days = $this->getFirstNextLastDay($year,$month);
-        $thisDays = array();
-        if(count($days) > 0){
-            foreach($days as $key=>$v){
-
-                $week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$v)) : date('Y-m-d',strtotime('+6 days '.$v));
-                if(date('m',strtotime($week_end)) == $month){
-
-                    $thisDays[$key] = $key;
-                }
-            }
-        }
-
-        $days_array = $thisDays;
-        return $days_array;
-    }
-
-    function getWeekDateInMonth($year, $month){
-        $days = $this->getFirstNextLastDay($year,$month);
-        $thisDays = array();
-
-        if(count($days) > 0){
-            foreach($days as $key=>$v){
-                $thisDays[$key] = $v;
-            }
-        }
-
-        $days_array = $thisDays;
-        return $days_array;
-    }
-
-    function get_date($month, $year, $week, $day, $direction) {
-        if($direction > 0)
-            $startday = 1;
-        else
-            $startday = date('t', mktime(0, 0, 0, $month, 1, $year));
-
-        $start = mktime(0, 0, 0, $month, $startday, $year);
-        $weekday = date('N', $start);
-
-        if($direction * $day >= $direction * $weekday)
-            $offset = -$direction * 7;
-        else
-            $offset = 0;
-
-        $offset += $direction * ($week * 7) + ($day - $weekday);
-        return mktime(0, 0, 0, $month, $startday + $offset, $year);
-    }
-
-    function getWeeks($date, $rollover = 'tuesday')
-    {
-        $cut = substr($date, 0, 8);
-        $daylen = 86400;
-
-        $timestamp = strtotime($date);
-        $first = strtotime($cut . "00");
-        $elapsed = ($timestamp - $first) / $daylen;
-
-        $i = 1;
-        $weeks = 1;
-
-        for($i; $i<=$elapsed; $i++)
-        {
-            $dayfind = $cut . (strlen($i) < 2 ? '0' . $i : $i);
-            $daytimestamp = strtotime($dayfind);
-
-            $day = strtolower(date("l", $daytimestamp));
-
-            if($day == strtolower($rollover))  $weeks ++;
-        }
-
-        return $weeks;
-    }
-
-    function getWeekNumberOfDateInYear($date){
-        $date = date('Y-m-d',strtotime($date));
-        $_date = new DateTime($date);
-        $week = $_date->format("W");
-
-        return $week;
-    }
-
-    function getYear($cutoff = 2010){
-        // current year
-        $now = date('Y');
-        $year = array();
-
-        // build years menu
-        for ($y=$now; $y>=$cutoff; $y--) {
-            $year[$y] = $y;
-        }
-
-        return $year;
-    }
-
-    function getMonth(){
-        $month = array();
-
-        for ($m=1; $m<=12; $m++) {
-            $date = '2014-'.$m.'-01';
-            $month_str = str_pad($m,2,'0',STR_PAD_LEFT);
-            $month[$month_str] = date('F', strtotime($date));
-        }
-        return $month;
-    }
-
     function getStaffLastPay($id = '',$year,$week = ''){
         $whatVal = array(false);
         $whatFld = array('is_unemployed');
@@ -990,7 +436,7 @@ class Subbie extends CI_Controller{
 
         $staff_data = new Staff_Helper();
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
-        $set_wage_date = $this->getPaymentStartDate($year);
+        $set_wage_date = getPaymentStartDate($year);
         $wage_total_data = array();
         $wage_data = new Wage_Controller();
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
@@ -1224,7 +670,7 @@ class Subbie extends CI_Controller{
 
         $staff_data = new Staff_Helper();
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
-        $set_wage_date = $this->getPaymentStartDate(date('Y',strtotime($year)));
+        $set_wage_date = getPaymentStartDate(date('Y',strtotime($year)));
         $wage_total_data = array();
         $wage_data = new Wage_Controller();
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
@@ -1329,7 +775,7 @@ class Subbie extends CI_Controller{
                             $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
 
                             $pay_data = @$last_pay_data[$ev->id];
-                            $last_day = date('Y-m-d',strtotime('+6 days '.$pay_data['last_date_pay']));
+                            //$last_day = date('Y-m-d',strtotime('+6 days '.$pay_data['last_date_pay']));
                             $final_pay = 0;
                             $final_gross = 0;
                             if($pay_data['last_week'] == $_week){
@@ -1345,15 +791,6 @@ class Subbie extends CI_Controller{
                                 @$ev->total_nz_account +=  floatval($ev->nz_account_);
                                 //$week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$key)) : date('Y-m-d',strtotime('+6 days '.$key));
                                 if($is_details){
-                                    /*$wage_total_data[$ev->id][$last_day] = array(
-                                        'distribution' => floatval($final_pay),
-                                        'gross' => floatval($final_gross),
-                                        'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
-                                        'account_one' => $ev->account_one > 0 ? floatval($ev->account_one) : 0,
-                                        'account_two' => floatval($ev->account_two),
-                                        'nz_account' => floatval($ev->nz_account_),
-                                        'final_pay' => $final_pay
-                                    );*/
 
                                     $wage_total_data[$ev->id][$key] = array(
                                         'distribution' => $final_pay ? floatval($ev->distribution + $final_pay) : floatval($ev->distribution),
@@ -1365,16 +802,6 @@ class Subbie extends CI_Controller{
                                         'final_pay' => $final_pay
                                     );
                                 }else{
-
-                                    /*$wage_total_data[$ev->id][$key] = array(
-                                        'distribution' => $ev->total_distribution,
-                                        'gross' => floatval($ev->total_gross),
-                                        'financial_year' => date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($year)))) .' to '.date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$year)))),
-                                        'account_one' => $ev->total_account_one,
-                                        'account_two' => $ev->total_account_two,
-                                        'nz_account' => $ev->total_nz_account,
-                                        'final_pay' => $final_pay
-                                    );*/
 
                                     $wage_total_data[$ev->id][$key] = array(
                                         'distribution' => $ev->total_distribution,
@@ -1392,7 +819,6 @@ class Subbie extends CI_Controller{
                 }
             }
         }
-        //DisplayArray($wage_total_data);
         return $wage_total_data;
     }
 
@@ -1448,7 +874,7 @@ class Subbie extends CI_Controller{
         $this->data['job_num'] = '';
     }
 
-    function getWageData($year,$month,$type = 'weekly',$project = ''){
+    function getWageData($year,$month,$week = '',$type = 'weekly',$project = ''){
         //automate wage
         $wage_data = new Wage_Controller();
         $staff_data = new Staff_Helper();
@@ -1464,18 +890,24 @@ class Subbie extends CI_Controller{
         $rate = $staff_data->staff_rate();
         $hourly_rate = $staff_data->staff_hourly_rate();
         $employment_data = $staff_data->staff_employment();
-        //$leave_data = $staff_data->staff_leave_application('','',true);
+
+        $what_value = array(7,1,$year);
+        $what_field = array('tbl_leave.type','tbl_leave.decision','YEAR(leave_start) =');
+        //$acc_leave_pay_week = $staff_data->staff_leave_application($what_value,$what_field,true,true,true);
+        $acc_leave = $staff_data->staff_leave_application($what_value,$what_field,true);
+
         $kiwi_data = $staff_data->staff_kiwi();
         $fortnightlyDate = $this->get_staff_fortnightly_start_week();
-        $stat_holiday = $staff_data->stat_holiday($year);
+        $stat_holiday = $this->stat_holiday_pay($year,$month);
         $adjustment = $staff_data->adjustment($year,$month);
+        $calculate_acc_leave = $this->calculateTotalAccLeave('',$year,$month,true);
 
         switch($type){
             case 'weekly':
                 $this->data['balance'] = array();
                 $this->data['wage_data'] = array();
 
-                $this->data['date'] = $this->getFirstNextLastDay($year,$month);
+                $this->data['date'] = getFirstNextLastDay($year,$month,$week);
                 $this->data['wage_total_data'] = array();
                 $phpCurrency = CurrencyConverter('PHP');
 
@@ -1487,11 +919,12 @@ class Subbie extends CI_Controller{
                         $week_num = $_date->format('W');
                         $week_year = $_date->format('W-Y');
                         $fortnightly = @$fortnightlyDate[$week_year];
-                        $week_days = $this->getDaysInWeek($_year,$_week);
+                        $week_days = getDaysInWeek($_year,$_week);
 
                         if(count($staff_list) > 0){
                             foreach($staff_list as $ev){
-                                //$leave_ = @$leave_data[$ev->id][$week_year];
+                                $acc_leave_ = @$calculate_acc_leave[$ev->id][$week_year];
+                                $acc_leave_data = @$acc_leave[$ev->id][$week_year];
                                 $_adjustment = @$adjustment[$ev->id][$dv];
                                 if(count(@$employment_data[$ev->id]) > 0){
                                     foreach(@$employment_data[$ev->id] as $used_date=>$val){
@@ -1528,6 +961,7 @@ class Subbie extends CI_Controller{
                                     $ev->total_sick_leave = $this->getSickLeave($ev->id,$dv) - $ev->sick_leave_taken;
 
                                     $ev->start_use = '';
+                                    $ev->is_on_acc_leave = count($acc_leave_data) > 0 ? 1 : 0;
 
                                     $ev->tax = 0;
                                     //$hours = $this->getWageTypeHoursValue($ev->id,$ev->wage_type,$ev->frequency_id,$dv);
@@ -1567,9 +1001,9 @@ class Subbie extends CI_Controller{
                                         foreach ($week_days as $_d => $day) {
                                             $_date_ = new DateTime($_d);
                                             $_day = $_date_->format('N');
-                                            if(array_key_exists($_d,$stat_holiday) && !in_array($_day,array(6,7)) && $ev->hours > 0){
-                                                $hours += 8;
-                                                $ev->stat_holiday_pay = 8 * $ev->rate_cost;
+                                            if(count(@$stat_holiday[$_d]) > 0 && !in_array($_day,array(6,7)) && $ev->hours > 0){
+                                                //$hours += @$stat_holiday[$_d][$ev->id]['daily_hours'];
+                                                $ev->stat_holiday_pay += @$stat_holiday[$_d][$ev->id]['daily_gross'];
                                             }
                                         }
 
@@ -1587,7 +1021,6 @@ class Subbie extends CI_Controller{
                                             }
                                         }
                                     }
-
                                     //endregion
 
                                     $this->data['balance'][$ev->id] = array(
@@ -1600,11 +1033,6 @@ class Subbie extends CI_Controller{
 
                                     $converted_amount = $ev->currency_code != 'NZD' ? 1 : $phpCurrency;
 
-                                    /*if(count($leave_) > 0){
-                                        $_leave_data = $this->staffLeavePay($ev->id);
-                                        $hours = maxValueInArray($_leave_data,'hours');
-                                        $ev->gross = maxValueInArray($_leave_data,'gross');
-                                    }*/
                                     $ev->gross = $hours ? $ev->rate_cost * $hours : 0;
                                     $ev->gross_ = number_format($ev->gross,2,'.','');
                                     //$ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.000';
@@ -1651,11 +1079,36 @@ class Subbie extends CI_Controller{
 
                                     $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
 
+                                    //region Adjustment
+                                    $ev->adjustment_ = 0;
+                                    $ev->orig_nett = $ev->nett;
+                                    $ev->orig_nz_account = $ev->nz_account_;
                                     if(count($_adjustment) > 0){
-                                        $ev->nett += floatval($_adjustment->amount);
-                                        $ev->nz_account_ += floatval($_adjustment->amount);
-                                    }
+                                        $_adjustment->total = str_replace('-','',$_adjustment->total);
+                                        $ev->adjustment_ = $_adjustment->total ? '$' . number_format(floatval($_adjustment->total),2) . $_adjustment->adjustment_code : 0;
 
+                                        switch($_adjustment->adjustment_type_id){
+                                            case 1:
+                                                $ev->nett -= floatval($_adjustment->total);
+                                                $ev->nz_account_ -= floatval($_adjustment->total);
+                                                break;
+                                            case 2:
+                                                $ev->nett += floatval($_adjustment->total);
+                                                $ev->nz_account_ += floatval($_adjustment->total);
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                    }
+                                    //endregion
+
+                                    //region ACC Levy
+                                    $ev->acc_pay = 0;
+
+                                    if(count(@$calculate_acc_leave[$ev->id]) > 0){
+                                        $ev->acc_pay = $acc_leave_['total_leave_pay'];
+                                    }
+                                    //endregion
                                     $ev->distribution = $ev->nett - $ev->installment;
                                     $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
 
@@ -1687,7 +1140,7 @@ class Subbie extends CI_Controller{
                                             'nz_account' => $hours > 0 ? $ev->nz_account_ : 0,
                                             'has_nz_account' => $ev->nz_account ? 1 : 0,
                                             'rate_value' => $converted_amount,
-                                            'week' => $this->getWeeks($dv),
+                                            'week' => getWeeks($dv),
                                             'start_use' => $ev->start_use,
                                             'wage_type' => $ev->wage_type,
                                             'symbols' => $symbols,
@@ -1706,14 +1159,19 @@ class Subbie extends CI_Controller{
                                             'esct' => $ev->esct,
                                             'st_loan' => $ev->st_loan,
                                             'stat_holiday_pay' => $ev->stat_holiday_pay,
-                                            'has_st_loan' => $ev->has_st_loan
+                                            'adjustment' => $ev->adjustment_,
+                                            'has_st_loan' => $ev->has_st_loan,
+                                            'acc_pay' => $ev->acc_pay,
+                                            'orig_nett' => $ev->orig_nett,
+                                            'orig_nz_account' => $ev->orig_nz_account,
+                                            'is_on_acc_leave' => $ev->is_on_acc_leave
                                         );
 
                                         $this->data['wage_data'][$dv][] = $wage_data;
                                     //}
 
-                                    $this->data['last_week'] = $this->getWeeks(date('Y-m-t',strtotime('-1 week '.$dv)));
-                                    $this->data['start_week'] = $this->getWeekNumberOfDateInYear($ev->start_use);
+                                    $this->data['last_week'] = getWeeks(date('Y-m-t',strtotime('-1 week '.$dv)));
+                                    $this->data['start_week'] = getWeekNumberOfDateInYear($ev->start_use);
                                 }
                             }
                         }
@@ -1722,7 +1180,7 @@ class Subbie extends CI_Controller{
                 break;
             case 'monthly':
                 $this->data['monthly_pay'] = array();
-                $date = $this->getFirstNextLastDay($year,$month);
+                $date = getFirstNextLastDay($year,$month);
 
                 $phpCurrency = CurrencyConverter('PHP');
                 if(count($staff_list)>0){
@@ -1904,12 +1362,17 @@ class Subbie extends CI_Controller{
         $rate = $staff_data->staff_rate();
         $hourly_rate = $staff_data->staff_hourly_rate();
         $employment_data = $staff_data->staff_employment();
-        $leave_data = $staff_data->staff_leave_application('','',true);
+
+        $what_value = array(7,1,$_year);
+        $what_field = array('tbl_leave.type','tbl_leave.decision','YEAR(leave_start) =');
+        //$acc_leave_pay_week = $staff_data->staff_leave_application($what_value,$what_field,true,true,true);
+        $calculate_acc_leave = $this->calculateTotalAccLeave($id,$_year,$_date->format('m'),true);
+        $acc_leave = $staff_data->staff_leave_application($what_value,$what_field,true);
+
         $kiwi_data = $staff_data->staff_kiwi();
         $stat_holiday = $staff_data->stat_holiday($_year);
-        $week_days = $this->getDaysInWeek($_year,$_date->format('W'));
+        $week_days = getDaysInWeek($_year,$_date->format('W'));
         $adjustment = $staff_data->adjustment($_year,$_date->format('m'));
-
         $_adjustment = @$adjustment[$id][$date];
         if(count($data['staff'])>0){
             foreach($data['staff'] as $v){
@@ -1923,7 +1386,10 @@ class Subbie extends CI_Controller{
                 $v->currency_symbols = $v->symbols;
                 $v->symbols = $v->currency_code != 'NZD' ? $v->symbols : 'Php';
 
-                $leave_ = @$leave_data[$v->id][$week_year];
+                $acc_leave_ = @$calculate_acc_leave[$v->id][$week_year];
+                $acc_leave_data = @$acc_leave[$v->id][$week_year];
+
+                $v->is_on_acc_leave = count($acc_leave_data) > 0 ? 1 : 0;
                 if(count(@$employment_data[$v->id]) > 0){
                     foreach(@$employment_data[$v->id] as $used_date=>$val){
                         if(
@@ -1964,7 +1430,7 @@ class Subbie extends CI_Controller{
                 $v->cec_name = '';
                 $v->field_name = '';
 
-                if (count($week_days) > 0){
+                /*if (count($week_days) > 0){
                     foreach ($week_days as $_d => $day) {
                         $_date_ = new DateTime($_d);
                         $_day = $_date_->format('N');
@@ -1973,7 +1439,7 @@ class Subbie extends CI_Controller{
                             $v->working_hours += 8;
                         }
                     }
-                }
+                }*/
 
                 if(count(@$kiwi_data[$v->id]) > 0){
                     foreach(@$kiwi_data[$v->id] as $start_use=>$val){
@@ -1992,12 +1458,6 @@ class Subbie extends CI_Controller{
                 $v->converted_amount = $converted_amount;
                 $v->nz_account_ = $v->nz_account ? ($v->nz_account + ($v->hours * $v->hourly_rate)) : 0;
                 $v->gross = $v->rate_cost * $v->hours;
-                if(count($leave_) > 0){
-                    $_leave_data = $this->staffLeavePay($v->id);
-                    $v->hours = maxValueInArray($_leave_data,'hours');
-                    $v->non_working_hours = $v->hours;
-                    $v->gross = maxValueInArray($_leave_data,'gross');
-                }
                 $v->gross_ = $v->gross != 0 ? number_format($v->gross,2,'.',''):'0.00';
                 //$v->gross = $v->gross != 0 ? number_format($v->gross,0,'.',''):'0.00';
 
@@ -2039,10 +1499,36 @@ class Subbie extends CI_Controller{
                 $v->net = $v->gross_ - ($v->st_loan + $v->kiwi_ + $v->tax + $v->flight + $v->recruit + $v->admin + $v->visa + $v->accommodation + $v->transport);
                 $v->net = number_format($v->net,2,'.','');
 
+                //region Adjustment
+                $v->adjustment_ = 0;
+                $v->orig_net = $v->net;
+                $v->orig_nz_account = $v->nz_account_;
                 if(count($_adjustment) > 0){
-                    $v->net += floatval($_adjustment->amount);
-                    $v->nz_account_ += floatval($_adjustment->amount);
+                    $_adjustment->total = str_replace('-','',$_adjustment->total);
+                    $v->adjustment_ = $_adjustment->total ? '$' . number_format(floatval($_adjustment->total),2) . $_adjustment->adjustment_code : 0;
+                    switch($_adjustment->adjustment_type_id){
+                        case 1:
+                            $v->net -= floatval($_adjustment->total);
+                            $v->nz_account_ -= floatval($_adjustment->total);
+                            break;
+                        case 2:
+                            $v->net += floatval($_adjustment->total);
+                            $v->nz_account_ += floatval($_adjustment->total);
+                            break;
+                        default:
+                            break;
+                    }
                 }
+                //endregion
+
+                //region ACC Levy
+                $v->acc_pay = 0;
+
+                if(count(@$calculate_acc_leave[$id]) > 0){
+
+                    $v->acc_pay = $acc_leave_['total_leave_pay'];
+                }
+                //endregion
 
                 $v->total = $v->total_kiwi + $v->tax_total + $v->total_install + $v->recruit + $v->admin + $v->total_flight + $v->total_visa + $v->total_accom + $v->total_trans;
                 $v->distribution = number_format($v->net - $v->installment,2,'.','');
@@ -2074,7 +1560,7 @@ class Subbie extends CI_Controller{
 
     function getEmployerData($year,$month){
 
-        $date = $this->getFirstNextLastDay($year,$month,'tuesday');
+        $date = getFirstNextLastDay($year,$month,'tuesday');
         $this->data['monthly_pay'] = array();
         $this->data['over_all_pay'] = array();
         $date_ = $year.'-'.$month.'-01';
@@ -2165,7 +1651,7 @@ class Subbie extends CI_Controller{
 
                         if(count(@$kiwi_data[$mv->id]) > 0){
                             foreach(@$kiwi_data[$mv->id] as $start_use=>$val){
-                                if(strtotime($start_use) <= strtotime($date) ||
+                                if(strtotime($start_use) <= strtotime($dv) ||
                                     strtotime($start_use) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
                                     $mv->kiwi = $val->kiwi;
                                     $mv->emp_kiwi = $val->employer_kiwi;
@@ -2424,7 +1910,7 @@ class Subbie extends CI_Controller{
         $_date = new DateTime();
         $start_week = $start_pay_week - 1;
         $what_week_date = $_date->setISODate($start_year, $start_week)->format('Y-m-d');
-        $weeks_in_year = $this->getWeekInYearBetweenDates($year + 1);
+        $weeks_in_year = getWeekInYearBetweenDates($year + 1);
 
         $date_array = array();
 
@@ -2464,7 +1950,7 @@ class Subbie extends CI_Controller{
         $_date = new DateTime();
         $start_week = $start_pay_week - 1;
         $what_week_date = $_date->setISODate($year, $start_week)->format('Y-m-d');
-        $weeks_in_year = $this->getWeekInYearBetweenDates($year + 1,2014,2,$start_week,2);
+        $weeks_in_year = getWeekInYearBetweenDates($year + 1,2014,2,$start_week,2);
 
         $date_array = array();
 
@@ -3072,7 +2558,7 @@ class Subbie extends CI_Controller{
     }
 
     function generatePaySlip($week,$month,$year,$id){
-        $week_in_month = $this->getWeekDateInMonth($year,$month);
+        $week_in_month = getWeekDateInMonth($year,$month);
         $_week_format = str_pad($week,2,'0',STR_PAD_LEFT);
         $this_date = $week_in_month[$_week_format];
 
@@ -3163,7 +2649,7 @@ class Subbie extends CI_Controller{
         $date_employed = $staff[$id]['date_employed'];
         $frequency_id = $staff[$id]['frequency_id'];
         $field_code = $staff[$id]['field_code'];
-        $year_dates = $date_employed ? $this->getWeekBetweenDates($date_employed,$end) : array();
+        $year_dates = $date_employed ? getWeekBetweenDates($date_employed,$end) : array();
         $data = array();
         if(count($year_dates) > 0){
             foreach($year_dates as $week_year=>$date){
@@ -3222,7 +2708,7 @@ class Subbie extends CI_Controller{
     }
 
     function getLeaveDaysCount($start, $end, $holidays){
-        $datesInBetween = $this->createDateRangeArray($start, $end);
+        $datesInBetween = createDateRangeArray($start, $end);
 
         if(count($holidays) > 0){
             foreach($holidays as $h){
@@ -3239,48 +2725,28 @@ class Subbie extends CI_Controller{
         $start_hour = date('H', $s);
         $end_hour = date('H', $e);
 
-        if((in_array(date('Y-m-d'), $datesInBetween) && $start_hour >= 12) || $start_hour >= 12){
-            $count -= 0.5;
-        }
-        if((in_array(date('Y-m-d'), $datesInBetween) && $end_hour <= 13) || $end_hour <= 13){
-            $count -= 0.5;
+        $start_parse = date_parse($start);
+        $end_parse = date_parse($end);
+
+        if($start_parse['hour'] || $end_parse['hour']){
+            if((in_array(date('Y-m-d'), $datesInBetween) && $start_hour >= 12) || $start_hour >= 12){
+                $count -= 0.5;
+            }
+            if((in_array(date('Y-m-d'), $datesInBetween) && $end_hour <= 13) || $end_hour <= 13){
+                $count -= 0.5;
+            }
         }
         return $count;
     }
 
-    function createDateRangeArray($strDateFrom, $strDateTo)
-    {
-        // takes two dates formatted as YYYY-MM-DD and creates an
-        // inclusive array of the dates between the from and to dates.
-
-        // could test validity of dates here but I'm already doing
-        // that in the main script
-
-        $aryRange=array();
-
-        $iDateFrom=mktime(1,0,0,substr($strDateFrom,5,2),     substr($strDateFrom,8,2),substr($strDateFrom,0,4));
-        $iDateTo=mktime(1,0,0,substr($strDateTo,5,2),     substr($strDateTo,8,2),substr($strDateTo,0,4));
-
-        if ($iDateTo>=$iDateFrom)
-        {
-            array_push($aryRange,date('Y-m-d',$iDateFrom)); // first entry
-            while ($iDateFrom<$iDateTo)
-            {
-                $iDateFrom+=86400; // add 24 hours
-                array_push($aryRange,date('Y-m-d',$iDateFrom));
-            }
-        }
-        return $aryRange;
-    }
-
-    function getLeaveWeeklyPay($id = '',$date,$type = 1,$project_id = 1){
+    function getLeaveWeeklyPay($id = '',$date,$weekly = false,$project_id = 1){
         $start = new DateTime($date);
-        $start_date = $start->format('Y-m-d');
+        $start_ = $start->modify('-1 week');
 
-        $end = new DateTime($date);
-        $end_date = $end->modify('-12 months');
+        $end = new DateTime($start_->format('Y-m-d'));
+        $end_date = $end->modify('-52 weeks');
 
-        $week_data = $this->getWeekBetweenDates($end_date->format('Y-m-d'),$start_date);
+        $week_data = getWeekBetweenDates($end_date->format('Y-m-d'),$start_->format('Y-m-d'));
 
         $gross_data = array();
 
@@ -3302,13 +2768,12 @@ class Subbie extends CI_Controller{
 
         $rate = $staff_data->staff_rate();
         $employment_data = $staff_data->staff_employment();
-
-        $total_gross = 0;
+        $total_gross = array();
+        $total_hours = array();
         if(count($week_data) > 0){
             foreach($week_data as $key=>$dv){
                 if(count($staff_list) > 0){
                     foreach($staff_list as $ev){
-
                         if(count(@$employment_data[$ev->id]) > 0){
                             foreach(@$employment_data[$ev->id] as $used_date=>$val){
                                 if(
@@ -3321,7 +2786,13 @@ class Subbie extends CI_Controller{
                                 }
                             }
                         }
+                        //$then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
+                        //$then = new DateTime($then);
 
+                        //$now = date('Y-m-d H:i:s',strtotime($dv));
+                        //$now = new DateTime($now);
+
+                        //$sinceThen = $then->diff($now);
                         if(strtotime($dv) <= strtotime(date('Y-m-d'))){
                             $ev->start_use = '';
 
@@ -3342,18 +2813,52 @@ class Subbie extends CI_Controller{
                             $ev->kiwi_ = 0;
                             $ev->st_loan = 0;
 
-                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($dv,$ev->id) : 1;
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHours($dv,$ev->id) : 1;
+
                             if(floatval($hours) > 0){
+                                @$ev->work_weeks++;
                                 $ev->gross = $ev->rate_cost * $hours;
                                 $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
-                                $total_gross += floatval($ev->gross_);
+                                @$total_gross[$ev->id] += floatval($ev->gross_);
+                                @$total_hours[$ev->id] += floatval($hours);
+                                $ev->work_days = $ev->id != 4 ? 5 : 6;
+                                @$ev->ave_gross = $total_gross[$ev->id] / $ev->work_weeks;
+                                @$ev->daily_gross = ($total_gross[$ev->id] / $ev->work_weeks) / $ev->work_days;
+                                @$ev->ave_hours = $total_hours[$ev->id] / $ev->work_weeks;
+                                @$ev->daily_hours = ($total_hours[$ev->id] / $ev->work_weeks) / $ev->work_days;
+                                @$ev->formula_ = '(' . $total_gross[$ev->id] . ' / ' . $ev->work_weeks . ') / ' . $ev->work_days;
 
-                                $gross_data[$ev->id][$dv] = array(
-                                    'date' => $dv,
-                                    'gross' => floatval($ev->gross_),
-                                    'hours' => $hours,
-                                    'total_gross' => $total_gross
-                                );
+                                if($weekly){
+                                    $gross_data[$ev->id][$dv] = array(
+                                        'date' => $dv,
+                                        'gross' => floatval($ev->gross_),
+                                        'hours' => $hours,
+                                        'total_gross' => $total_gross[$ev->id],
+                                        'total_hours' => $total_hours[$ev->id],
+                                        'weeks' => $ev->work_weeks,
+                                        'ave_gross' => number_format($ev->ave_gross,2,'.',''),
+                                        'daily_gross' => number_format($ev->daily_gross,2,'.',''),
+                                        'ave_hours' => number_format($ev->ave_hours,2,'.',''),
+                                        'daily_hours' => number_format($ev->daily_hours,2,'.',''),
+                                        'formula_daily_gross' => $ev->formula_
+                                    );
+                                }
+                                else{
+                                    $gross_data[$ev->id] = array(
+                                        'date' => $dv,
+                                        'gross' => floatval($ev->gross_),
+                                        'hours' => $hours,
+                                        'total_gross' => $total_gross[$ev->id],
+                                        'total_hours' => $total_hours[$ev->id],
+                                        'weeks' => $ev->work_weeks,
+                                        'days' => $ev->work_days,
+                                        'ave_gross' => number_format($ev->ave_gross,2,'.',''),
+                                        'daily_gross' => number_format($ev->daily_gross,2,'.',''),
+                                        'ave_hours' => number_format($ev->ave_hours,2,'.',''),
+                                        'daily_hours' => number_format($ev->daily_hours,2,'.',''),
+                                        'formula_daily_gross' => $ev->formula_
+                                    );
+                                }
                             }
                         }
                     }
@@ -3362,6 +2867,22 @@ class Subbie extends CI_Controller{
         }
 
         return $gross_data;
+    }
+
+    function stat_holiday_pay($year,$month,$week = ''){
+        $staff = new Staff_Helper();
+
+        $stat_holiday = $staff->stat_holiday($year,$month,$week);
+        $data = array();
+        if(count($stat_holiday) > 0){
+            foreach($stat_holiday as $key=>$val){
+                //$data[$key] = $this->calculateTotalLeavePay('',1,$val->date,$val->date_to);
+                $data[$key] = $this->getLeaveWeeklyPay('',$val->date);
+
+            }
+        }
+
+        return $data;
     }
 
     function staffLeavePay($id,$is_request = false,$leave_start = ''){
@@ -3385,16 +2906,21 @@ class Subbie extends CI_Controller{
         return $array;
     }
 
-    function calculateTotalLeavePay($id,$leave_type,$leave_start,$leave_end,$day_type,$holiday = array()){
+    function calculateTotalLeavePay($id,$leave_type,$leave_start,$leave_end,$day_type = '',$holiday = array()){
         //DisplayArray($leave_start .' ~ '.$leave_end);
-        $whatVal = array($id);
-        $whatFld = array('tbl_staff.id');
+        $whatVal = array(false,1);
+        $whatFld = array('is_unemployed','project_id');
+
+        if($id){
+            $whatVal[] = $id;
+            $whatFld[] = 'tbl_staff.id';
+        }
 
         $year = date('Y',strtotime($leave_start));
 
         $staff_data = new Staff_Helper();
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
-        $set_wage_date = $this->getPaymentStartDate($year);
+        $set_wage_date = getPaymentStartDate($year);
         $wage_total_data = array();
         $wage_data = new Wage_Controller();
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
@@ -3418,8 +2944,8 @@ class Subbie extends CI_Controller{
                             if(count(@$employment_data[$ev->id]) > 0){
                                 foreach(@$employment_data[$ev->id] as $used_date=>$val){
                                     if(
-                                        strtotime($used_date) <= strtotime($dv) ||
-                                        strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                        strtotime($used_date) <= strtotime($key) ||
+                                        strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$key)))){
                                         $ev->date_employed = $val->date_employed;
                                         $ev->date_last_pay = $val->date_last_pay;
                                         $ev->last_week_pay = $val->last_week_pay;
@@ -3468,13 +2994,14 @@ class Subbie extends CI_Controller{
                             $ev->kiwi_ = 0;
                             $ev->st_loan = 0;
 
-                            $leave_hours = $total_holiday_leave * 7.5;
-                            $work_hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key_val,$ev->id) : 1;
-                            $hours = $day_type != 1 ? $leave_hours : $leave_hours;
+                            //$leave_hours = $total_holiday_leave * 7.5;
+                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($key,$ev->id) : 1;
+                            //$hours = floatval($this->getTotalHours($key,$ev->id));
                             $ev->gross = $ev->rate_cost * $hours;
                             $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
                             $ev->kiwi_ = 0;
-                            $kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
+
+                            /*$kiwi = $ev->kiwi ? 'kiwi_saver_'.$ev->kiwi : '';
 
                             $data_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key_val,$ev->gross_,$kiwi);
                             if(count($data_) > 0){
@@ -3483,7 +3010,7 @@ class Subbie extends CI_Controller{
                                 $ev->me_paye = $data_['me_paye'];
                                 $ev->kiwi_ = $kiwi ? $data_['kiwi'] : 0;
                                 $ev->st_loan = $ev->has_st_loan ? $data_['st_loan'] : 0;
-                            }
+                            }*/
 
                             $ev->hourly_rate = 0;
                             if(count(@$hourly_rate[$ev->id]) > 0){
@@ -3520,11 +3047,11 @@ class Subbie extends CI_Controller{
                                 @$ev->total_nz_account +=  floatval($ev->nz_account_);
 
                                 $ev->annual_pay = 0;
-                                $ev->annual_pay_ = number_format($ev->annual_pay,2,'.','');
+                                $ev->annual_pay_ = 0;
 
                                 switch($leave_type){
                                     case 1:
-                                        $ev->annual_pay = $sinceThen->y == 0 ? (($ev->total_gross + $ev->gross_) * 0.08) : ($ev->gross_ * $total_holiday_leave);
+                                        $ev->annual_pay = ($ev->gross_ * $total_holiday_leave);
                                         $ev->annual_pay_ = number_format($ev->annual_pay,2,'.','');
                                         break;
                                     case 2:
@@ -3537,16 +3064,20 @@ class Subbie extends CI_Controller{
                                         break;
                                     case 6:
                                         break;
+                                    case 7:
+                                        $ev->annual_pay = ($ev->gross_ * ($total_holiday_leave * 0.8));
+                                        $ev->annual_pay_ = number_format($ev->annual_pay,2,'.','');
+                                        break;
                                     default:
                                         break;
                                 }
-
-                                $annual_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key_val,$ev->annual_pay_,'','','','',true);
-
+                                //$annual_leave = number_format($ev->annual_pay,0,'.','');
+                                //$annual_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$key,$annual_leave,'','','','',true);
                                 $ev->annual_tax = 0;
-                                if(count($annual_) > 0){
+
+                                /*if(count($annual_) > 0){
                                     $ev->annual_tax = $annual_['tax'];
-                                }
+                                }*/
 
                                 $wage_total_data[$ev->id] = array(
                                     'total_distribution' => $ev->total_distribution,
@@ -3558,12 +3089,14 @@ class Subbie extends CI_Controller{
                                     'distribution' => floatval($ev->distribution),
                                     'last_date_pay' => $key_val,
                                     'hours' => floatval($hours),
+                                    'daily_hours' => floatval($hours / 5),
                                     'tax' => floatval($ev->tax),
                                     'gross' => floatval($ev->gross_),
                                     'annual_leave_pay' => floatval($ev->annual_pay_),
+                                    'annual_leave_daily' => floatval($ev->annual_pay_ / 5),
                                     'annual_tax' => $ev->annual_tax,
                                     'last_week' => $_week,
-                                    'calculation_type' => $sinceThen->y == 0 ? '8%' : 'Avg. Weekly',
+                                    'calculation_type' => $leave_type == 7 ? '80%' : 'Avg. Weekly',
                                     'total_holiday_leave' => $total_holiday_leave
                                 );
                             }
@@ -3574,5 +3107,64 @@ class Subbie extends CI_Controller{
         }
 
         return $wage_total_data;
+    }
+
+    function calculateTotalAccLeave($id,$year,$month,$is_weekly = false){
+        $data = new Staff_Helper();
+        $whatVal = array(7,1);
+        $whatFld = array('tbl_leave.type','tbl_leave.decision');
+        $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24) * 2);
+
+        if($year){
+            $whatVal[] = $year;
+            $whatFld[] = 'YEAR(tbl_leave.leave_start)';
+        }
+        if($month){
+            $whatVal[] = $month;
+            $whatFld[] = 'MONTH(tbl_leave.leave_start) <=';
+
+            $whatVal[] = date('m',$last_month);
+            $whatFld[] = 'MONTH(tbl_leave.leave_start) >=';
+        }
+        if($id){
+            $whatVal[] = $id;
+            $whatFld[] = 'tbl_leave.user_id';
+        }
+        $acc_leave = $data->staff_leave_application($whatVal,$whatFld,false,false,true);
+
+        $return = array();
+
+        if(count($acc_leave) > 0){
+            foreach($acc_leave as $key=>$val){
+                $ref = 1;
+                $total_pay = array();
+                if(count($val) > 0){
+                    foreach($val as $k=>$v){
+                        $leave_pay = $this->calculateTotalLeavePay(
+                            $key,$v->type,$v->leave_start,$v->leave_end,
+                            $v->range_type
+                        );
+                        $pay = $leave_pay[$key];
+                        $date = new DateTime($k);
+                        $key_ = $is_weekly ? $date->format('W-Y') : $k;
+                        if(count($pay) > 0){
+                            if($ref <= 5){
+                                @$total_pay[$key_] +=  $pay['annual_leave_pay'];
+                                $return[$key][$key_] = array(
+                                    'gross' => $pay['gross'],
+                                    'hours' => $pay['hours'],
+                                    'leave_pay' => $pay['annual_leave_pay'],
+                                    'annual_tax' => $pay['annual_tax'],
+                                    'total_gross' => $pay['total_gross'],
+                                    'total_leave_pay' => end($total_pay)
+                                );
+                            }
+                        }
+                        $ref++;
+                    }
+                }
+            }
+        }
+        return $return;
     }
 }

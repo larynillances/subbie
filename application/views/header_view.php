@@ -191,7 +191,7 @@ if(count($form_links) > 0){
     ?>
     <li class="dropdown pull-right">
         <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-            <i class="fa fa-user fa-fw"></i> <?php echo $username[0];?> <i class="fa fa-caret-down"></i>
+            <i class="fa fa-user fa-fw"></i> <?php echo $user->alias;?> <i class="fa fa-caret-down"></i>
         </a>
         <ul class="dropdown-menu dropdown-user">
             <li>
@@ -207,7 +207,6 @@ function subLink($url, $title, $uri,$level = 1){
     $active = array_value_recursive($uri, $title);
     $multi_level = $level != 1 ? 'dropdown-submenu' : '';
     $active_class = $active ? 'active' : '';
-    //$active = array_key_exists($uri, $title);
     ?>
     <li <?php echo 'class="'.$multi_level.' '.$active_class.'"';?>>
         <a href="#" class="dropdown-toggle" data-toggle="dropdown">

@@ -5,7 +5,7 @@ echo form_open('','class="form-horizontal"');
     <div class="form-group">
         <label class="col-sm-1 control-label">Year:</label>
         <div class="col-sm-1">
-            <?php echo form_dropdown('year',$year,$_year,'class="form-control input-sm"')?>
+            <?php echo form_dropdown('year',$year,$_year,'class="form-control input-sm" style="width:120%;"')?>
         </div>
         <div class="col-sm-2">
             <?php echo form_dropdown('project_type',$project_type,$_project,'class="form-control input-sm"')?>

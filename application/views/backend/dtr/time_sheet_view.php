@@ -142,7 +142,9 @@
 
                     grid.onDblClick.subscribe(function(e, args){
                         var row = dataView.getItem(args.row);
+                        $(this).newForm.addLoadingForm();
                         if(row.week_has_passed){
+
                             $.post(bu + 'timeSheetEdit',
                                 {
                                     submit_week_pay: true,
@@ -155,7 +157,40 @@
                                     location.replace(bu + 'timeSheetEdit');
                                 }
                             );
+
+                            /*$.ajax({
+                                method: "POST",
+                                url: bu + 'timeSheetEdit',
+                                dataType: "html",
+                                data: {
+                                    submit_week_pay: true,
+                                    search: true,
+                                    year: row.year,
+                                    month: row.month,
+                                    week: row.week_num
+                                }
+                            })
+                                .done(function( msg ) {
+                                    console.log(msg);
+                                    //location.replace(bu + 'timeSheetEdit');
+                                });*/
                         }else{
+                            /*$.ajax({
+                                method: "POST",
+                                url: bu + 'timeSheetEdit',
+                                dataType: "html",
+                                data: {
+                                    search: true,
+                                    year: row.year,
+                                    month: row.month,
+                                    week: row.week_num
+                                }
+                            })
+                                .done(function( msg ) {
+                                    //console.log(msg);
+                                    location.replace(bu + 'timeSheetEdit');
+                                });*/
+
                             $.post(bu + 'timeSheetEdit',
                                 {
                                     search: true,

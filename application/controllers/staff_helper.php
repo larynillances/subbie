@@ -27,18 +27,7 @@ class Staff_Helper extends CI_Controller{
 
         if(count($dtr) > 0){
             foreach($dtr as $row){
-                $data[$row->staff_id][] = array(
-                    'hours' => $row->hours,
-                    'hours_' => $row->hours_,
-                    'time_in' => $row->time_in,
-                    'time_out' => $row->time_out,
-                    'date' => $row->date,
-                    'dtr_id' => $row->dtr_id,
-                    'day' => $row->day,
-                    'week_year' => $row->week_year,
-                    'week' => $row->w,
-                    'working_type_id' => $row->working_type_id
-                );
+                $data[$row->staff_id][] = $row;
             }
         }
         return $data;
@@ -278,9 +267,31 @@ class Staff_Helper extends CI_Controller{
         return $employment_data;
     }
 
-    function stat_holiday($year){
-        $whatValue = array($year,1,false);
-        $whatFld = array('YEAR(date) =','type','is_reminder');
+    function stat_holiday($year = '',$month = '',$week = ''){
+        $whatValue = array(3);
+        $whatFld = array('type !=');
+
+        if($year){
+            $whatValue[] = $year;
+            $whatFld[] = 'YEAR(tbl_holiday.date) =';
+        }
+        if($month){
+            $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
+            $whatValue[] = $month;
+            $whatFld[] = 'MONTH(tbl_holiday.date) <=';
+
+            $whatValue[] = date('m',$last_month);
+            $whatFld[] = 'MONTH(tbl_holiday.date) >=';
+        }
+        if($week){
+            $whatValue[] = $week;
+            $whatFld[] = 'WEEK(tbl_holiday.date,2) <=';
+
+            $whatValue[] = $week != 1 ? $week - 1 : 52;
+            $whatFld[] = 'WEEK(tbl_holiday.date,2) >=';
+        }
+
+
         $holiday = $this->my_model->getInfo('tbl_holiday',$whatValue,$whatFld);
         $data = array();
         if(count($holiday) > 0){
@@ -288,17 +299,31 @@ class Staff_Helper extends CI_Controller{
                 $data[$val->date] = $val;
             }
         }
-
         return $data;
     }
+
 
     function adjustment($year,$month){
         $whatValue = array($year,$month);
         $whatFld = array('YEAR(date) =','MONTH(date) =');
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_adjustment_type'),
+            'join_field' => array('id'),
+            'source_field' => array('tbl_adjustment.adjustment_type_id'),
+            'type' => 'left'
+        ));
+        $fld = ArrayWalk($this->my_model->getFields('tbl_adjustment'),'tbl_adjustment.');
+        $fld[] = 'tbl_adjustment_type.adjustment_type';
+        $fld[] = 'tbl_adjustment_type.adjustment_code';
+
+        $this->my_model->setSelectFields($fld);
         $adjustment = $this->my_model->getInfo('tbl_adjustment',$whatValue,$whatFld);
         $data = array();
+        $total = array();
         if(count($adjustment) > 0){
             foreach($adjustment as $val){
+                @$total[$val->staff_id] += $val->amount;
+                $val->total = @$total[$val->staff_id];
                 $data[$val->staff_id][$val->date] = (Object)$val;
             }
         }
@@ -306,7 +331,7 @@ class Staff_Helper extends CI_Controller{
         return $data;
     }
 
-    function staff_leave_application($whatVal = '',$whatFld = '',$by_week = false){
+    function staff_leave_application($whatVal = '',$whatFld = '',$by_week = false, $first_week_only = false,$is_sort = false,$has_limit = false){
         $this->my_model->setJoin(array(
             'table' => array(
                 'tbl_leave_decision',
@@ -343,13 +368,18 @@ class Staff_Helper extends CI_Controller{
         if($by_week){
             $this->my_model->setGroupBy(array('id','week'));
         }
+        if($is_sort){
+            $this->my_model->setOrder('leave_start');
+        }
+        if($has_limit){
+            $this->my_model->setConfig(5,0,true);
+        }
         $leave = $this->my_model->getInfo('tbl_leave',$whatVal,$whatFld);
-
         $leave_ = array();
-
+        $leave_data = array();
         if(count($leave) > 0){
             foreach($leave as $row){
-                $date = $this->createDateRangeArray($row->leave_start,$row->leave_end);
+                $date = createDateRangeArray($row->leave_start,$row->leave_end);
                 $holiday = $this->subbie_date_helper->holidays;
                 $leave_days_count = $this->getLeaveDaysCount($row->leave_start,$row->leave_end,$holiday);
 
@@ -358,56 +388,58 @@ class Staff_Helper extends CI_Controller{
                         $cal_hours = $row->hours * 3600;
                         $date_ = new DateTime($row->leave_start);
 
+                        $data = (object)array(
+                            'id' => $row->id,
+                            'date_requested' => $row->date_requested,
+                            'date_decision' => $row->date_decision,
+                            'leave_start' => $row->leave_start,
+                            'leave_end' => $row->leave_end,
+                            'week' => $date_->format('W'),
+                            'user_id' => $row->user_id,
+                            'type' => $row->type,
+                            'leave_type' => $row->leave_type,
+                            'day_type' => $row->day_type,
+                            'range_type' => $row->range_type,
+                            'leave_in_seconds' => $row->type != 6 ? $cal_hours : 0,
+                            'leave_in_hours' => $row->type != 6 ? $row->hours : 0,
+                            'reason_request' => $row->reason_request,
+                            'reason_decision' => $row->reason_decision,
+                            'decision' => $row->decision_type,
+                            'days' => $leave_days_count
+                        );
+
                         if($by_week){
-                            $leave_[$row->user_id][$date_->format('W-Y')] = (object)array(
-                                'id' => $row->id,
-                                'date_requested' => $row->date_requested,
-                                'date_decision' => $row->date_decision,
-                                'leave_start' => $row->leave_start,
-                                'leave_end' => $row->leave_end,
-                                'week' => $date_->format('W'),
-                                'user_id' => $row->user_id,
-                                'type' => $row->type,
-                                'leave_type' => $row->leave_type,
-                                'day_type' => $row->day_type,
-                                'range_type' => $row->range_type,
-                                'leave_in_seconds' => $cal_hours,
-                                'leave_in_hours' => $row->hours,
-                                'reason_request' => $row->reason_request,
-                                'reason_decision' => $row->reason_decision,
-                                'decision' => $row->decision_type,
-                                'days' => $leave_days_count
-                            );
-                        }else{
-                            $leave_[$row->user_id][$val] = (object)array(
-                                'id' => $row->id,
-                                'date_requested' => $row->date_requested,
-                                'date_decision' => $row->date_decision,
-                                'leave_start' => $row->leave_start,
-                                'leave_end' => $row->leave_end,
-                                'week' => $date_->format('W'),
-                                'user_id' => $row->user_id,
-                                'type' => $row->type,
-                                'leave_type' => $row->leave_type,
-                                'day_type' => $row->day_type,
-                                'range_type' => $row->range_type,
-                                'leave_in_seconds' => $cal_hours,
-                                'leave_in_hours' => $row->hours,
-                                'reason_request' => $row->reason_request,
-                                'reason_decision' => $row->reason_decision,
-                                'decision' => $row->decision_type,
-                                'days' => $leave_days_count
-                            );
+                            $leave_[$row->user_id][$date_->format('W-Y')] = $data;
+                        }
+                        else{
+                            $leave_[$row->user_id][$val] = $data;
                         }
                     }
                 }
             }
         }
-        return $leave_;
+
+        if($first_week_only){
+            if(count($leave_) > 0){
+                foreach($leave_ as $id=>$val){
+                    $ref = 1;
+                    if(count($val) > 0){
+                        foreach($val as $key=>$value){
+                            if($ref == 1){
+                                $leave_data[$id][$key] = (Object)$value;
+                            }
+                            $ref++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $first_week_only ? $leave_data : $leave_;
     }
 
     private function getLeaveDaysCount($start, $end, $holidays){
-        $datesInBetween = $this->createDateRangeArray($start, $end);
+        $datesInBetween = createDateRangeArray($start, $end);
         if(count($holidays) > 0){
             foreach($holidays as $h){
                 if(in_array($h, $datesInBetween)){
@@ -432,30 +464,6 @@ class Staff_Helper extends CI_Controller{
         return $count;
     }
 
-    private function createDateRangeArray($strDateFrom, $strDateTo)
-    {
-        // takes two dates formatted as YYYY-MM-DD and creates an
-        // inclusive array of the dates between the from and to dates.
-
-        // could test validity of dates here but I'm already doing
-        // that in the main script
-
-        $aryRange=array();
-
-        $iDateFrom=mktime(1,0,0,substr($strDateFrom,5,2),     substr($strDateFrom,8,2),substr($strDateFrom,0,4));
-        $iDateTo=mktime(1,0,0,substr($strDateTo,5,2),     substr($strDateTo,8,2),substr($strDateTo,0,4));
-
-        if ($iDateTo>=$iDateFrom)
-        {
-            array_push($aryRange,date('Y-m-d',$iDateFrom)); // first entry
-            while ($iDateFrom<$iDateTo)
-            {
-                $iDateFrom+=86400; // add 24 hours
-                array_push($aryRange,date('Y-m-d',$iDateFrom));
-            }
-        }
-        return $aryRange;
-    }
 
     function staff_hourly_rate($whatVal = '',$whatFld = ''){
         $this->my_model->setJoin(array(

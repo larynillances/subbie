@@ -11,8 +11,9 @@ class Staff_Controller extends Subbie{
     }
     //region wage functions
     function wageTable(){
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
 
         $this->my_model->setNormalized('project_name','id');
         $this->my_model->setSelectFields(array('id','project_name'));
@@ -36,7 +37,7 @@ class Staff_Controller extends Subbie{
         $this->data['thisMonth'] = $this->session->userdata('_month') ? $this->session->userdata('_month') : date('m');
         $this->data['thisProject'] = $this->session->userdata('_month') ? $this->session->userdata('_project_type') : 1;
 
-        $this->getWageData($this->data['thisYear'],$this->data['thisMonth'],'weekly',$this->data['thisProject']);
+        $this->getWageData($this->data['thisYear'],$this->data['thisMonth'],'','weekly',$this->data['thisProject']);
 
         $id = array();
         $what_val = 'date_last_pay != "0000-00-00" AND YEAR(date_last_pay) ="'.$this->data['thisYear'].'" AND (MONTH(date_last_pay) ="'.(int)$this->data['thisMonth'].'" OR MONTH(date_last_pay) ="'.(int)($this->data['thisMonth'] - 1).'")';
@@ -53,7 +54,6 @@ class Staff_Controller extends Subbie{
             }
         }
         $this->data['last_pay_data'] = count($id) > 0 ? $this->getStaffLastPay($id,$this->data['thisYear'],$week_data) : array();
-
         $this->data['page_load'] = 'backend/staff/wage_summary_view';
         $this->load->view('main_view',$this->data);
     }
@@ -102,7 +102,7 @@ class Staff_Controller extends Subbie{
 
     function wageManage(){
         $staff_data = new Staff_Helper();
-        $week = $this->getWeekInYear(date('Y'));
+        $week = getWeekInYear(date('Y'));
 
         $this->my_model->setNormalized('staff_status','id');
         $this->my_model->setSelectFields(array('id','staff_status'));
@@ -140,7 +140,7 @@ class Staff_Controller extends Subbie{
 
         $this->data['employee'] = $staff_data->staff_details($whatVal,$whatFld);
 
-        $date = $this->getFirstNextLastDay(date('Y'),date('m'),'tuesday');
+        $date = getFirstNextLastDay(date('Y'),date('m'),'tuesday');
         $wage_data = new Wage_Controller();
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $staff_data = new Staff_Helper();
@@ -293,7 +293,7 @@ class Staff_Controller extends Subbie{
                 }
             }
 
-            $this_week = $this->getWeekDateInMonth($year,$month);
+            $this_week = getWeekDateInMonth($year,$month);
 
             $post = array(
                 'is_preview' => 1
@@ -429,8 +429,8 @@ class Staff_Controller extends Subbie{
 
     function monthlyTotalPay(){
 
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
 
         if(isset($_POST['search'])){
             $this->data['thisYear'] = $_POST['year'];
@@ -1188,9 +1188,9 @@ class Staff_Controller extends Subbie{
 
         $this->data['month_val'] = date('m');
         $this->data['year_val'] = date('Y');
-        $this->data['year'] = $this->getYear();
+        $this->data['year'] = getYear();
         $this->data['thisMonth'] = date('F');
-        $this->data['month'] = $this->getMonth();
+        $this->data['month'] = getMonth();
         $this->data['type'] = 1;
         $this->data['start'] = date('d-m-Y');
         $this->data['end'] = date('d-m-Y',strtotime('+12months'));
@@ -1224,11 +1224,11 @@ class Staff_Controller extends Subbie{
         }
 
         if($this->data['type'] == 1){
-            $date = $this->getFirstNextLastDay($this->data['year_val'],$this->data['month_val'],'tuesday');
+            $date = getFirstNextLastDay($this->data['year_val'],$this->data['month_val'],'tuesday');
         }else if($this->data['type'] == 2){
-            $date = $this->getWeekInYear($this->data['year_val']);
+            $date = getWeekInYear($this->data['year_val']);
         }else{
-            $date = $this->getWeekBetweenDates($this->data['start'],$this->data['end']);
+            $date = getWeekBetweenDates($this->data['start'],$this->data['end']);
         }
 
         $this->data['date'] = $date;
@@ -1338,7 +1338,7 @@ class Staff_Controller extends Subbie{
                             'esct' => $sv->esct,
                             'tax' => $sv->tax != 0 ? number_format($sv->tax,2,'.','') : ''
                         );
-                        $this->data['start_week'] = $this->getWeekNumberOfDateInYear($sv->start_use);
+                        $this->data['start_week'] = getWeekNumberOfDateInYear($sv->start_use);
                     }
                 }
             }
@@ -1357,8 +1357,8 @@ class Staff_Controller extends Subbie{
 
     function employerMonthlySched(){
 
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
         $this->data['thisYear'] = date('Y');
         $this->data['thisMonth'] = date('m');
 
@@ -1395,8 +1395,8 @@ class Staff_Controller extends Subbie{
 
         $this->data['thisYear'] = date('Y');
         $this->data['thisMonth'] = date('m');
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
 
         if(isset($_POST['search'])){
             $this->data['thisYear'] = $_POST['year'];
@@ -1410,8 +1410,8 @@ class Staff_Controller extends Subbie{
     }
 
     function payPeriodSummaryReport(){
-        $this->data['year'] = $this->getYear();
-        $this->data['month'] = $this->getMonth();
+        $this->data['year'] = getYear();
+        $this->data['month'] = getMonth();
 
         $this->my_model->setNormalized('project_name','id');
         $this->my_model->setSelectFields(array('id','project_name'));
@@ -1435,15 +1435,12 @@ class Staff_Controller extends Subbie{
         $this->data['thisYear'] = $this->session->userdata('$_year') != '' ? $this->session->userdata('$_year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('$_month') != '' ? $this->session->userdata('$_month') : date('m');
         $this->data['thisWeek'] = $this->session->userdata('$_week') != '' ? $this->session->userdata('$_week') : $default_week;
-        $this->data['week'] = $this->getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $this->data['week'] = getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
         //$this->data['thisProject'] = $this->session->userdata('$_project_type') ? $this->session->userdata('$_project_type') : 1;
-
         $year_ = isset($_GET['year']) ? $_GET['year'] : $this->data['thisYear'];
         $month_ = isset($_GET['month']) ? $_GET['month'] : $this->data['thisMonth'];
 
-        $this->getWageData($year_,$month_);
-
-        $week = $this->getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $week = getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
 
         $date = @$week[$this->data['thisWeek']];
         $this->data['thisDate'] = $date;
@@ -1476,7 +1473,8 @@ class Staff_Controller extends Subbie{
             $year_ = isset($_GET['year']) ? $_GET['year'] : $this->data['thisYear'];
             $month_ = isset($_GET['month']) ? $_GET['month'] : $this->data['thisMonth'];
 
-            $week = $this->getWeekDateInMonth($year_,$month_);
+            $week = getWeekDateInMonth($year_,$month_);
+            $this->getWageData($year_,$month_,$week_);
             $date = $week[$week_];
             $this->data['thisWeek'] = $week_;
 
@@ -1548,7 +1546,9 @@ class Staff_Controller extends Subbie{
             }
 
             $this->load->view('backend/staff/print_pay_summary_report_view',$this->data);
-        }else{
+        }
+        else{
+            $this->getWageData($year_,$month_,$this->data['thisWeek']);
             $_date = new DateTime($date);
             $week = $_date->format("W");
             $_week_end = $week != 30 ? date('j F Y',strtotime('+6 days '.$date)) : date('j F Y',strtotime('+5 days '.$date));
@@ -1664,7 +1664,7 @@ class Staff_Controller extends Subbie{
     function monthWeeks(){
         if(isset($_POST['month'])){
             $_month = str_pad($_POST['month'],2,'0',STR_PAD_LEFT);
-            $week = $this->getWeeksNumberInMonth($_POST['year'],$_month);
+            $week = getWeeksNumberInMonth($_POST['year'],$_month);
             echo json_encode($week);
         }
     }
@@ -1703,7 +1703,7 @@ class Staff_Controller extends Subbie{
                     $this->data['page_name'] .= ' for <strong>'.$staff_name->fname.' '.$staff_name->lname.'</strong>';
                     $this->data['page_load'] = 'backend/staff/year_to_date_summary';
 
-                    $set_wage_date = $this->getPaymentStartDate(date('Y',strtotime($this_date)));
+                    $set_wage_date = getPaymentStartDate(date('Y',strtotime($this_date)));
                     $total_array = array();
                     $monthly_total_array = array();
                     $wage_date_array = array();
@@ -1735,7 +1735,7 @@ class Staff_Controller extends Subbie{
                             $monthly_date[$year][$month][$key] = $val;
                         }
                     }
-                    $current_wage_date = $this->getPaymentStartDate(date('Y'));
+                    $current_wage_date = getPaymentStartDate(date('Y'));
                     $current_month = array();
                     if(count($current_wage_date) > 0){
                         foreach($current_wage_date as $key=>$val){
@@ -1759,7 +1759,7 @@ class Staff_Controller extends Subbie{
         }else{
             $this->my_model->setOrder(array('lname','fname'));
             $this->data['staff'] = $this->my_model->getInfo('tbl_staff',array('false',$this->data['_project']),array('is_unemployed','project_id'));
-            $this->data['year'] = $this->getYear();
+            $this->data['year'] = getYear();
 
             $total_paid = $this->getOverAllWageTotalPay($this_date,'',false,$this->data['_project']);
 

@@ -22,6 +22,7 @@
         var columnsBasic = [
             {id: "name", name: "Name", field: "name", width: 120, sortable: true},
             {id: "username", name: "Username", field: "username", width: 80, sortable: true,cssClass: "column-center"},
+            {id: "alias", name: "Alias", field: "alias", width: 80, sortable: true,cssClass: "column-center"},
             {id: "email", name: "Email", field: "email", width: 150},
             {id: "active", name: "Status", field: "is_active", width: 40,cssClass: "column-center"},
             {id: "account_type", name: "Account type", field: "account_type", width: 130,cssClass: "column-center"}

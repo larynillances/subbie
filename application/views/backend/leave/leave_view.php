@@ -358,8 +358,10 @@ if(in_array($account_type, array(1,2,4))) {
 
                         if(!$(this).parent('').hasClass('no_hover') && ($(this).hasClass('reason') || $(this).hasClass('decision'))){
                             $('body').after(hoverEle);
-                            slickTitle = $('.slickTitle');
-                            slickTitle.html(thisTitle);
+                            if(thisTitle){
+                                slickTitle = $('.slickTitle');
+                                slickTitle.html(thisTitle);
+                            }
 
                             var thisTop = $(this).offset().top + $(this).innerHeight();
                             var thisLeft = parseFloat($(this).offset().left);
@@ -371,10 +373,12 @@ if(in_array($account_type, array(1,2,4))) {
                                 });
                             }
                             else if($(this).hasClass('decision')){
-                                slickTitle.css({
-                                    top: thisTop + 'px',
-                                    left: thisLeft + "px"
-                                });
+                                if(thisTitle){
+                                    slickTitle.css({
+                                        top: thisTop + 'px',
+                                        left: thisLeft + "px"
+                                    });
+                                }
                             }
                         }
                     },

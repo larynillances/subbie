@@ -140,11 +140,11 @@ echo form_open('staffLeaveEdit/'.$this->uri->segment(2).$_is_dtr,'class="form-ho
                 <?php
                 if(count($decision) > 0){
                     echo '<div style="display: table-row;">';
+                    echo '<div style="display: table-cell;">';
                     foreach($decision as $id=>$txt){
-                        echo '<div style="display: table-cell;">';
-                        echo '<label>&nbsp;<input type="radio" name="decision" value="' . $id . '" ' . ($leave->decision == $id ? 'checked' : '') . '/>&nbsp;' . $txt . '</label>';
-                        echo '</div>';
+                        echo '&nbsp;&nbsp;&nbsp;&nbsp;<label>&nbsp;<input type="radio" name="decision" value="' . $id . '" ' . ($leave->decision == $id ? 'checked' : '') . '/>&nbsp;' . $txt . '</label>';
                     }
+                    echo '</div>';
                     echo '</div>';
                 }
                 ?>
