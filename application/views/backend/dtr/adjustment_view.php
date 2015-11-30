@@ -15,9 +15,15 @@ echo form_open('','class="form-horizontal adjustment-form"');
             $max_len = 5 - count($adjustment);
             $len = $max_len > 0 ? $max_len : 0;
             $total = 0;
+            $total_credit = 0;
+            $total_debit = 0;
             if(count($adjustment) > 0){
                 foreach($adjustment as $k=>$v){
-                    $total += $v->amount;
+                    if($v->adjustment_type_id == 1){
+                        $total_debit += $v->amount;
+                    }else{
+                        $total_credit += str_replace('-','',$v->amount);
+                    }
                     ?>
                     <tr>
                         <td>
@@ -33,6 +39,7 @@ echo form_open('','class="form-horizontal adjustment-form"');
                 <?php
                 }
             }
+            $total = $total_credit - $total_debit;
             for($i=0;$i<=$len;$i++){
                 ?>
                 <tr>
@@ -102,6 +109,19 @@ echo form_close();
             });
 
         $('select[name="adjustment_type_id[]"]').on('change',function(e){
+            var input = $(this).parent().parent().find('input[name="amount[]"]');
+            var input_data = input.val();
+            if($(this).val() == 2){
+                //input.val('');
+                input_data.replace('-','');
+                if(input.val().indexOf('-') === -1){
+                    input.val('-' + input_data);
+                }
+            }
+            else{
+                input.val(input_data.replace('-',''));
+            }
+            calculate_amount();
             var data = getData();
 
             $.post(url,data,function(data){
@@ -111,12 +131,23 @@ echo form_close();
         });
         var calculate_amount = function(){
             var $_total = 0;
+            var total_credit = 0;
+            var total_debit = 0;
             var total_amount = $('.total-amount');
             $('input[name="amount[]"]').each(function(e){
-                $_total += $(this).val() ? parseFloat($(this).val()) : 0;
-                total_amount.html('');
+                var adjustment_type = $(this).parent().parent().find('select[name="adjustment_type_id[]"]');
+                var adjust_val = $(this).val().replace('-','');
+                if(adjustment_type.val() == 1){
+                    total_debit += adjust_val ? parseFloat(adjust_val) : 0;
+                }else{
+                    total_credit += adjust_val ? parseFloat(adjust_val) : 0;
+                }
             });
-            total_amount.html('$ ' + $_total.toFixed(2));
+            $_total = total_credit - total_debit;
+            var total_ = $_total.toString().replace('-','');
+            var str = $_total > 0 ? 'CR' : 'DR';
+            total_ = parseFloat(total_);
+            total_amount.html('$ ' + total_.toFixed(2) + str);
         };
 
         var getData = function(){
@@ -136,13 +167,17 @@ echo form_close();
                 var data = getData();
 
                 var adjustment_type = $(this).parent().parent().find('select[name="adjustment_type_id[]"]');
-                adjustment_type.val('');
+
                 if($(this).val() != ''){
                     if($(this).val().indexOf('-') === -1){
                         adjustment_type.val(1);
-                    }else{
+                    }
+                    else{
                         adjustment_type.val(2);
                     }
+                }
+                else{
+                    adjustment_type.val('');
                 }
 
                 $.post(url,data,function(data){
@@ -171,9 +206,27 @@ echo form_close();
             $(this).attr('data-dismiss','modal');
             if(select.val() || input.val() || textarea.val()){
                 $('.required').each(function(e){
-                    if(!$(this).val()){
-                        $(this).css({border:'1px solid red'});
-                    }else{
+                    var _select = $(this).parent().parent().find('select[name="adjustment_type_id[]"]');
+                    var _input = $(this).parent().parent().find('input[name="amount[]"]');
+                    var _textarea = $(this).parent().parent().find('textarea[name="notes[]"]');
+                    var _text = _textarea.val().replace(/\s/g,'');
+
+                    if(_select.val() && (!_input.val() || !_textarea.val())){
+                        _input.css({border:'1px solid red'});
+                        _textarea.css({border:'1px solid red'});
+                    }
+                    else if(_input.val() && (!_select.val() || !_textarea.val())){
+                        _select.css({border:'1px solid red'});
+                        _textarea.css({border:'1px solid red'});
+                    }
+                    else if(_textarea.val() && (!_select.val() || !_input.val())){
+                        _select.css({border:'1px solid red'});
+                        _input.css({border:'1px solid red'});
+                    }
+                    else if(_textarea.val() && _text.length < 10){
+                        _textarea.css({border:'1px solid red'});
+                    }
+                    else{
                         $(this).removeAttr('style');
                     }
                 });

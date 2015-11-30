@@ -1,5 +1,5 @@
 <div class="row">
-    <div class="col-sm-4">
+    <div class="col-sm-3">
         <h4>Summary for All Months YTD Pay</h4>
         <table class="table table-colored-header table-responsive">
             <thead>
@@ -53,7 +53,7 @@
             </tbody>
         </table>
     </div>
-    <div class="col-sm-4">
+    <div class="col-sm-5">
         <h4>Details for All Months YTD Pay</h4>
         <table class="table table-colored-header table-responsive">
             <thead>
@@ -61,6 +61,7 @@
                 <th>Date</th>
                 <th>Gross</th>
                 <th>Nett</th>
+                <th>Running Gross</th>
             </tr>
             </thead>
             <tbody>
@@ -71,14 +72,14 @@
                 foreach($monthly_date as $year=>$month){
                     ?>
                     <tr>
-                        <td colspan="3" class="text-right success" style="text-align: right!important;"><?php echo $year?></td>
+                        <td colspan="4" class="text-right success" style="text-align: right!important;"><?php echo $year?></td>
                     </tr>
                     <?php
                     if(count($month) > 0){
                         foreach($month as $m=>$date){
                             ?>
                             <tr>
-                                <td colspan="3" class="text-right info" style="text-align: right!important;"><?php echo $m?></td>
+                                <td colspan="4" class="text-right info" style="text-align: right!important;"><?php echo $m?></td>
                             </tr>
                             <?php
                             $nett_sub_total = 0;
@@ -98,6 +99,7 @@
                                         <td><?php echo $week_start.' <strong>to</strong> '.date('d/m/Y',strtotime($day)).' <strong>[Week '.$week.']</strong>'?></td>
                                         <td><?php echo '$ '.number_format($data['gross'],2);?></td>
                                         <td><?php echo '$ '.number_format($data['distribution'],2);?></td>
+                                        <td><?php echo '$ '.number_format($gross_total,2);?></td>
                                     </tr>
                                 <?php
                                 }
@@ -107,6 +109,7 @@
                                 <td style="text-align: right!important;"><strong>Sub Total:</strong></td>
                                 <td><strong><?php echo '$ '.number_format($gross_sub_total,2);?></strong></td>
                                 <td><strong><?php echo '$ '.number_format($nett_sub_total,2);?></strong></td>
+                                <td><strong><?php echo '$ '.number_format($gross_total,2);?></strong></td>
                             </tr>
                         <?php
                         }
@@ -118,6 +121,7 @@
                 <td style="text-align: right!important;"><strong>Total:</strong></td>
                 <td><strong><?php echo '$ '.number_format($gross_total,2);?></strong></td>
                 <td><strong><?php echo '$ '.number_format($nett_total,2);?></strong></td>
+                <td><strong><?php echo '$ '.number_format($gross_total,2);?></strong></td>
             </tr>
             </tbody>
         </table>

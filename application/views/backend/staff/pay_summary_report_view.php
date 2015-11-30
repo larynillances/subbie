@@ -75,6 +75,7 @@ echo form_close();
         $total_kiwi = 0;
         $total_emp_kiwi = 0;
         $total_esct = 0;
+        $total_adjustment = 0;
         $ref = 0;
         $total_data = array();
         if(count($this_data) >0) {
@@ -89,6 +90,7 @@ echo form_close();
                     $total_kiwi += $val['kiwi'];
                     $total_emp_kiwi += $val['cec'];
                     $total_esct += $val['esct'];
+                    $total_adjustment += $val['total_adjustment'];
 
                     $total_data[$project_type[$val['project_id']]][] = array(
                         'total_nett' => $val['nett'],
@@ -98,9 +100,23 @@ echo form_close();
                         'total_st_loan' => $val['st_loan'],
                         'total_kiwi' => $val['kiwi'],
                         'total_emp_kiwi' => $val['cec'],
+                        'total_adjustment' => $val['total_adjustment'],
                         'total_esct' => $val['esct']
                     );
 
+                }
+                else{
+                    $total_data[$project_type[$val['project_id']]][] = array(
+                        'total_nett' => 0,
+                        'total_dist' => 0,
+                        'total_gross' => 0,
+                        'total_paye' => 0,
+                        'total_st_loan' => 0,
+                        'total_kiwi' => 0,
+                        'total_emp_kiwi' => 0,
+                        'total_adjustment' => 0,
+                        'total_esct' => 0
+                    );
                 }
                 ?>
                 <div class="content-div">
@@ -168,15 +184,23 @@ echo form_close();
                                     if($val['adjustment']){
                                         ?>
                                         <td>Holiday Pay:</td>
-                                        <td><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
+                                        <td style="white-space: nowrap">
+                                            <?php
+                                            echo '$ '.number_format($val['stat_holiday_pay'],2) . ($val['stat_holiday_pay'] ? ' ['.'$ '.$val['stat_holiday_paye'].']' : '');
+                                            ?>
+                                        </td>
                                         <td>Adjustments:</td>
                                         <td><?php echo $val['adjustment']?></td>
-                                        <?php
+                                    <?php
                                     }else{
                                         ?>
                                         <td>Holiday Pay:</td>
-                                        <td colspan="3"><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
-                                        <?php
+                                        <td colspan="3" style="white-space: nowrap">
+                                            <?php
+                                            echo '$ '.number_format($val['stat_holiday_pay'],2) . ($val['stat_holiday_pay'] ? ' ['.'$ '.$val['stat_holiday_paye'].']' : '');
+                                            ?>
+                                        </td>
+                                    <?php
                                     }
                                     ?>
                                 </tr>
@@ -185,24 +209,55 @@ echo form_close();
                                     ?>
                                     <tr>
                                         <td>Sick Leave Taken:</td>
-                                        <td><?php echo $last_pay['sick_leave_taken'].' ('.$last_pay['overall_sick_leave'].')'?></td>
+                                        <td><?php echo $val['sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
                                         <td>Sick Leave Remaining:</td>
-                                        <td colspan="5"><?php echo $last_pay['total_sick_leave'].' ('.$last_pay['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        if($val['leave_type'] && $val['leave_type_id'] != 7){
+                                            ?>
+                                            <td><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <td><?php echo $val['leave_type'].' Pay:'?></td>
+                                            <td><?php echo $val['leave_pay'] ? '$ '.number_format($val['leave_pay'],2) : '$ 0.00'?></td>
+                                        <?php
+                                        }
+                                        else{
+                                            ?>
+                                            <td colspan="5"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        }
+                                        ?>
                                     </tr>
                                     <tr>
                                         <td>PHP One:</td>
-                                        <td><?php echo $last_pay['nz_account'] ? '$ '.number_format($last_pay['account_one'],2) : 'N/A'?></td>
+                                        <td><?php echo $val['nz_account'] ? '$ '.number_format($val['account_one'],2) : 'N/A'?></td>
                                         <td>PHP Two:</td>
-                                        <td colspan="5"><?php echo $last_pay['nz_account'] ? '$ '.number_format($last_pay['account_two'],2) : 'N/A'?></td>
+                                        <td colspan="3"><?php echo $val['nz_account'] ? '$ '.number_format($val['account_two'],2) : 'N/A'?></td>
+                                        <td>To Bank:</td>
+                                        <td style="background: #b2b2b2;color: #000000"><strong><?php echo $val['hours'] ? '$ '.number_format($val['nz_account'],2) : '$ '.number_format($val['distribution'],2);?></strong></td>
                                     </tr>
                                 <?php
-                                }else{
+                                }
+                                else{
                                     ?>
                                     <tr>
                                         <td>Sick Leave Taken:</td>
-                                        <td><?php echo $last_pay['sick_leave_taken'].' ('.$last_pay['overall_sick_leave'].')'?></td>
+                                        <td><?php echo $val['sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
                                         <td>Sick Leave Remaining:</td>
-                                        <td colspan="5"><?php echo $last_pay['total_sick_leave'].' ('.$last_pay['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        if($val['leave_type'] && $val['leave_type_id'] != 7){
+                                            ?>
+                                            <td><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <td><?php echo $val['leave_type'].' Pay:'?></td>
+                                            <td><?php echo $val['leave_pay'] ? '$ '.number_format($val['leave_pay'],2) : '$ 0.00'?></td>
+                                        <?php
+                                        }
+                                        else{
+                                            ?>
+                                            <td colspan="3"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        }
+                                        ?>
+                                        <td>To Bank:</td>
+                                        <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format($val['distribution'],2);?></strong></td>
                                     </tr>
                                 <?php
                                 }
@@ -227,7 +282,7 @@ echo form_close();
                                     <td>Final Pay:</td>
                                     <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$'.number_format($final_pay,2);?></strong></td>
                                 </tr>
-                                <?php
+                            <?php
                             }
                             else{
                                 ?><tr>
@@ -238,7 +293,7 @@ echo form_close();
                                 <td>PAYE:</td>
                                 <td><?php echo $val['tax'] ? '$ '.number_format($val['tax'],2) : '$ 0.00'?></td>
                                 <td class="text-right">Nett Pay:</td>
-                                <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_nett'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
+                                <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_dis'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
                                 </tr>
                                 <tr>
                                     <td>Student Loan:</td>
@@ -275,14 +330,22 @@ echo form_close();
                                     if($val['adjustment']){
                                         ?>
                                         <td>Holiday Pay:</td>
-                                        <td><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
+                                        <td style="white-space: nowrap">
+                                            <?php
+                                            echo '$ '.number_format($val['stat_holiday_pay'],2) . ($val['stat_holiday_pay'] ? ' ['.'$ '.$val['stat_holiday_paye'].']' : '');
+                                            ?>
+                                        </td>
                                         <td>Adjustments:</td>
                                         <td><?php echo $val['adjustment']?></td>
                                     <?php
                                     }else{
                                         ?>
                                         <td>Holiday Pay:</td>
-                                        <td colspan="3"><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
+                                        <td colspan="3" style="white-space: nowrap">
+                                            <?php
+                                            echo '$ '.number_format($val['stat_holiday_pay'],2) . ($val['stat_holiday_pay'] ? ' ['.'$ '.$val['stat_holiday_paye'].']' : '');
+                                            ?>
+                                        </td>
                                     <?php
                                     }
                                     ?>
@@ -294,7 +357,20 @@ echo form_close();
                                         <td>Sick Leave Taken:</td>
                                         <td><?php echo $val['sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
                                         <td>Sick Leave Remaining:</td>
-                                        <td colspan="5"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        if($val['leave_type'] && $val['leave_type_id'] != 7){
+                                            ?>
+                                            <td><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <td><?php echo $val['leave_type'].' Pay:'?></td>
+                                            <td><?php echo $val['leave_pay'] ? '$ '.number_format($val['leave_pay'],2) : '$ 0.00'?></td>
+                                        <?php
+                                        }
+                                        else{
+                                            ?>
+                                            <td colspan="5"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        }
+                                        ?>
                                     </tr>
                                     <tr>
                                         <td>PHP One:</td>
@@ -312,7 +388,20 @@ echo form_close();
                                         <td>Sick Leave Taken:</td>
                                         <td><?php echo $val['sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
                                         <td>Sick Leave Remaining:</td>
-                                        <td colspan="3"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        if($val['leave_type'] && $val['leave_type_id'] != 7){
+                                            ?>
+                                            <td><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <td><?php echo $val['leave_type'].' Pay:'?></td>
+                                            <td><?php echo $val['leave_pay'] ? '$ '.number_format($val['leave_pay'],2) : '$ 0.00'?></td>
+                                        <?php
+                                        }
+                                        else{
+                                            ?>
+                                            <td colspan="3"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        }
+                                        ?>
                                         <td>To Bank:</td>
                                         <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format($val['distribution'],2);?></strong></td>
                                     </tr>
@@ -369,7 +458,7 @@ echo form_close();
                                     <td>To Bank:</td>
                                     <td style="background: #b2b2b2;color: #000000"><strong>Nil</strong></td>
                                 </tr>
-                                <?php
+                            <?php
                             }
                             else{
                                 ?>
@@ -381,7 +470,7 @@ echo form_close();
                                     <td>PAYE:</td>
                                     <td><?php echo $val['tax'] ? '$ '.number_format($val['tax'],2) : '$ 0.00'?></td>
                                     <td class="text-right">Nett Pay:</td>
-                                    <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_nett'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
+                                    <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_dis'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
                                 </tr>
                                 <tr>
                                     <td>Student Loan:</td>
@@ -417,15 +506,23 @@ echo form_close();
                                     <?php
                                     if($val['adjustment']){
                                         ?>
-                                        <td>Holiday Pay:</td>
-                                        <td><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
+                                        <td><?php echo 'Holiday Pay'?>:</td>
+                                        <td style="white-space: nowrap">
+                                            <?php
+                                            echo '$ '.number_format($val['stat_holiday_pay'],2) . ($val['stat_holiday_pay'] ? ' ['.'$ '.$val['stat_holiday_paye'].']' : '');
+                                            ?>
+                                        </td>
                                         <td>Adjustments:</td>
                                         <td><?php echo $val['adjustment']?></td>
                                     <?php
                                     }else{
                                         ?>
                                         <td>Holiday Pay:</td>
-                                        <td colspan="3"><?php echo '$ '.number_format($val['stat_holiday_pay'],2)?></td>
+                                        <td colspan="3" style="white-space: nowrap">
+                                            <?php
+                                            echo '$ '.number_format($val['stat_holiday_pay'],2) . ($val['stat_holiday_pay'] ? ' ['.'$ '.$val['stat_holiday_paye'].']' : '');
+                                            ?>
+                                        </td>
                                     <?php
                                     }
                                     ?>
@@ -437,7 +534,20 @@ echo form_close();
                                         <td>Sick Leave Taken:</td>
                                         <td><?php echo $val['sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
                                         <td>Sick Leave Remaining:</td>
-                                        <td colspan="5"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        if($val['leave_type'] && $val['leave_type_id'] != 7){
+                                            ?>
+                                            <td><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <td><?php echo $val['leave_type'].' Pay:'?></td>
+                                            <td><?php echo $val['leave_pay'] ? '$ '.number_format($val['leave_pay'],2) : '$ 0.00'?></td>
+                                            <?php
+                                        }
+                                        else{
+                                            ?>
+                                            <td colspan="5"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <?php
+                                        }
+                                        ?>
                                     </tr>
                                     <tr>
                                         <td>PHP One:</td>
@@ -455,7 +565,20 @@ echo form_close();
                                         <td>Sick Leave Taken:</td>
                                         <td><?php echo $val['sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
                                         <td>Sick Leave Remaining:</td>
-                                        <td colspan="3"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        if($val['leave_type'] && $val['leave_type_id'] != 7){
+                                            ?>
+                                            <td><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                            <td><?php echo $val['leave_type'].' Pay:'?></td>
+                                            <td><?php echo $val['leave_pay'] ? '$ '.number_format($val['leave_pay'],2) : '$ 0.00'?></td>
+                                        <?php
+                                        }
+                                        else{
+                                            ?>
+                                            <td colspan="3"><?php echo $val['total_sick_leave'].' ('.$val['overall_sick_leave'].')'?></td>
+                                        <?php
+                                        }
+                                        ?>
                                         <td>To Bank:</td>
                                         <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format($val['distribution'],2);?></strong></td>
                                     </tr>
@@ -481,6 +604,7 @@ echo form_close();
                 $_emp_kiwi = 0;
                 $_esct = 0;
                 $_dist = 0;
+                $_adjustment = 0;
                 if(count($data) > 0){
                     foreach($data as $val){
                         $_gross += $val['total_gross'];
@@ -491,6 +615,7 @@ echo form_close();
                         $_emp_kiwi += $val['total_emp_kiwi'];
                         $_esct += $val['total_esct'];
                         $_dist += $val['total_dist'];
+                        $_adjustment += $val['total_adjustment'];
                     }
                 }
                 ?>
@@ -509,6 +634,16 @@ echo form_close();
                             <td class="text-right"><strong>Nett Pay:</strong></td>
                             <td><strong><?php echo '$ '.number_format($_nett,2)?></strong></td>
                         </tr>
+                        <?php
+                        if($_adjustment > 0){
+                            ?>
+                            <tr>
+                                <td class="text-right" colspan="7"><strong>Adjustment:</strong></td>
+                                <td><strong><?php echo '$ '.number_format($_adjustment,2)?></strong></td>
+                            </tr>
+                            <?php
+                        }
+                        ?>
                         <tr>
                             <td class="text-right"><strong>Kiwisaver Employee:</strong></td>
                             <td><strong><?php echo '$ '.number_format($_kiwi,2)?></strong></td>
@@ -540,6 +675,16 @@ echo form_close();
                     <td class="text-right"><strong>Nett Pay:</strong></td>
                     <td><strong><?php echo '$ '.number_format($total_nett,2)?></strong></td>
                 </tr>
+                <?php
+                if($total_adjustment > 0){
+                    ?>
+                    <tr>
+                        <td class="text-right" colspan="7"><strong>Adjustment:</strong></td>
+                        <td><strong><?php echo '$ '.number_format($total_adjustment,2)?></strong></td>
+                    </tr>
+                <?php
+                }
+                ?>
                 <tr>
                     <td class="text-right"><strong>Kiwisaver Employee:</strong></td>
                     <td><strong><?php echo '$ '.number_format($total_kiwi,2)?></strong></td>

@@ -104,6 +104,7 @@
                     $this_month = date('m', strtotime($getDate)) == $thisMonth ? '' : 'not-this-month';
                     $ref = 0;
                     $_week = new DateTime($getDate);
+                    $week_year = $_week->format('W-Y');
                     $week_end = $_week->format('W') != 30 ? date('Y-m-d',strtotime('+6 days '.$getDate)) : date('Y-m-d',strtotime('+5 days '.$getDate));
                     $type = 0;
                     $range_type = 0;
@@ -130,10 +131,12 @@
                             $getValue = @$thisDtr[$day];
                             $staff_leave = @$leave_data_approved[$v->id][$getDate];
                             $pending = @$leave_data_pending[$v->id][$getDate];
-                            $holidayHours += @$staff_leave->decision ? @$staff_leave->leave_in_hours : 0;
+                            $_leave = @$leave_pay[$v->id][$getDate];
+
+                            $holidayHours += @$staff_leave->decision ? (@$staff_leave->leave_in_hours && !$is_stat_holiday ? ($_leave['leave_type'] != 7 ? $_leave['leave_hours_daily'] : @$staff_leave->leave_in_hours) : 0) : ($v->rate_cost && @$stat_data[$v->id]['daily_hours'] ? @$stat_data[$v->id]['daily_hours'] : 0);
                             $sickLeaveHours += @$getValue['sick_hours'];
                             $totalHolidayHours[$v->id][] = array(
-                                'holiday' =>  @$staff_leave->decision ? @$staff_leave->leave_in_hours : 0,
+                                'holiday' =>  @$staff_leave->decision ? (@$staff_leave->leave_in_hours && !$is_stat_holiday ? ($_leave['leave_type'] != 7 ? $_leave['leave_hours_daily'] : @$staff_leave->leave_in_hours) : 0) : ($v->rate_cost && @$stat_data[$v->id]['daily_hours'] ? @$stat_data[$v->id]['daily_hours'] : 0),
                                 'sick' => @$getValue['sick_hours']
                             );
 
@@ -251,8 +254,12 @@
                                     <td style="background:#87be90;vertical-align: middle">
                                         <strong>
                                             <?php
-
-                                            echo $staff_leave->leave_in_hours && $staff_leave->decision ? number_format($staff_leave->leave_in_hours,2) : '&nbsp;';
+                                            //echo !$is_stat_holiday && $staff_leave->leave_in_hours && $staff_leave->decision ? number_format($staff_leave->leave_in_hours,2) : '&nbsp;';
+                                            echo count($_leave) > 0 && $_leave['leave_type'] != 7 && !$is_stat_holiday && !in_array($_d,array(6,7))
+                                                ? ($v->rate_cost
+                                                    ? '<span class="tooltip-class" data-placement="left" title="' . $_leave['leave_name'] . ' Pay [ ' . @$_leave['formula_daily_gross'] . ' ]">LP:' . @$_leave['leave_hours_daily']. ' [$'.number_format(@$_leave['leave_pay_daily'],2).']</span>'
+                                                    : '&nbsp;')
+                                                : '&nbsp;';
                                             ?>
                                         </strong>
                                     </td>
@@ -344,7 +351,7 @@
                                         }else{
                                             echo '&nbsp;';
                                         }
-                                        echo @$pending->leave_in_hours && !@$pending->decision ? '&nbsp;<a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class has-pending-request" id="pending_' . @$pending->id . '" data-date="'.$getDate.'" data-staff="'.$v->id.'" data-value="'. $v->fname . ' ' . $v->lname .'" title="Leave Request still Pending Approval."><i class="glyphicon glyphicon-asterisk"></i></a>' : '';
+                                        echo !$is_stat_holiday && @$pending->leave_in_hours && !@$pending->decision ? '&nbsp;<a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class has-pending-request" id="pending_' . @$pending->id . '" data-date="'.$getDate.'" data-staff="'.$v->id.'" data-value="'. $v->fname . ' ' . $v->lname .'" title="Leave Request still Pending Approval."><i class="glyphicon glyphicon-asterisk"></i></a>' : '';
                                         echo '&nbsp;';
                                         echo '<strong class="incomplete-request" ' . ($__leave_type && $__day_type && !@$pending->leave_in_hours ? '' : 'style="display: none;"') . '><a href="#" style="color: red;float: right;margin-left:3px;" class="tooltip-class has-incomplete-request" id="incomplete_' . @$pending->id . '" data-date="'.$getDate.'" data-staff="'.$v->id.'" data-value="'. $v->fname . ' ' . $v->lname .'" title="Incomplete Leave Request">#</a></strong>';
                                         ?>
@@ -352,10 +359,15 @@
                                     <td style="background:#87be90;vertical-align: middle">
                                         <strong>
                                             <?php
-                                            echo @$pending->leave_in_hours && @$pending->decision ? number_format(@$pending->leave_in_hours,2) : '';
+                                            echo !$is_stat_holiday && @$pending->leave_in_hours && @$pending->decision ? number_format(@$pending->leave_in_hours,2) : '';
                                             echo $is_stat_holiday && !in_array($_d,array(6,7))
                                                 ? ($v->rate_cost
-                                                    ? '<span class="tooltip-class" title="Holiday Pay [ ' . @$stat_data[$v->id]['formula_daily_gross'] . ' ]">HP:' . @$stat_data[$v->id]['daily_hours']. ' [$'.number_format(@$stat_data[$v->id]['daily_gross'],2).']</span>'
+                                                    ? '<span class="tooltip-class" data-placement="left" title="Holiday Pay [ ' . @$stat_data[$v->id]['formula_daily_gross'] . ' ]">HP:' . @$stat_data[$v->id]['daily_hours']. ' [$'.number_format(@$stat_data[$v->id]['daily_gross'],2).']</span>'
+                                                    : '&nbsp;')
+                                                : '&nbsp;';
+                                            echo count($_leave) > 0 && $_leave['leave_type'] != 7 && !$is_stat_holiday && !in_array($_d,array(6,7))
+                                                ? ($v->rate_cost
+                                                    ? '<span class="tooltip-class" data-placement="left" title="' . $_leave['leave_name'] . ' Pay [ ' . @$_leave['formula_daily_gross'] . ' ]">LP:' . @$_leave['leave_hours_daily']. ' [$'.number_format(@$_leave['leave_pay_daily'],2).']</span>'
                                                     : '&nbsp;')
                                                 : '&nbsp;';
                                             ?>
@@ -414,11 +426,17 @@
                             </td>
                             <td>
                                 <strong><?php echo number_format($holiday_total,2);?></strong>
-                                <strong class="pull-right">
-                                    <a href="#" class="pay-adjustment" <?php echo $attr;?> >
-                                        <i class="glyphicon glyphicon-pencil"></i>
-                                    </a>
-                                </strong>
+                                <?php
+                                if($hours > 0 || $holiday_total > 0){
+                                    ?>
+                                    <strong class="pull-right">
+                                        <a href="#" class="pay-adjustment" <?php echo $attr;?> >
+                                            <i class="glyphicon glyphicon-pencil"></i>
+                                        </a>
+                                    </strong>
+                                    <?php
+                                }
+                                ?>
                             </td>
                             <!--<td><strong><?php /*echo number_format($sick_total,2);*/?></strong></td>-->
                         </tr>
@@ -801,7 +819,7 @@
             });
         });
 
-        $('.preview-btn').click(function(e){
+        $('.preview-btn').bind('click',function(e){
             e.preventDefault();
             $(this).newForm.addLoadingForm();
             var myWindow = window.open(
@@ -824,9 +842,14 @@
                     //location.reload();
                     console.log( "Request failed: " + textStatus );
                 });
+            /*$.post(bu + 'generateStaffPaySlip/' + week_ + '/' + month_ + '/' + year_ + '?g=1',{submit:1},function(data){
+                if(data){
+                    location.reload();
+                }
+            })*/
         });
 
-        $('.btn-submit-hours').click(function(e){
+        $('.btn-submit-hours').live('click',function(e){
             e.preventDefault();
             var ele =
                 '<div class="modal-body">' +
@@ -863,7 +886,7 @@
             });
         });
 
-        $('.commit-btn').click(function(e){
+        $('.commit-btn').live('click',function(e){
             e.preventDefault();
             var ele =
                 '<div class="modal-body">' +
@@ -885,7 +908,7 @@
                 title: 'Commit Pay Period'
             });
 
-            $('.yesBtn-confirm').click(function(){
+            $('.yesBtn-confirm').live('click',function(){
                 $(this).newForm.addLoadingForm();
                 var has_return = 0;
                 $.post(bu + 'timeSheetEdit',{commit:1},

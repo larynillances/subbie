@@ -286,15 +286,13 @@ class Job_Controller extends Subbie{
 
     function getInvoiceData($id,$inv_id = '',$ref='',$archive = false){
         $this->my_model->setJoin(array(
-            'table' => array('tbl_client','tbl_registration','tbl_quotation'),
-            'join_field' => array('id','id','job_id'),
-            'source_field' => array('tbl_invoice.client_id','tbl_invoice.job_id','tbl_registration.id'),
+            'table' => array('tbl_client','tbl_registration','tbl_quotation','tbl_trade'),
+            'join_field' => array('id','id','job_id','id'),
+            'source_field' => array('tbl_invoice.client_id','tbl_invoice.job_id','tbl_registration.id','tbl_invoice.trade_id'),
             'type' => 'left'
         ));
         $fields = ArrayWalk(
-            array(
-                'id','your_ref','job_id','meter','date','job_name','is_archive'
-            ),
+            $this->my_model->getFields('tbl_invoice'),
             'tbl_invoice.'
         );
         $fields[] = 'tbl_quotation.price';
@@ -313,6 +311,7 @@ class Job_Controller extends Subbie{
         $fields[] = 'tbl_registration.job_name as reg_job_name';
         $fields[] = 'tbl_client.client_code';
         $fields[] = 'tbl_client.id as client_id';
+        $fields[] = 'tbl_trade.trade';
 
         $this->my_model->setSelectFields($fields);
 
@@ -327,15 +326,19 @@ class Job_Controller extends Subbie{
             $whatVal = array(true,$id,$ref);
             $whatFld = array('tbl_invoice.is_archive','tbl_invoice.client_id','tbl_invoice.inv_ref');
         }
-
+        $config = $this->my_model->model_config;
         $this->data['invoice'] = $this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
-
+        $this->my_model->model_config = $config;
+        $this->my_model->setShift();
+        $this->data['invoice_info_data'] = (Object)$this->my_model->getInfo('tbl_invoice',$whatVal,$whatFld);
         $this->data['date'] = date('Y-m-d');
         $this->data['total_row'] = 0;
         if(count($this->data['invoice']) >0){
             foreach($this->data['invoice'] as $v){
                 $v->total = array();
-                $v->job_name_array = explode("\n",$v->job_name);
+                $v->retention = array();
+                $v->over_all_total = array();
+                $v->job_name_array = explode("\n",($v->work_description ? $v->work_description : $v->job_name));
                 if($v->job_id != 0 && $v->job_name != ''){
                     $v->job_name = $v->reg_job_name."\n".$v->job_name;
                     $v->meter = "\n".$v->meter;
@@ -345,6 +348,7 @@ class Job_Controller extends Subbie{
                 }
                 $this->data['date'] = $v->date;
                 $v->job_name = str_replace("\n","<br/>",$v->job_name);
+                $v->work_description = $v->work_description ? str_replace("\n","<br/>",$v->work_description) : '';
                 $meter_array = explode("\n",$v->meter);
                 $v->unit_price_array = explode("\n",$v->unit_price);
                 $v->meter = str_replace("\n","<br/>",$v->meter);
@@ -364,10 +368,15 @@ class Job_Controller extends Subbie{
                         }
                     }
                 }
+                if(count($v->total) >0){
+                    foreach($v->total as $key=>$total){
+                        $v->retention[] = $total * 0.10;
+                        $v->over_all_total[] = ($total * 0.15) + $total;
+                    }
+                }
             }
         }
 
-        //$this->displayarray($this->data['invoice']);exit;
         if($ref != ''){
             $this->data['inv_code'] = $ref;
             $this->data['page_name'] = $this->data['page_name'].' '.$this->data['inv_code'];

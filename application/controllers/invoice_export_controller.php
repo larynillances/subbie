@@ -753,7 +753,7 @@ class invoice_export_controller extends CI_Controller{
             ),
             'type' => 'left'
         ));
-        $this->my_model->setOrder('tbl_email_export_log.date', 'DESC');
+        $this->my_model->setOrder(array('tbl_email_export_log.date','tbl_email_export_log.email_type_id'), 'DESC');
         $log = $this->my_model->getInfo('tbl_email_export_log');
         if(count($log) > 0){
             foreach($log as $v){
@@ -784,7 +784,7 @@ class invoice_export_controller extends CI_Controller{
                     }
                 }
                 $v->export_setting = $v->export_setting ? json_decode($v->export_setting) : '[]';
-                $v->job = $file_name[0];
+                $v->job = $v->email_type_id ?  'Week ' . $v->week_number . '-' . date('Y',strtotime($v->date)): $file_name[0];
 
             }
         }

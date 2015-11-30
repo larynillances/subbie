@@ -280,20 +280,54 @@ class Staff_Controller extends Subbie{
         $month = $this->uri->segment(3);
         $year = $this->uri->segment(4);
         if(isset($_GET['g'])){
-
-            $whatVal = 'project_id = "1" AND (date_employed != "0000-00-00" AND status_id = "3") OR (last_week_pay >= "' . $week . '")';
-            $staff = $this->my_model->getInfo('tbl_staff',$whatVal,'');
-
+            $whatVal = 'project_id = "1"';
+            $whatFld = '';
+            $staff_ = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
+            $staff = array();
+            $staff_data = new Staff_Helper();
+            $employment_data = $staff_data->staff_employment();
+            $staff_id = array();
             $week = str_pad($week,2,'0',STR_PAD_LEFT);
             $month = str_pad($month,2,'0',STR_PAD_LEFT);
+
+            $this_week = getWeekDateInMonth($year,$month);
+            if(count($staff_) > 0){
+                foreach($staff_ as $ev){
+                    $week_value = $this_week[$week];
+                    if(count(@$employment_data[$ev->id]) > 0){
+                        foreach(@$employment_data[$ev->id] as $used_date=>$val){
+                            if(
+                                strtotime($used_date) <= strtotime($week_value) ||
+                                strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_value)))){
+                                $ev->date_employed = $val->date_employed;
+                                $ev->date_last_pay = $val->date_last_pay;
+                                $ev->last_week_pay = $val->last_week_pay;
+                                $ev->has_final_pay = $val->has_final_pay;
+                            }
+                        }
+                    }
+
+                    $date_employed = strtotime($ev->date_employed) <= strtotime($week_value) || strtotime($ev->date_employed) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_value)));
+                    $last_pay = $ev->date_last_pay != '0000-00-00' && strtotime($ev->date_last_pay) >= strtotime($week_value);
+                    $last_week_pay = $ev->last_week_pay && $ev->last_week_pay >= $this->data['thisWeek'];
+                    $has_hours = $this->getTotalHours($week_value,$ev->id);
+
+                    if(($ev->date_employed != "0000-00-00" && $date_employed && $ev->status_id == 3)
+                        || ($last_week_pay && $last_pay && $date_employed)
+                        || ($date_employed && $last_pay)
+                        || ($date_employed && $has_hours > 0 && $ev->status_id == 2)
+                    ){
+                        $staff[] = $ev;
+                        $staff_id[] = $ev->id;
+                    }
+                }
+            }
 
             if(count($staff) > 0){
                 foreach($staff as $row){
                     $this->generatePaySlip($week,$month,$year,$row->id);
                 }
             }
-
-            $this_week = getWeekDateInMonth($year,$month);
 
             $post = array(
                 'is_preview' => 1
@@ -445,7 +479,7 @@ class Staff_Controller extends Subbie{
         $this->data['thisYear'] = $this->session->userdata('year') != '' ? $this->session->userdata('year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('month') != '' ? $this->session->userdata('month') : date('m');
 
-        $this->getWageData($this->data['thisYear'],$this->data['thisMonth'],'monthly');
+        $this->getWageData($this->data['thisYear'],$this->data['thisMonth'],'','monthly');
 
         $this->data['page_load'] = 'backend/staff/monthly_pay_view';
         $this->load->view('main_view',$this->data);
@@ -493,7 +527,7 @@ class Staff_Controller extends Subbie{
                 $this->load->view('backend/print/print_wage_summary_view',$this->data);
                 break;
             default:
-                $this->getWageData($year,$month,'monthly');
+                $this->getWageData($year,$month,'','monthly');
                 $this->data['total_bal'] = $wage_data->get_year_total_balance();
                 $this->data['dir'] = 'pdf/summary/monthly/'.date('Y').'/'.date('F');
                 if(!is_dir($this->data['dir'])){
@@ -1359,14 +1393,14 @@ class Staff_Controller extends Subbie{
 
         $this->data['year'] = getYear();
         $this->data['month'] = getMonth();
-        $this->data['thisYear'] = date('Y');
-        $this->data['thisMonth'] = date('m');
-
 
         if(isset($_POST['search'])){
-            $this->data['thisYear'] = $_POST['year'];
-            $this->data['thisMonth'] = $_POST['month'];
+            $this->session->set_userdata(array('this_month' => $_POST['month'],'this_year' => $_POST['year']));
+            redirect('employerMonthlySched');
         }
+
+        $this->data['thisYear'] = $this->session->userdata('this_year') ? $this->session->userdata('this_year') : date('Y');
+        $this->data['thisMonth'] = $this->session->userdata('this_month') ? $this->session->userdata('this_month') : date('m');
 
         $this->getEmployerData($this->data['thisYear'],$this->data['thisMonth']);
         if(isset($_GET['print'])){

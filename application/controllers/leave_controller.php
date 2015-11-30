@@ -805,6 +805,7 @@ class Leave_Controller extends Subbie{
                     foreach($h as $v){
                         $post = (Array)$v;
                         $post['date'] = $year . '-' . date('m-d', strtotime($post['date']));
+                        $post['date_to'] = $year . '-' . date('m-d', strtotime($post['date_to']));
                         $itExist = count($this->my_model->getInfo('tbl_holiday', $post['date'], 'date')) > 0;
                         if(!$itExist){
                             $this->my_model->insert('tbl_holiday', $post, false);

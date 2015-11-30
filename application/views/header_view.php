@@ -13,7 +13,7 @@ switch($this->session->userdata('account_type')){
                 'supplierList' => 'Supplier List',
                 'clientList' => 'Client List',
                 'invoiceList' => 'Invoice List',
-                'payIntegrityCheck' => 'Pay Integrity Check',
+                'payIntegrityCheck' => 'Pay Integrity Export List',
                 'staffHoliday' => 'Holiday',
             ),
             'New' => array(
@@ -44,7 +44,8 @@ switch($this->session->userdata('account_type')){
                 'monthlyTotalPay' => 'Monthly Pay',
                 'employerMonthlySched' => 'Employer Monthly Schedule',
                 'yearToDateReport' => 'YTD Report',
-                'employeeFinalPay' => 'Final Pay'
+                'employeeFinalPay' => 'Final Pay',
+                'adjustmentsReport' => 'Adjustments Report'
             ),
             'outstandingBalance' => 'Outstanding',
             'PDF Archive' => array(
@@ -107,7 +108,7 @@ switch($this->session->userdata('account_type')){
                 'clientList' => 'Client List',
                 'supplierList' => 'Supplier List',
                 'downloadForm' => 'Download Forms',
-                'payIntegrityCheck' => 'Pay Integrity Check'
+                'payIntegrityCheck' => 'Pay Integrity Export List'
             ),
             'New' => array(
                 'newJobRequestForm' => 'Job Request',

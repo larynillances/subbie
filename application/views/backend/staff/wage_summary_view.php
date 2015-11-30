@@ -168,8 +168,8 @@ echo form_open('','class="form-horizontal" role="form"');
                             <td class="column" <?php echo $flag_staff;?>><?php echo $val['admin'] ? '$'.number_format($val['admin'],2) : '';?></td>
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
-                                $nett = floatval(str_replace('$','',$val['nett']));
-                                echo $nett > 0 ? '$'.number_format($val['nett'],2) : '<strong class="value-class">$'.number_format($val['nett']).'</strong>';
+                                $nett = floatval(str_replace('$','',$val['orig_nett']));
+                                echo $nett > 0 ? '$'.number_format($val['orig_nett'],2) : '<strong class="value-class">$'.number_format($val['orig_nett']).'</strong>';
                                 ?>
                             </td>
                             <td class="column" <?php echo $flag_staff;?>>
@@ -183,8 +183,8 @@ echo form_open('','class="form-horizontal" role="form"');
                             </td>
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
-                                $distribution = floatval(str_replace('$','',$val['distribution']));
-                                echo $distribution > 0 ? '$'.number_format($val['distribution'],2) : '<strong class="value-class">$'.number_format($val['distribution'],2).'</strong>';
+                                $distribution = floatval(str_replace('$','',$val['orig_dis']));
+                                echo $distribution > 0 ? '$'.number_format($val['orig_dis'],2) : '<strong class="value-class">$'.number_format($val['orig_dis'],2).'</strong>';
                                 ?>
                             </td>
                             <td class="column" <?php echo $flag_staff;?>>

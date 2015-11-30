@@ -303,9 +303,21 @@ class Staff_Helper extends CI_Controller{
     }
 
 
-    function adjustment($year,$month){
-        $whatValue = array($year,$month);
-        $whatFld = array('YEAR(date) =','MONTH(date) =');
+    function adjustment($year,$month = '',$week_number = ''){
+        $whatValue = array($year,$week_number);
+        $whatFld = array('YEAR(date) =','week_number');
+        if($month){
+            $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
+            $whatValue[] = $month;
+            $whatFld[] = 'MONTH(date) <=';
+
+            $whatValue[] = date('m',$last_month);
+            $whatFld[] = 'MONTH(date) >=';
+        }
+        if($week_number){
+            $whatValue[] = $week_number;
+            $whatFld[] = 'week_number';
+        }
         $this->my_model->setJoin(array(
             'table' => array('tbl_adjustment_type'),
             'join_field' => array('id'),
@@ -322,8 +334,12 @@ class Staff_Helper extends CI_Controller{
         $total = array();
         if(count($adjustment) > 0){
             foreach($adjustment as $val){
-                @$total[$val->staff_id] += $val->amount;
-                $val->total = @$total[$val->staff_id];
+                @$total[$val->staff_id][$val->date][$val->adjustment_type_id] += floatval(str_replace('-','',$val->amount));
+                $val->total_debit = @$total[$val->staff_id][$val->date][1];
+                $val->total_credit = @$total[$val->staff_id][$val->date][2];
+                $val->total = $val->total_credit - $val->total_debit;
+                $val->code = $val->total > 0 ? 'CR' : 'DR';
+                $val->type_id = $val->total > 0 ? 2 : 1;
                 $data[$val->staff_id][$val->date] = (Object)$val;
             }
         }

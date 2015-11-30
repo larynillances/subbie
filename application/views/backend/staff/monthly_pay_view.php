@@ -10,8 +10,8 @@ echo form_open('','class="form-horizontal" role="form"');
         <?php echo form_dropdown('year',$year,$thisYear,'class="form-control input-sm"')?>
     </div>
     <div class="col-sm-7">
-        <input type="submit" name="search" class="btn btn-primary" value="Go">
-        <a href="<?php echo base_url().'printSummary/monthly/'.$thisMonth.'/'.$thisYear?>" class="btn btn-success" target="_blank">Print</a>
+        <input type="submit" name="search" class="btn btn-primary btn-sm" value="Go">
+        <a href="<?php echo base_url().'printSummary/monthly/'.$thisMonth.'/'.$thisYear?>" class="btn btn-success btn-sm" target="_blank">Print</a>
     </div>
 </div>
 <div class="row">
@@ -93,12 +93,12 @@ echo form_open('','class="form-horizontal" role="form"');
                                 $total_deduct = $staff_data['tax'] + $staff_data['installment'] + $staff_data['flight'] + $staff_data['visa'] + $staff_data['accommodation'] + $staff_data['transport'] + $staff_data['recruit'] + $staff_data['admin'];
                                 $net = $staff_data['gross'] - $total_deduct;
                                 $php_one = $net - ($staff_data['nz_account'] + $staff_data['account_two']);
-                                $total_php_one += $php_one;
-                                $php_converted = $php_one * @$staff_data['rate_value'];
+                                $total_php_one += $staff_data['account_one'];
+                                $php_converted = $staff_data['account_one'] * @$staff_data['rate_value'];
                                 $account_two_converted = $staff_data['account_two'] * @$staff_data['rate_value'];
                                 $total_php_two += $staff_data['account_two'];
                                 $total_acc_nz += $staff_data['nz_account'];
-                                $total_net += $net;
+                                $total_net += $staff_data['nett'];
                                 ?>
                                 <td class="column"><?php echo $staff_data['hours'];?></td>
                                 <td class="column"><?php echo $staff_data['gross'] ? '$'.number_format($staff_data['gross'],2) : '';?></td>
@@ -130,14 +130,14 @@ echo form_open('','class="form-horizontal" role="form"');
                                 <td class="column"><?php echo $staff_data['transport'] != 0 ? '$'.number_format($staff_data['transport'],2) : '';?></td>
                                 <td class="column"><?php echo $staff_data['recruit'] != 0 ? '$'.number_format($staff_data['recruit'],2) : '';?></td>
                                 <td class="column"><?php echo $staff_data['admin'] != 0 ? '$'.number_format($staff_data['admin'],2) : '';?></td>
-                                <td class="column"><?php echo $staff_data['gross'] != 0 ? '$'.number_format($net,2) : '';?></td>
+                                <td class="column"><?php echo $staff_data['distribution'] != 0 ? '$'.number_format($staff_data['distribution'],2) : '';?></td>
                                 <td class="column">
                                     <?php
-                                    if($staff_data['account_two'] != ''){
-                                        echo '$'.number_format($php_one,2);
+                                    if($staff_data['account_one'] != ''){
+                                        echo '$'.number_format($staff_data['account_one'],2);
                                         echo '<br/>';
                                         echo '<strong class="value-class">';
-                                        echo $php_one > 0 ? $staff_data['symbols'].number_format($php_converted,2) : $staff_data['symbols'].'0.00';
+                                        echo $staff_data['account_one'] > 0 ? $staff_data['symbols'].number_format($php_converted,2) : $staff_data['symbols'].'0.00';
                                         echo '</strong>';
                                     }else{
                                         echo '&nbsp;';
@@ -184,7 +184,7 @@ echo form_open('','class="form-horizontal" role="form"');
             else:
                 ?>
                 <tr>
-                    <td colspan="15">No data was found.</td>
+                    <td colspan="17">No data was found.</td>
                 </tr>
             <?php
             endif;

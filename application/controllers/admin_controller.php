@@ -687,6 +687,7 @@ class Admin_Controller extends Subbie{
         $staff = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
         $this->data['staff'] = array();
         $employment_data = $staff_data->staff_employment();
+        $staff_id = array();
         if(count($staff) > 0){
             foreach($staff as $ev){
                 $week_value = $this_week[$this->data['thisWeek']];
@@ -714,6 +715,7 @@ class Admin_Controller extends Subbie{
                     || ($date_employed && $has_hours > 0 && $ev->status_id == 2)
                 ){
                     $this->data['staff'][] = $ev;
+                    $staff_id[] = $ev->id;
                 }
             }
         }
@@ -860,12 +862,12 @@ class Admin_Controller extends Subbie{
                                 $this->my_model->update('tbl_login_sheet', $post, $thisId);
                             }
                             else{
-                                $post         = array(
+                                /*$post         = array(
                                     'time_out' => ''
                                 );
 
                                 $thisId       = count($hasVal) > 0 ? $id : $this_id;
-                                $this->my_model->update('tbl_login_sheet', $post, $thisId);
+                                $this->my_model->update('tbl_login_sheet', $post, $thisId);*/
                             }
 
                             $post = array(
@@ -982,7 +984,7 @@ class Admin_Controller extends Subbie{
                 $this->my_model->insert('tbl_week_pay_period', $post);
             }
 
-            $this->sentAllStaffPaySlip($this->data['thisWeek'],$this_date,false);
+            $this->sentAllStaffPaySlip($this->data['thisWeek'],$this_date,false,$staff_id);
             redirect('timeSheetEdit');
         }
         //endregion
@@ -1160,6 +1162,7 @@ class Admin_Controller extends Subbie{
             $week_start = StartWeekNumber($this->data['thisWeek'],$this->data['thisYear']);
             $_start_day = $week_start['start_day'];
             $_end_day = $week_start['end_day'];
+            $calculate_acc_leave = $this->calculateTotalAccLeave('',$this->data['thisYear'],$this->data['thisMonth'],$this->data['thisWeek'],false);
 
             for ($whatDay = $_start_day; $whatDay <= $_end_day; $whatDay++){
                 $getDate = $dt->setISODate($this->data['thisYear'], $this->data['thisWeek'], $whatDay)->format('Y-m-d');
@@ -1178,8 +1181,8 @@ class Admin_Controller extends Subbie{
                     }
                 }
             }
-
             $this->data['stat_holiday'] = $stat_holiday;
+            $this->data['leave_pay'] = $calculate_acc_leave;
             $this->data['page_load'] = 'backend/dtr/new_edit_dtr_view';
             $this->load->view('main_view',$this->data);
         }
@@ -1793,6 +1796,14 @@ class Admin_Controller extends Subbie{
         $this->data['template_text'] = $this->my_model->getInfo('tbl_template');
         $this->data['template_text'][''] = '-';
 
+        $this->my_model->setNormalized('trade','id');
+        $this->my_model->setSelectFields(array('trade','id'));
+        $this->data['trade'] = $this->my_model->getInfo('tbl_trade');
+
+        $this->my_model->setNormalized('invoice_type','id');
+        $this->my_model->setSelectFields(array('invoice_type','id'));
+        $this->data['invoice_type'] = $this->my_model->getInfo('tbl_invoice_type');
+
         $this->my_model->setJoin(array(
             'table' => array('tbl_client'),
             'join_field' => array('id'),
@@ -2200,7 +2211,7 @@ class Admin_Controller extends Subbie{
 
                 if(count($statement_data) > 0){
                     foreach($statement_data as $sv){
-                        $this->data['unpaid_inv'][$v->id][] = $sv->reference.': $'.number_format($sv->debits,2);
+                        $this->data['unpaid_inv'][$v->id][] = $sv->reference.': $'.($sv->debits ? number_format($sv->debits,2) : '0.00');
                     }
                 }
 
@@ -2987,167 +2998,6 @@ class Admin_Controller extends Subbie{
         }
     }
 
-    function exportPayValues(){//$week,$month,$year
-        if($this->session->userdata('is_logged_in') === false){
-            redirect('');
-        }
-
-        $week = $this->uri->segment(2);
-        $month = $this->uri->segment(3);
-        $year = $this->uri->segment(4);
-
-        if(!$week && !$month && !$year){
-            exit;
-        }
-
-        $data = array();
-
-        $_week = getWeekDateInMonth($year,$month);
-        $this->getWageData($year,$month);
-        $date = @$_week[$week];
-        $_date = @$this->data['date'][$week];
-        $whatVal = 'WEEK(date , 1 ) =' . $week .' AND YEAR( date ) ='.$year;
-
-        $data['dtr'] = $this->my_model->getInfo('tbl_login_sheet',$whatVal,'');
-
-        $staff_data = new Staff_Helper();
-        $rate = $staff_data->staff_rate();
-        $stat_holiday = $staff_data->stat_holiday($year);
-
-        $week_start = StartWeekNumber($week,$year);
-        $_start_day = $week_start['start_day'];
-        $_end_day = $week_start['end_day'];
-
-        $dt = new DateTime();
-
-        //region Staff
-        $whatVal = 'project_id = "1"';
-        $whatFld = '';
-        $staff = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
-        $data['staff'] = array();
-        $employment_data = $staff_data->staff_employment();
-        $leave_data_approved = $staff_data->staff_leave_application(array(1),array('tbl_leave.decision'));
-        $leave_data_pending = $staff_data->staff_leave_application(array(0),array('tbl_leave.decision'));
-        if(count($staff) > 0){
-            foreach($staff as $ev){
-                $week_value = @$_week[$week];
-                if(count(@$employment_data[$ev->id]) > 0){
-                    foreach(@$employment_data[$ev->id] as $used_date=>$val){
-                        if(
-                            strtotime($used_date) <= strtotime($week_value) ||
-                            strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_value)))){
-                            $ev->date_employed = $val->date_employed;
-                            $ev->date_last_pay = $val->date_last_pay;
-                            $ev->last_week_pay = $val->last_week_pay;
-                            $ev->has_final_pay = $val->has_final_pay;
-                        }
-                    }
-                }
-
-                $date_employed = strtotime($ev->date_employed) <= strtotime($week_value) || strtotime($ev->date_employed) <= strtotime(date('Y-m-d',strtotime('+6 days '.$week_value)));
-                $last_pay = $ev->date_last_pay != '0000-00-00' && strtotime($ev->date_last_pay) >= strtotime($week_value);
-                $last_week_pay = $ev->last_week_pay && $ev->last_week_pay >= $week;
-                $has_hours = $this->getTotalHours($week_value,$ev->id);
-
-                if(($ev->date_employed != "0000-00-00" && $date_employed && $ev->status_id == 3)
-                    || ($last_week_pay && $last_pay && $date_employed)
-                    || ($date_employed && $last_pay)
-                    || ($date_employed && $has_hours > 0 && $ev->status_id == 2)
-                ){
-                    $data['staff'][] = $ev;
-                }
-            }
-        }
-
-        for ($whatDay = $_start_day; $whatDay <= $_end_day; $whatDay++){
-            $getDate = $dt->setISODate($year, $week, $whatDay)->format('Y-m-d');
-
-            if(count($data['staff']) > 0){
-                foreach($data['staff'] as $sv){
-                    $sv->rate_cost = 0;
-                    $rate_ = @$rate[$sv->id];
-                    if(count($rate_) > 0){
-                        foreach($rate_ as $start_use=>$rv){
-                            if(strtotime($start_use) <= strtotime($getDate)){
-                                $sv->rate_cost = $this->is_decimal($rv->rate_cost) ? number_format($rv->rate_cost,2,'.','') : $rv->rate_cost;
-                            }
-                        }
-                    }
-                    if(count(@$leave_data_approved[$sv->id][$getDate])){
-                        $data['leave_approved'] = @$leave_data_approved[$sv->id][$getDate];
-                    }
-
-                    if(count(@$leave_data_pending[$sv->id][$getDate])){
-                        $data['leave_pending'] = @$leave_data_pending[$sv->id][$getDate];
-                    }
-                }
-            }
-            if(count(@$stat_holiday[$getDate]) > 0){
-                $data['stat_holiday'][] = @$stat_holiday[$getDate];
-            }
-        }
-        //endregion
-        $field = @$this->data['wage_data'][$_date];
-        $array = array(
-            'raw' => $data,
-            'output' => $field
-        );
-
-        $period_ending = $week == 30 ? date('Ymd',strtotime('+5 days '.$date)) : date('Ymd',strtotime('+6 days '.$date));
-        $date = $week == 30 ? date('Y-m-d',strtotime('+5 days '.$date)) : date('Y-m-d',strtotime('+6 days '.$date));
-        $file = 'Week_' . $week . '_Pay_Period_Ending_'.$period_ending.'_Daily_Hours';
-
-        header('Content-Type: application/json;charset=utf-8');
-        //header('Content-Disposition: attachment; filename=' . $file);
-        header('Content-Transfer-Encoding: binary');
-
-        $json = json_pretty(json_encode($array));
-
-        $dir = realpath(APPPATH.'../json/');
-        $dir .= '/daily_hours/' . date('Y/F',strtotime($date));
-
-        if(!is_dir($dir)){
-            mkdir($dir, 0777, TRUE);
-        }
-
-        file_put_contents($dir . '/' . $file . '.json' ,$json,FILE_APPEND);
-
-        $fp = fopen($dir . '/' . $file .'.csv', 'w');
-        $fields = array();
-        if(count($field) > 0){
-            foreach ($field as $row) {
-                $_fld = array();
-                foreach($row as $name => $v){
-                    $_fld[$name] = $name;
-                }
-                $fields[0] = $_fld;
-            }
-        }
-        $array_merge = array_merge($fields,$field);
-        if(count($array_merge) > 0){
-            foreach ($array_merge as $row) {
-                fputcsv($fp, $row);
-            }
-        }
-        fclose($fp);
-
-        $post = array(
-            'json_file' => $file,
-            'date_export' => date('Y-m-d H:i:s'),
-            'pay_period' => $date,
-            'week' => $week
-        );
-        $is_exist = $this->my_model->getInfo('tbl_exported_files',array($date,$file),array('pay_period','json_file'));
-        if(count($is_exist) > 0){
-            foreach($is_exist as $dv){
-                $this->my_model->update('tbl_exported_files',$post,$dv->id,'id',false);
-            }
-        }else{
-            $this->my_model->insert('tbl_exported_files',$post,false);
-        }
-        echo $json;
-    }
-
     function payAdjustment(){
         if($this->session->userdata('is_logged_in') === false){
             redirect('');
@@ -3218,5 +3068,91 @@ class Admin_Controller extends Subbie{
         }else{
             $this->load->view('backend/dtr/adjustment_view',$this->data);
         }
+    }
+
+    function adjustmentsReport(){
+        if($this->session->userdata('is_logged_in') === false){
+            redirect('');
+        }
+
+        $this->data['year'] = getYear();
+        $this->data['year'][''] = 'Year';
+        $this->data['month'] = getMonth();
+        $this->data['month'][''] = 'Select Month';
+        $this->data['period'] = payPeriodDropdown();
+        $this->data['period'][''] = 'Select Period';
+
+        if(isset($_POST['submit'])){
+            unset($_POST['submit']);
+            $this->session->set_userdata(array('filter_data' => $_POST));
+            redirect('adjustmentsReport');
+        }
+        $filter_data = (Object)$this->session->userdata('filter_data');
+
+        $whatVal = date('Y');
+        $whatFld = 'YEAR(date) =';
+        if(count($filter_data) > 0){
+            if(@$filter_data->type && (@$filter_data->_period || @$filter_data->_year || @$filter_data->_month)){
+                switch($filter_data->type){
+                    case 3:
+                        $this_month_year = date('Ym');
+                        if(array_key_exists('_period',$filter_data)){
+                            if($this_month_year != $filter_data->_period){
+                                $whatVal = 'EXTRACT(YEAR_MONTH FROM date) <=' . $this_month_year;
+                                $whatVal .= ' AND EXTRACT(YEAR_MONTH FROM date) >=' . $filter_data->_period;
+                            }
+                            else{
+                                $whatVal = 'EXTRACT(YEAR_MONTH FROM date) =' . $filter_data->_period;
+                            }
+                        }
+                        $whatFld = '';
+                        break;
+                    default:
+                        $whatVal = 'YEAR(date) =' . $filter_data->_year;
+                        $whatFld = '';
+                        if(@$filter_data->_month){
+                            $whatVal .= ' AND MONTH(date) =' . $filter_data->_month;
+                        }
+
+                        if(@$filter_data->filter){
+                            $whatVal .= ' AND CONCAT(fname, " ", lname) LIKE "%' . @$filter_data->filter.'%"';
+                        }
+                        break;
+                }
+            }
+        }
+
+        $this->my_model->setOrder('date');
+        $this->my_model->setJoin(array(
+            'table' => array('tbl_staff','tbl_adjustment_type'),
+            'join_field' => array('id','id'),
+            'source_field' => array('tbl_adjustment.staff_id','tbl_adjustment.adjustment_type_id'),
+            'type' => 'left'
+        ));
+        $fld = ArrayWalk($this->my_model->getFields('tbl_adjustment'),'tbl_adjustment.');
+        $fld[] = 'CONCAT(tbl_staff.fname," ",tbl_staff.lname) as name';
+        $fld[] = 'tbl_staff.fname';
+        $fld[] = 'tbl_staff.lname';
+        $fld[] = 'tbl_adjustment_type.adjustment_type';
+        $fld[] = 'tbl_adjustment_type.adjustment_code';
+        $this->my_model->setSelectFields($fld);
+        $adjustment = $this->my_model->getInfo('tbl_adjustment',$whatVal,$whatFld);
+        $data = array();
+        if(count($adjustment) > 0){
+            foreach($adjustment as $val){
+                $year = date('Y',strtotime($val->date));
+
+                $_added_days = $val->week_number == 30 && date('Y',strtotime($val->date)) == 2015 ? '+5 days ': '+6 days ';
+                $val->date_period = date('M d/y',strtotime($val->date));
+                $val->date_period .= '-' . date('M d/y',strtotime($_added_days . $val->date));
+                $val->date_period .= ' [Week ' . $val->week_number . ']';
+                $data[$year][$val->date_period][$val->name][] = $val;
+            }
+        }
+
+        $this->data['adjustment'] = $data;
+        $this->data['filter_data'] = $filter_data;
+        $this->data['page_load'] = 'backend/adjustment/adjustment_report_view';
+        $this->load->view('main_view',$this->data);
     }
 }

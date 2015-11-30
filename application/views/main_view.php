@@ -47,6 +47,7 @@
     <script src="<?php echo base_url();?>plugins/js/jquery.event.drag-2.0.min.js"></script>
     <script src="<?php echo base_url();?>plugins/js/slick.core.js"></script>
     <script src="<?php echo base_url();?>plugins/js/slick.grid.js"></script>
+    <!--<script src="<?php /*echo base_url();*/?>plugins/js/slick.formatters.js"></script>-->
     <script src="<?php echo base_url();?>plugins/js/slick.dataview.js"></script>
     <script src="<?php echo base_url();?>plugins/js/bootstrap-slickgrid.js"></script>
     <script src="<?php echo base_url();?>plugins/js/select.country.js"></script>

@@ -18,18 +18,18 @@
 
         $(this).keydown(function(event) {
             // Allow: backspace, delete, tab, escape, and enter
-            if ( event.keyCode == 46 || event.keyCode == 8 || event.keyCode == 9 || event.keyCode == 27 || event.keyCode == 13 ||
+            if ( event.which == 46 || event.which == 8 || event.which == 9 || event.which == 27 || event.which == 13 ||
                     // Allow: Ctrl+A
-                    (event.keyCode == 65 && event.ctrlKey === true) ||
+                    (event.which == 65 && event.ctrlKey === true) ||
                     // Allow: home, end, left, right
-                    (event.keyCode >= 35 && event.keyCode <= 39) ||
+                    (event.which >= 35 && event.which <= 39) ||
                     // Allow: decimal
-                    (((event.keyCode == 110) || (event.keyCode == 190)) && options.wholeNumber == false) ||
+                    (((event.which == 110) || (event.which == 190)) && options.wholeNumber == false) ||
                     //Allow: dash
-                    (((event.keyCode == 109) || (event.keyCode == 189) )&& options.isForContact == true)
+                    (((event.which == 109) || (event.which == 189) )&& options.isForContact == true)
                 ) {
                     //Allow: decimal to fire once only
-                    if((event.keyCode == 110 || event.keyCode == 190) && $(this).val().indexOf('.') != -1){
+                    if((event.which == 110 || event.which == 190) && $(this).val().indexOf('.') != -1){
                         event.preventDefault();
                     }
                     // let it happen, don't do anything
@@ -38,7 +38,7 @@
             }
             else {
                 // Ensure that it is a number and stop the keypress
-                if (event.shiftKey || (event.keyCode < 48 || event.keyCode > 57) && (event.keyCode < 96 || event.keyCode > 105 )) {
+                if (event.shiftKey || (event.which < 48 || event.which > 57) && (event.which < 96 || event.which > 105 )) {
                     event.preventDefault();
                 }
             }

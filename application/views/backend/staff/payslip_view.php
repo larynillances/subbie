@@ -26,6 +26,7 @@
     .inner-table{
         border-collapse: collapse;
         width: 100%;
+        height: 120px;
         font-size: 12px!important;
     }
     .inner-table > thead > tr > th{
@@ -169,10 +170,14 @@
                     ?>
                     <tr style="vertical-align: top">
                         <td>
-                            <table style="font-size: 13px;border-collapse: collapse;">
+                            <table style="font-size: 13px;border-collapse: collapse;width: 100%;">
                                 <tr>
-                                    <td style="text-align: right">Wage Gross:</td>
-                                    <td style="padding-left: 5px;"><span><?php echo $v->gross ? '$'.number_format($v->gross,2) : '';?></span></td>
+                                    <td style="text-align: right">
+                                        <?php echo $v->stat_holiday_pay && $v->rate_cost && !$v->is_on_acc_leave ? 'Worked Hours:' : 'Wage Gross'?>
+                                    </td>
+                                    <td style="padding-left: 5px;text-align: right;">
+                                        <span><?php echo $v->gross_ ? '$'.number_format(($v->gross_ - $v->stat_holiday_pay),2) : '';?></span>
+                                    </td>
                                 </tr>
                                 <?php
                                 if($v->is_on_acc_leave && $v->acc_pay){
@@ -180,6 +185,20 @@
                                     <tr>
                                         <td style="text-align: right">ACC Pay:</td>
                                         <td style="padding-left: 5px;"><span><?php echo $v->acc_pay ? '$'.number_format($v->acc_pay,2) : 'Nil';?></span></td>
+                                    </tr>
+                                <?php
+                                }
+                                ?>
+                                <?php
+                                if($v->stat_holiday_pay && $v->rate_cost && !$v->is_on_acc_leave){
+                                    ?>
+                                    <tr>
+                                        <td style="text-align: right">Holiday Pay:</td>
+                                        <td style="padding-left: 5px;text-align: right;"><span><?php echo $v->stat_holiday_pay ? '$'.number_format($v->stat_holiday_pay,2) : '';?></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Wage Gross:</strong></td>
+                                        <td colspan="2" style="padding-left: 5px;border-top: 1px solid #000000;text-align: right;"><strong><span><?php echo $v->gross_ ? '$'.number_format($v->gross_,2) : '';?></span></strong></td>
                                     </tr>
                                 <?php
                                 }
@@ -396,7 +415,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="4" style="text-align: left;">Subtotal/NETT Pay: <span><?php echo $v->distribution ? '$ '.number_format($v->distribution,2) : '';?></span></td>
+                        <td colspan="4" style="text-align: left;">Subtotal/NETT Pay: <span><?php echo $v->orig_dis ? '$ '.number_format($v->orig_dis,2) : '';?></span></td>
                     </tr>
                     <tr>
                         <td style="text-align: center;">
@@ -428,11 +447,11 @@
                                         <td>
                                             <strong>
                                                 <?php
-                                                echo $v->adjustment_ ? '$ '.number_format($v->orig_net,2) : ($v->distribution ? '$ '.number_format($v->distribution,2) : '');
+                                                echo $v->adjustment_ ? '$ '.number_format($v->orig_dis,2) : ($v->distribution ? '$ '.number_format($v->distribution,2) : '');
                                                 ?>
-                                            </strong><br/><br/>
+                                            </strong>
                                             <?php
-                                            echo $v->adjustment_ ? '<span>Adjust: </span>' . $v->adjustment_ : '&nbsp;';
+                                            echo $v->adjustment_ ? '<br/><br/><span style="border-bottom: 1px solid #000000;">Adjust: ' . $v->adjustment_.'</span><br/>'.($v->distribution ? '$ '.number_format($v->distribution,2) : '') : '&nbsp;';
                                             ?>
                                         </td>
                                         <td>

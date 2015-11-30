@@ -12,19 +12,21 @@ class Wage_Controller extends CI_Controller{
 
         $this->my_model->setLastId('earnings');
         $this->my_model->setSelectFields(array('MAX(earnings) as earnings'));
-        $this->data['earnings']['fortnightly'] = $this->my_model->getInfo('tbl_tax',2,'frequency_id');
+        $data['earnings']['fortnightly'] = $this->my_model->getInfo('tbl_tax',2,'frequency_id');
 
         $this->my_model->setLastId('m_paye');
         $this->my_model->setSelectFields(array('MAX(m_paye) as m_paye'));
-        $this->data['m_paye']['fortnightly'] = $this->my_model->getInfo('tbl_tax',2,'frequency_id');
+        $data['m_paye']['fortnightly'] = $this->my_model->getInfo('tbl_tax',2,'frequency_id');
 
         $this->my_model->setLastId('earnings');
         $this->my_model->setSelectFields(array('MAX(earnings) as earnings'));
-        $this->data['earnings']['weekly'] = $this->my_model->getInfo('tbl_tax',1,'frequency_id');
+        $data['earnings']['weekly'] = $this->my_model->getInfo('tbl_tax',1,'frequency_id');
 
         $this->my_model->setLastId('m_paye');
         $this->my_model->setSelectFields(array('MAX(m_paye) as m_paye'));
-        $this->data['m_paye']['weekly'] = $this->my_model->getInfo('tbl_tax',1,'frequency_id');
+        $data['m_paye']['weekly'] = $this->my_model->getInfo('tbl_tax',1,'frequency_id');
+
+        return $data;
 
     }
 
@@ -403,7 +405,7 @@ class Wage_Controller extends CI_Controller{
         return $rate;
     }
 
-    function getTotalHoursInMonth($year,$month,$week = '',$id = '',$action = 'weekly'){
+    function get_staff_total_hours($year,$month,$week = '',$id = '',$action = 'weekly'){
         $totalHours = array();
         $hours_gain = array();
 
@@ -512,50 +514,4 @@ class Wage_Controller extends CI_Controller{
         return $hoursValue;
     }
 
-    function getFirstNextLastDay($y, $m, $week = '')
-    {
-        $start_date = $y.'-'.$m.'-01';
-        $start_day = date('l',strtotime($start_date));
-
-        $day = strtotime($start_date) > strtotime('2015-07-26') ? 'monday' : 'tuesday';
-        $begin = new DateTime("first $day of $y-$m");
-        $begin = $begin->modify('-2 day');
-
-        $end = new DateTime("last $day of $y-$m");
-        $end = $end->modify( '+1 day' );
-
-        $interval = DateInterval::createFromDateString('next '.$day);
-        $date_range = new DatePeriod($begin, $interval ,$end);
-        $date = array();
-        $year = date('Y');
-        $week_number = date('W');
-        $days = array();
-        for($day_=1; $day_<=7; $day_++)
-        {
-            $days[strtolower(date('l',strtotime($year."W".$week_number.$day_)))] = $day_;
-        }
-        if(strtolower($start_day) != $day){
-
-            if($days[strtolower($start_day)] > $days[$day]){
-
-                $date_ = new DateTime($start_date);
-                $week_num = $date_->format('W');
-                $next_day = date('Y-m-d',strtotime('last '. $day .' '.$start_date));
-                $date[$week_num] = $next_day;
-            }
-        }
-        if(count($date_range) > 0){
-            foreach($date_range as $dv){
-                $this_date = $dv->format('Y-m-d');
-                $week_num = $dv->format('W');
-                $date[$week_num] = $this_date;
-            }
-        }
-        $data = array();
-        if($week){
-            @$data[$week] = $date[$week];
-        }
-
-        return $week ? $data : $date;
-    }
 }

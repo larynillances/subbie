@@ -196,7 +196,7 @@ if(!function_exists('getWeeksNumberInMonth')){
                 }
             }
         }
-
+        ksort($thisDays);
         $days_array = $thisDays;
         return $days_array;
     }
@@ -568,6 +568,12 @@ if(!function_exists('getFirstNextLastDay')){
             foreach($date_range as $dv){
                 $this_date = $dv->format('Y-m-d');
                 $week_num = $dv->format('W');
+                //$month = $dv->format('m');
+
+                $week_end = $week_num == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$this_date)) : date('Y-m-d',strtotime('+6 days '.$this_date));
+                if(date('m',strtotime($week_end)) == date('m',strtotime($week_end))){
+                    $date[$week_num] = $this_date;
+                }
                 $date[$week_num] = $this_date;
             }
         }
@@ -575,7 +581,6 @@ if(!function_exists('getFirstNextLastDay')){
         if($week){
             @$data[$week] = $date[$week];
         }
-
         return $week ? $data : $date;
     }
 }
@@ -604,5 +609,21 @@ if(!function_exists('createDateRangeArray')){
             }
         }
         return $aryRange;
+    }
+}
+
+if(!function_exists('payPeriodDropdown')){
+    function payPeriodDropdown(){
+        $data = array(
+            date('Ym') => 'Current Month'
+        );
+        $num = array(1,2,3,4,6,12);
+
+        foreach($num as $val){
+            $str = date('Ym',strtotime('-' . $val . ' month'));
+            $data[$str] = 'Last ' . ($val != 1 ? $val .' ' : '') . 'Month' . ($val > 1 ? 's' : '');
+        }
+
+        return $data;
     }
 }
