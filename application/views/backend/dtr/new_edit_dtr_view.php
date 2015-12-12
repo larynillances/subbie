@@ -423,6 +423,17 @@
                             </td>
                             <td>
                                 <strong><?php echo number_format($hours,2);?></strong>
+                                <?php
+                                if($v->nz_account && ($hours > 0 || $holiday_total > 0)){
+                                    ?>
+                                    <strong class="pull-right">
+                                        <a href="#" class="topup-hours tooltip-class" title="Topup Hours" <?php echo $attr;?> >
+                                            <i class="glyphicon glyphicon-pencil"></i>
+                                        </a>
+                                    </strong>
+                                <?php
+                                }
+                                ?>
                             </td>
                             <td>
                                 <strong><?php echo number_format($holiday_total,2);?></strong>
@@ -430,7 +441,7 @@
                                 if($hours > 0 || $holiday_total > 0){
                                     ?>
                                     <strong class="pull-right">
-                                        <a href="#" class="pay-adjustment" <?php echo $attr;?> >
+                                        <a href="#" class="pay-adjustment tooltip-class" data-placement="left" title="Adjust Pay" <?php echo $attr;?> >
                                             <i class="glyphicon glyphicon-pencil"></i>
                                         </a>
                                     </strong>
@@ -519,6 +530,7 @@
         var month_ = <?php echo $thisMonth;?>;
         var year_ = <?php echo $thisYear;?>;
         var adjustment = $('.pay-adjustment');
+        var top_up_hours = $('.topup-hours');
         var r_id = '<?php echo isset($_GET['r_id']) ? $_GET['r_id'] : 0;?>';
         var form_name = '<?php echo $this->session->userdata('active_dtr') ? $this->session->userdata('active_dtr') : 0;?>';
 
@@ -533,6 +545,22 @@
             $(this).modifiedModal({
                 url: bu + 'payAdjustment/' + this.id,
                 title: 'Pay Adjustment for ' + $(this).data('title'),
+                data: data,
+                type: 'large'
+            });
+        });
+
+        top_up_hours.click(function(e){
+            e.preventDefault();
+            var data = [];
+            data.push(
+                {name:'week',value:week_},
+                {name:'month',value:month_},
+                {name:'year',value:year_}
+            );
+            $(this).modifiedModal({
+                url: bu + 'topUpHours/' + this.id,
+                title: 'Topup Hours for ' + $(this).data('title'),
                 data: data,
                 type: 'large'
             });

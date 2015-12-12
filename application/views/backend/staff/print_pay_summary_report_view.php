@@ -109,10 +109,9 @@ ob_start();
             $total_st_loan = 0;
             $total_kiwi = 0;
             $total_emp_kiwi = 0;
-            $total_accommodation = 0;
             $total_esct = 0;
-            $total_final_pay = 0;
             $total_adjustment = 0;
+            $total_top_hours = 0;
             $ref = 0;
             $total_data = array();
             if(count($this_data) >0) {
@@ -128,6 +127,7 @@ ob_start();
                         $total_emp_kiwi += $val['cec'];
                         $total_esct += $val['esct'];
                         $total_adjustment += $val['total_adjustment'];
+                        $total_top_hours += $val['top_hours'];
 
                         $total_data[$project_type[$val['project_id']]][] = array(
                             'total_nett' => $val['nett'],
@@ -138,6 +138,7 @@ ob_start();
                             'total_kiwi' => $val['kiwi'],
                             'total_emp_kiwi' => $val['cec'],
                             'total_adjustment' => $val['total_adjustment'],
+                            'total_top_hours' => $val['top_hours'],
                             'total_esct' => $val['esct']
                         );
                     }
@@ -151,6 +152,7 @@ ob_start();
                             'total_kiwi' => 0,
                             'total_emp_kiwi' => 0,
                             'total_adjustment' => 0,
+                            'total_top_hours' => 0,
                             'total_esct' => 0
                         );
                     }
@@ -185,6 +187,16 @@ ob_start();
                                         <td class="text-right">Ordinary Nett Pay:</td>
                                         <td><strong><?php echo $last_pay['distribution'] > 0 ? '$ '.number_format($last_pay['distribution'],2) : '$ 0.00'?></strong></td>
                                     </tr>
+                                    <?php
+                                    if($val['top_hours']){
+                                        ?>
+                                        <tr>
+                                            <td>Topup Hours:</td>
+                                            <td colspan="7"><?php echo $val['top_hours'];?></td>
+                                        </tr>
+                                    <?php
+                                    }
+                                    ?>
                                     <tr>
                                         <td>Student Loan:</td>
                                         <td><?php echo $val['st_loan'] ? '$ '.number_format($val['st_loan'],2) : '$ 0.00'?></td>
@@ -211,6 +223,22 @@ ob_start();
                                             ?>
                                         </td>
                                     </tr>
+                                    <?php
+                                    if($val['visa']){
+                                        ?>
+                                        <tr>
+                                            <td>Flight:</td>
+                                            <td><?php echo $val['flight'] ? '$ '.number_format($val['flight'],2) : '$ 0.00'?></td>
+                                            <td>Visa:</td>
+                                            <td><?php echo $val['visa'] ? '$ '.number_format($val['visa'],2) : '$ 0.00'?></td>
+                                            <td>Recruit:</td>
+                                            <td><?php echo $val['recruit'] ? ($val['recruit'] ? '$ '.number_format($val['recruit'],2) : '$ 0.00') : 'N/A';?></td>
+                                            <td>Admin:</td>
+                                            <td><?php echo $val['admin'] ? ($val['admin'] ? '$ '.number_format($val['admin'],2) : '$ 0.00') : 'N/A';?></td>
+                                        </tr>
+                                    <?php
+                                    }
+                                    ?>
                                     <tr>
                                         <td>Holiday Taken:</td>
                                         <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
@@ -321,16 +349,27 @@ ob_start();
                                 <?php
                                 }
                                 else{
-                                    ?><tr>
-                                    <td>Hours worked:</td>
-                                    <td><?php echo number_format($val['hours'],2)?></td>
-                                    <td>Gross Pay:</td>
-                                    <td><?php echo $val['gross'] ? '$ '.number_format($val['gross'],2) : '$ 0.00'?></td>
-                                    <td>PAYE:</td>
-                                    <td><?php echo $val['tax'] ? '$ '.number_format($val['tax'],2) : '$ 0.00'?></td>
-                                    <td class="text-right">Nett Pay:</td>
-                                    <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_dis'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
+                                    ?>
+                                    <tr>
+                                        <td>Hours worked:</td>
+                                        <td><?php echo number_format($val['hours'],2)?></td>
+                                        <td>Gross Pay:</td>
+                                        <td><?php echo $val['gross'] ? '$ '.number_format($val['gross'],2) : '$ 0.00'?></td>
+                                        <td>PAYE:</td>
+                                        <td><?php echo $val['tax'] ? '$ '.number_format($val['tax'],2) : '$ 0.00'?></td>
+                                        <td class="text-right">Nett Pay:</td>
+                                        <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_dis'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
                                     </tr>
+                                    <?php
+                                    if($val['top_hours']){
+                                        ?>
+                                        <tr>
+                                            <td>Topup Hours:</td>
+                                            <td colspan="7"><?php echo $val['top_hours'];?></td>
+                                        </tr>
+                                    <?php
+                                    }
+                                    ?>
                                     <tr>
                                         <td>Student Loan:</td>
                                         <td><?php echo $val['st_loan'] ? '$ '.number_format($val['st_loan'],2) : '$ 0.00'?></td>
@@ -357,6 +396,22 @@ ob_start();
                                             ?>
                                         </td>
                                     </tr>
+                                    <?php
+                                    if($val['visa']){
+                                        ?>
+                                        <tr>
+                                            <td>Flight:</td>
+                                            <td><?php echo $val['flight'] ? '$ '.number_format($val['flight'],2) : '$ 0.00'?></td>
+                                            <td>Visa:</td>
+                                            <td><?php echo $val['visa'] ? '$ '.number_format($val['visa'],2) : '$ 0.00'?></td>
+                                            <td>Recruit:</td>
+                                            <td><?php echo $val['recruit'] ? ($val['recruit'] ? '$ '.number_format($val['recruit'],2) : '$ 0.00') : 'N/A';?></td>
+                                            <td>Admin:</td>
+                                            <td><?php echo $val['admin'] ? ($val['admin'] ? '$ '.number_format($val['admin'],2) : '$ 0.00') : 'N/A';?></td>
+                                        </tr>
+                                    <?php
+                                    }
+                                    ?>
                                     <tr>
                                         <td>Holiday Taken:</td>
                                         <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
@@ -508,6 +563,16 @@ ob_start();
                                         <td class="text-right">Nett Pay:</td>
                                         <td><strong><?php echo $val['adjustment'] ? '$ '.number_format($val['orig_dis'],2) : ($val['nett'] > 0 ? '$ '.number_format($val['nett'],2) : '$ 0.00')?></strong></td>
                                     </tr>
+                                    <?php
+                                    if($val['top_hours']){
+                                        ?>
+                                        <tr>
+                                            <td>Topup Hours:</td>
+                                            <td colspan="7"><?php echo $val['top_hours'];?></td>
+                                        </tr>
+                                    <?php
+                                    }
+                                    ?>
                                     <tr>
                                         <td>Student Loan:</td>
                                         <td><?php echo $val['st_loan'] ? '$ '.number_format($val['st_loan'],2) : '$ 0.00'?></td>
@@ -534,6 +599,22 @@ ob_start();
                                             ?>
                                         </td>
                                     </tr>
+                                    <?php
+                                    if($val['visa']){
+                                        ?>
+                                        <tr>
+                                            <td>Flight:</td>
+                                            <td><?php echo $val['flight'] ? '$ '.number_format($val['flight'],2) : '$ 0.00'?></td>
+                                            <td>Visa:</td>
+                                            <td><?php echo $val['visa'] ? '$ '.number_format($val['visa'],2) : '$ 0.00'?></td>
+                                            <td>Recruit:</td>
+                                            <td><?php echo $val['recruit'] ? ($val['recruit'] ? '$ '.number_format($val['recruit'],2) : '$ 0.00') : 'N/A';?></td>
+                                            <td>Admin:</td>
+                                            <td><?php echo $val['admin'] ? ($val['admin'] ? '$ '.number_format($val['admin'],2) : '$ 0.00') : 'N/A';?></td>
+                                        </tr>
+                                    <?php
+                                    }
+                                    ?>
                                     <tr>
                                         <td>Holiday Taken:</td>
                                         <td><?php echo $val['holiday_leave'].' ('.$val['overall_holiday_leave'].')'?></td>
@@ -641,6 +722,7 @@ ob_start();
                     $_esct = 0;
                     $_dist = 0;
                     $_adjustment = 0;
+                    $_top_hours = 0;
                     if(count($data) > 0){
                         foreach($data as $val){
                             $_gross += $val['total_gross'];
@@ -652,6 +734,7 @@ ob_start();
                             $_esct += $val['total_esct'];
                             $_dist += $val['total_dist'];
                             $_adjustment += $val['total_adjustment'];
+                            $_top_hours += $val['total_top_hours'];
                         }
                     }
                     ?>
@@ -671,11 +754,29 @@ ob_start();
                                 <td><strong><?php echo '$ '.number_format($_nett,2)?></strong></td>
                             </tr>
                             <?php
-                            if($_adjustment > 0){
+                            if($_adjustment > 0 || $_top_hours > 0){
                                 ?>
                                 <tr>
-                                    <td class="text-right" colspan="7"><strong>Adjustment:</strong></td>
-                                    <td><strong><?php echo '$ '.number_format($_adjustment,2)?></strong></td>
+                                    <?php
+                                    if($_adjustment && $_top_hours){
+                                        ?>
+                                        <td class="text-right"><strong>Topup Hours:</strong></td>
+                                        <td><strong><?php echo number_format($_top_hours,2)?></strong></td>
+                                        <td class="text-right" colspan="5"><strong>Adjustment:</strong></td>
+                                        <td><strong><?php echo '$ '.number_format($_adjustment,2)?></strong></td>
+                                    <?php
+                                    }else if($_adjustment){
+                                        ?>
+                                        <td class="text-right" colspan="7"><strong>Adjustment:</strong></td>
+                                        <td><strong><?php echo '$ '.number_format($_adjustment,2)?></strong></td>
+                                    <?php
+                                    }else{
+                                        ?>
+                                        <td class="text-right"><strong>Topup Hours:</strong></td>
+                                        <td colspan="7"><strong><?php echo number_format($_top_hours,2)?></strong></td>
+                                    <?php
+                                    }
+                                    ?>
                                 </tr>
                             <?php
                             }
@@ -712,11 +813,29 @@ ob_start();
                         <td><strong><?php echo '$ '.number_format($total_nett,2)?></strong></td>
                     </tr>
                     <?php
-                    if($total_adjustment > 0){
+                    if($total_adjustment > 0 || $total_top_hours > 0){
                         ?>
                         <tr>
-                            <td class="text-right" colspan="7"><strong>Adjustment:</strong></td>
-                            <td><strong><?php echo '$ '.number_format($total_adjustment,2)?></strong></td>
+                            <?php
+                            if($total_adjustment && $total_top_hours){
+                                ?>
+                                <td class="text-right"><strong>Topup Hours:</strong></td>
+                                <td><strong><?php echo number_format($total_top_hours,2)?></strong></td>
+                                <td class="text-right" colspan="5"><strong>Adjustment:</strong></td>
+                                <td><strong><?php echo '$ '.number_format($total_adjustment,2)?></strong></td>
+                            <?php
+                            }else if($total_adjustment){
+                                ?>
+                                <td class="text-right" colspan="7"><strong>Adjustment:</strong></td>
+                                <td><strong><?php echo '$ '.number_format($total_adjustment,2)?></strong></td>
+                            <?php
+                            }else{
+                                ?>
+                                <td class="text-right"><strong>Topup Hours:</strong></td>
+                                <td colspan="7"><strong><?php echo number_format($total_top_hours,2)?></strong></td>
+                            <?php
+                            }
+                            ?>
                         </tr>
                     <?php
                     }

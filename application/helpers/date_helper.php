@@ -2,7 +2,7 @@
 
 if(!function_exists('getPaymentStartDate'))
 {
-    function getPaymentStartDate($year,$month = 'April',$day = 'tuesday',$start = 2){
+    function getPaymentStartDate($year,$end = "",$month = 'April', $day = 'tuesday',$start = 2){
 
         $month_day = $year.'-04-01';
         $next_day = first_day_of_month($year,$month,$day);
@@ -12,6 +12,9 @@ if(!function_exists('getPaymentStartDate'))
 
         $end_year = $year + 1;
         $end_month_day = $end_year.'-03-31';//$this->first_day_of_month($end_year,$month,$day);
+        if($end){
+            $end_month_day = strtotime($end) < strtotime($end_month_day) ? $end : $end_month_day;
+        }
         //$this_month = date('m',strtotime($end_month_day));
         //$this_day = date('d',strtotime($end_month_day));
         $whatDay = date('N',strtotime($month_day));

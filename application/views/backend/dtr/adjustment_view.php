@@ -97,8 +97,8 @@ echo form_close();
         load_pay_slip();
 
         $('.number').numberOnly({
-            isForContact: true,
-            isPercentage: true
+            isForContact: true
+            //isPercentage: true
         });
 
         $('textarea[name="notes[]"]')

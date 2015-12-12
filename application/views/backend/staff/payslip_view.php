@@ -480,7 +480,7 @@
                                     <tbody>
                                     <tr>
                                         <td>
-                                            <span><?php echo $v->nz_account ? $v->account_one : '&nbsp;';?></span><br/>
+                                            <span><?php echo $v->nz_account ? ($v->account_one ? $v->account_one : '$ 0.00') : '&nbsp;';?></span><br/>
                                             <span style="color: #ff0000;font-weight: bold"><?php echo $v->nz_account ? $v->account_one_ : '&nbsp;';?></span>
                                         </td>
                                         <td>
@@ -506,7 +506,7 @@
                                     <tbody>
                                     <tr>
                                         <td>
-                                            <span><?php echo $v->total_account_two ? '$'.number_format($v->total_account_two,2,'.',',') : '&nbsp;';?></span><br/>
+                                            <span><?php echo $v->total_account_two ? '$'.number_format($v->total_account_two,2,'.',',') : '$ 0.00';?></span><br/>
                                             <span style="color: #ff0000;font-weight: bold"><?php echo $v->visa ? $v->account_two_ : '&nbsp;';?></span>
                                         </td>
                                         <td>

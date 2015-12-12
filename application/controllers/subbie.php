@@ -670,7 +670,7 @@ class Subbie extends CI_Controller{
 
         $staff_data = new Staff_Helper();
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
-        $set_wage_date = getPaymentStartDate(date('Y',strtotime($year)));
+        $set_wage_date = getPaymentStartDate(date('Y',strtotime($year)),$date);
         $wage_total_data = array();
         $wage_data = new Wage_Controller();
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
@@ -678,7 +678,6 @@ class Subbie extends CI_Controller{
         $kiwi_data = $staff_data->staff_kiwi();
         $hourly_rate = $staff_data->staff_hourly_rate();
         $employment_data = $staff_data->staff_employment();
-
         $_id = array();
         $staff_ = $this->my_model->getInfo('tbl_staff',$what_val,'');
 
@@ -695,7 +694,7 @@ class Subbie extends CI_Controller{
                 $_date = new DateTime($key);
                 $_year = $_date->format('Y');
                 $_week = $_date->format('W');
-                $adjustment = $staff_data->adjustment($_date->format('Y'),$_date->format('m'));
+                $adjustment = $staff_data->adjustment($_year,$_date->format('m'),$_week);
                 if(count($staff_list) > 0){
                     foreach($staff_list as $ev){
                         $_adjustment = @$adjustment[$ev->id][$key];
@@ -763,9 +762,14 @@ class Subbie extends CI_Controller{
                             }
 
                             $ev->hourly_rate = 0;
+
                             if(count(@$hourly_rate[$ev->id]) > 0){
-                                foreach(@$hourly_rate[$ev->id] as $val){
-                                    $ev->hourly_rate = $val->hourly_rate;
+                                foreach(@$hourly_rate[$ev->id] as $used_date=>$val){
+                                    //$ev->hourly_rate = $val->hourly_rate;
+                                    if(strtotime($used_date) <= strtotime($dv) ||
+                                        strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
+                                        $ev->hourly_rate = $val->hourly_rate;
+                                    }
                                 }
                             }
 
@@ -786,8 +790,6 @@ class Subbie extends CI_Controller{
                             $ev->admin = $ev->visa_deduct ? $ev->gross_ * 0.01 : 0;
                             $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
 
-                            $ev->distribution = $ev->nett - $ev->installment;
-
                             //region Adjustment
                             $ev->adjustment_ = 0;
                             $ev->orig_nett = $ev->nett;
@@ -799,21 +801,33 @@ class Subbie extends CI_Controller{
                                 switch($_adjustment->type_id){
                                     case 1:
                                         $ev->nett -= floatval($_adjustment->total);
-                                        $ev->distribution -= floatval($_adjustment->total);
-                                        $ev->nz_account_ -= floatval($_adjustment->total);
+                                        //$ev->distribution -= floatval($_adjustment->total);
+                                        //$ev->nz_account_ -= floatval($_adjustment->total);
                                         break;
                                     case 2:
                                         $ev->nett += floatval($_adjustment->total);
-                                        $ev->distribution += floatval($_adjustment->total);
-                                        $ev->nz_account_ += floatval($_adjustment->total);
+                                        //$ev->distribution += floatval($_adjustment->total);
+                                        //$ev->nz_account_ += floatval($_adjustment->total);
                                         break;
                                     default:
                                         break;
                                 }
                             }
                             //endregion
+                            $ev->distribution = $ev->nett - $ev->installment;
 
-                            $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                            //$ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+
+                            $ev->account_one = 0;
+                            $ev->account_two_ = 0;
+                            if($ev->distribution >= $ev->nz_account_){
+                                $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                                if($ev->distribution >= ($ev->nz_account_ + $ev->account_two)){
+                                    $ev->account_two_ = $ev->account_two;
+                                }
+                            }
+
+                            $ev->nz_account_ = $ev->distribution >= $ev->nz_account_ ? $ev->nz_account_ : $ev->distribution;
 
                             $pay_data = @$last_pay_data[$ev->id];
                             //$last_day = date('Y-m-d',strtotime('+6 days '.$pay_data['last_date_pay']));
@@ -828,7 +842,7 @@ class Subbie extends CI_Controller{
                                 @$ev->total_distribution +=  floatval($ev->distribution + $final_pay);
                                 @$ev->total_gross +=  floatval($ev->gross_ + $final_gross);
                                 @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
-                                @$ev->total_account_two +=  floatval($ev->account_two);
+                                @$ev->total_account_two +=  floatval($ev->account_two_);
                                 @$ev->total_nz_account +=  floatval($ev->nz_account_);
                                 //$week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$key)) : date('Y-m-d',strtotime('+6 days '.$key));
                                 if($is_details){
@@ -915,7 +929,7 @@ class Subbie extends CI_Controller{
         $this->data['job_num'] = '';
     }
 
-    function getWageData($year,$month,$week = '',$type = 'weekly',$project = ''){
+    function getWageData($year,$month,$week = '',$type = 'weekly',$project = '',$id = ''){
         //automate wage
         $wage_data = new Wage_Controller();
         $staff_data = new Staff_Helper();
@@ -924,6 +938,11 @@ class Subbie extends CI_Controller{
         $whatVal .= $project ? ' AND project_id ="'.$project.'"' : '';
         $whatVal .= ')';
         $whatFld = '';
+
+        if($id){
+            $whatVal = array($id);
+            $whatFld = array('tbl_staff.id');
+        }
 
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
 
@@ -939,6 +958,7 @@ class Subbie extends CI_Controller{
         $kiwi_data = $staff_data->staff_kiwi();
         $fortnightlyDate = $this->get_staff_fortnightly_start_week();
         $adjustment = $staff_data->adjustment($year,$month,$week);
+        $top_up_hours = $staff_data->top_up_hours($year,$month,$week);
         switch($type){
             case 'weekly':
                 $this->data['balance'] = array();
@@ -964,6 +984,7 @@ class Subbie extends CI_Controller{
                                 $acc_leave_ = @$calculate_acc_leave[$ev->id][$week_year];
                                 $acc_leave_data = @$acc_leave[$ev->id][$week_year];
                                 $_adjustment = @$adjustment[$ev->id][$dv];
+                                $_top_up_hours = @$top_up_hours[$ev->id][$dv];
                                 if(count(@$employment_data[$ev->id]) > 0){
                                     foreach(@$employment_data[$ev->id] as $used_date=>$val){
                                         if(
@@ -1060,6 +1081,11 @@ class Subbie extends CI_Controller{
                                     $symbols = $ev->currency_code != 'NZD' ? $ev->symbols : '₱';
 
                                     $converted_amount = $ev->currency_code != 'NZD' ? 1 : $phpCurrency;
+                                    $ev->top_hours = 0;
+                                    if(count($_top_up_hours) > 0){
+                                        $ev->top_hours = $_top_up_hours->total ? number_format(floatval($_top_up_hours->total),2) : 0;
+                                        $hours += $_top_up_hours->total;
+                                    }
 
                                     $ev->gross = $hours ? $ev->rate_cost * $hours : 0;
                                     //$ev->gross = $ev->gross != 0 ? number_format($ev->gross,0,'.',''):'0.000';
@@ -1125,6 +1151,7 @@ class Subbie extends CI_Controller{
 
                                     $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
                                     $ev->distribution = $ev->nett - $ev->installment;
+                                    $ev->nett = $ev->nett - $ev->installment;
 
                                     //region ACC Levy
                                     $ev->acc_pay = 0;
@@ -1158,20 +1185,29 @@ class Subbie extends CI_Controller{
                                             case 1:
                                                 $ev->nett -= floatval($_adjustment->total);
                                                 $ev->distribution -= floatval($_adjustment->total);
-                                                $ev->nz_account_ -= $ev->nz_account_ ? floatval($_adjustment->total) : 0;
+                                                //$ev->nz_account_ -= $ev->nz_account_ ? floatval($_adjustment->total) : 0;
                                                 break;
                                             case 2:
                                                 $ev->nett += floatval($_adjustment->total);
                                                 $ev->distribution += floatval($_adjustment->total);
-                                                $ev->nz_account_ += $ev->nz_account_ ? floatval($_adjustment->total) : 0;
+                                                //$ev->nz_account_ += $ev->nz_account_ ? floatval($_adjustment->total) : 0;
                                                 break;
                                             default:
                                                 break;
                                         }
                                     }
-
                                     //endregion
-                                    $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+
+                                    $ev->account_one = 0;
+                                    $ev->account_two_ = 0;
+                                    if($ev->distribution >= $ev->nz_account_){
+                                        $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                                        if($ev->distribution >= ($ev->nz_account_ + $ev->account_two)){
+                                            $ev->account_two_ = $ev->account_two;
+                                        }
+                                    }
+                                    $ev->nz_account_ = $ev->distribution >= $ev->nz_account_ ? $ev->nz_account_ : $ev->distribution;
+
                                     //if(floatval($hours) > 0){
                                         $wage_data = array(
                                             'id' => $ev->id,
@@ -1182,7 +1218,7 @@ class Subbie extends CI_Controller{
                                             'project_id' => $ev->project_id,
                                             'gross' => $ev->gross_,
                                             'rate_cost' => $ev->rate_cost,
-                                            'hours' => $ev->wage_type != 1 ? $hours : ($hours ? 40 : 0),
+                                            'hours' => $ev->wage_type != 1 ? $ev->hours : ($ev->hours ? 40 : 0),
                                             'tax' => $ev->tax != 0 ? $ev->tax : 0,
                                             'flight' => $ev->flight_deduct,
                                             'visa' => $ev->visa_deduct,
@@ -1195,8 +1231,8 @@ class Subbie extends CI_Controller{
                                             'recruit' => $ev->visa_deduct ? number_format($ev->recruit,2,'.','') : 0,
                                             'admin' => $ev->visa_deduct ? number_format($ev->admin,2,'.','') : 0,
                                             'currency' => $code,
-                                            'account_two' => $hours > 0 ? ($ev->nz_account_ ? $ev->account_two : 0) : 0,
-                                            'account_one' => $hours > 0 ? ($ev->nz_account_ ? $ev->account_one : 0) : 0,
+                                            'account_two' => $hours > 0 ? ($ev->nz_account_ ? ($ev->account_two_ > 0 ? $ev->account_two_ : 0) : 0) : 0,
+                                            'account_one' => $hours > 0 ? ($ev->nz_account_ ? ($ev->account_one > 0 ? $ev->account_one : 0) : 0) : 0,
                                             'nz_account' => $hours > 0 ? $ev->nz_account_ : 0,
                                             'has_nz_account' => $ev->nz_account ? 1 : 0,
                                             'rate_value' => $converted_amount,
@@ -1229,6 +1265,7 @@ class Subbie extends CI_Controller{
                                             'leave_type_id' => $ev->leave_type_id,
                                             'orig_nett' => $ev->orig_nett,
                                             'orig_dis' => $ev->orig_dis,
+                                            'top_hours' => $ev->top_hours,
                                             'total_adjustment' => $ev->total_adjustment,
                                             'orig_nz_account' => $ev->orig_nz_account,
                                             'is_on_acc_leave' => $ev->is_on_acc_leave
@@ -1404,7 +1441,17 @@ class Subbie extends CI_Controller{
                                             }
                                         }
                                         //endregion
-                                        $mv->account_one = $mv->distribution - ($mv->nz_account_ + $mv->account_two);
+                                        //$mv->account_one = $mv->distribution - ($mv->nz_account_ + $mv->account_two);
+
+                                        $mv->account_one = 0;
+                                        $mv->account_two_ = 0;
+                                        if($mv->distribution >= $mv->nz_account_){
+                                            $mv->account_one = $mv->distribution - ($mv->nz_account_ + $mv->account_two);
+                                            if($mv->distribution >= ($mv->nz_account_ + $mv->account_two)){
+                                                $mv->account_two_ = $mv->account_two;
+                                            }
+                                        }
+                                        $mv->nz_account_ = $mv->distribution >= $mv->nz_account_ ? $mv->nz_account_ : $mv->distribution;
 
                                         @$mv->tax_total += $mv->tax;
                                         @$mv->total_hours += $mv->hours;
@@ -1414,7 +1461,7 @@ class Subbie extends CI_Controller{
                                         @$mv->total_trans += $mv->transport;
                                         @$mv->total_visa += $mv->visa;
                                         @$mv->total_flight += $mv->flight;
-                                        @$mv->total_account_two += $mv->account_two;
+                                        @$mv->total_account_two += ($mv->account_two > 0 ? $mv->account_two : 0);
                                         @$mv->total_nz_account += $mv->nz_account_;
                                         @$mv->total_kiwi += $mv->kiwi_;
                                         @$mv->total_emp_kiwi += $mv->emp_kiwi_;
@@ -1423,7 +1470,7 @@ class Subbie extends CI_Controller{
                                         @$mv->total_esct += $mv->esct;
                                         @$mv->total_nett += $mv->nett;
                                         @$mv->total_distribution += $mv->distribution;
-                                        @$mv->total_account_one += $mv->account_one;
+                                        @$mv->total_account_one += ($mv->account_one > 0 ? $mv->account_one : 0);
 
                                         $this->data['monthly_pay'][$mv->id] = array(
                                             'staff_id' => $mv->id,
@@ -1693,7 +1740,6 @@ class Subbie extends CI_Controller{
                 @$v->total_accom += $v->accommodation;
                 @$v->total_trans += $v->transport;
                 @$v->total_kiwi += $v->kiwi_;
-                @$v->total_account_two += $v->account_two;
 
                 $v->recruit = $v->visa ? $v->gross_ * 0.03 : 0;
                 $v->admin = $v->visa ? $v->gross_ * 0.01 : 0;
@@ -1722,12 +1768,12 @@ class Subbie extends CI_Controller{
                         case 1:
                             $v->net -= floatval($_adjustment->total);
                             $v->distribution -= floatval($_adjustment->total);
-                            $v->nz_account_ -= $v->nz_account_ ? floatval($_adjustment->total) : 0;
+                            //$v->nz_account_ -= $v->nz_account_ ? floatval($_adjustment->total) : 0;
                             break;
                         case 2:
                             $v->net += floatval($_adjustment->total);
                             $v->distribution += floatval($_adjustment->total);
-                            $v->nz_account_ += $v->nz_account_ ? floatval($_adjustment->total) : 0;
+                            //$v->nz_account_ += $v->nz_account_ ? floatval($_adjustment->total) : 0;
                             break;
                         default:
                             break;
@@ -1735,8 +1781,21 @@ class Subbie extends CI_Controller{
                 }
                 //endregion
 
+                $v->account_one = 0;
+                $v->account_two_ = 0;
+                if($v->distribution >= $v->nz_account_){
+                    $v->account_one = $v->distribution - ($v->nz_account_ + $v->account_two);
+                    if($v->distribution >= ($v->nz_account_ + $v->account_two)){
+                        $v->account_two_ = $v->account_two;
+                    }
+                }
+
+                $v->nz_account_ = $v->distribution >= $v->nz_account_ ? $v->nz_account_ : $v->distribution;
+
+                @$v->total_account_two += ($v->account_two_ > 0 ? $v->account_two_ : 0);
                 @$v->total_nz_account += $v->nz_account_;
-                $v->account_one = $v->distribution - ($v->nz_account_ + $v->account_two);
+                //$v->account_one = $v->distribution - ($v->nz_account_ + $v->account_two);
+                //$v->account_one = $v->account_one > 0 ? $v->account_one : 0;
 
                 $v->account_one_ = $v->account_one > 0 ? $v->symbols.number_format($v->account_one * $converted_amount,2,'.',','):$v->symbols.' 0.00';
                 $v->account_two_ = $v->symbols.number_format($v->total_account_two * $converted_amount,2,'.',',');
@@ -3265,13 +3324,13 @@ class Subbie extends CI_Controller{
                                 }
                             }
 
-                            $then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
-                            $then = new DateTime($then);
+                            //$then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
+                            //$then = new DateTime($then);
 
-                            $now = date('Y-m-d H:i:s',strtotime($key_val));
-                            $now = new DateTime($now);
+                            //$now = date('Y-m-d H:i:s',strtotime($key_val));
+                            //$now = new DateTime($now);
 
-                            $sinceThen = $then->diff($now);
+                            //$sinceThen = $then->diff($now);
 
                             $ev->tax = 0;
                             $ev->m_paye = 0;
@@ -3322,13 +3381,24 @@ class Subbie extends CI_Controller{
                             $ev->nett = $ev->gross_ - ($ev->st_loan + $ev->kiwi_ + $ev->tax + $ev->flight_deduct + $ev->visa_deduct + $ev->accommodation + $ev->transport + $ev->recruit + $ev->admin);
 
                             $ev->distribution = $ev->nett - $ev->installment;
-                            $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+
+                            //$ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                            $ev->account_one = 0;
+                            $ev->account_two_ = 0;
+                            if($ev->distribution >= $ev->nz_account_){
+                                $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
+                                if($ev->distribution >= ($ev->nz_account_ + $ev->account_two)){
+                                    $ev->account_two_ = $ev->account_two;
+                                }
+                            }
+
+                            $ev->nz_account_ = $ev->distribution >= $ev->nz_account_ ? $ev->nz_account_ : $ev->distribution;
 
                             if($ev->gross > 0){
                                 @$ev->total_distribution +=  floatval($ev->distribution);
                                 @$ev->total_gross +=  floatval($ev->gross_);
                                 @$ev->total_account_one +=  $ev->account_one > 0 ? floatval($ev->account_one) : 0;
-                                @$ev->total_account_two +=  floatval($ev->account_two);
+                                @$ev->total_account_two +=  floatval($ev->account_two_);
                                 @$ev->total_nz_account +=  floatval($ev->nz_account_);
 
                                 $ev->annual_pay = 0;

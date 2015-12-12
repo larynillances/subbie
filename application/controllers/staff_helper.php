@@ -207,7 +207,6 @@ class Staff_Helper extends CI_Controller{
         return $kiwi_data;
     }
 
-
     function staff_rate(){
 
         $this->my_model->setJoin(array(
@@ -302,6 +301,35 @@ class Staff_Helper extends CI_Controller{
         return $data;
     }
 
+    function top_up_hours($year,$month = '',$week_number = ''){
+        $whatValue = array($year,$week_number);
+        $whatFld = array('YEAR(date) =','week_num');
+        if($month){
+            $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
+            $whatValue[] = $month;
+            $whatFld[] = 'MONTH(date) <=';
+
+            $whatValue[] = date('m',$last_month);
+            $whatFld[] = 'MONTH(date) >=';
+        }
+        if($week_number){
+            $whatValue[] = $week_number;
+            $whatFld[] = 'week_num';
+        }
+
+        $adjustment = $this->my_model->getInfo('tbl_topup_hours',$whatValue,$whatFld);
+        $data = array();
+        $total = array();
+        if(count($adjustment) > 0){
+            foreach($adjustment as $val){
+                @$total[$val->staff_id][$val->date] += floatval($val->topup_hours);
+                $val->total = @$total[$val->staff_id][$val->date];
+                $data[$val->staff_id][$val->date] = (Object)$val;
+            }
+        }
+
+        return $data;
+    }
 
     function adjustment($year,$month = '',$week_number = ''){
         $whatValue = array($year,$week_number);
@@ -479,7 +507,6 @@ class Staff_Helper extends CI_Controller{
 
         return $count;
     }
-
 
     function staff_hourly_rate($whatVal = '',$whatFld = ''){
         $this->my_model->setJoin(array(
