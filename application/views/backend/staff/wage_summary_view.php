@@ -143,7 +143,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
-                                $flight_debt =  @$total_bal[$v][$val['id']]['flight_debt'];
+                                $flight_debt =  @$total_bal[$val['id']][$_year][$week]['flight_debt'];
                                 echo '<strong class="value-class">';
                                 echo $flight_debt != 0 ? '$'.number_format($flight_debt,2) : '';
                                 echo '</strong>';
@@ -152,7 +152,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['visa'] != '' ? '$'.$val['visa'].'<br/>' : '';
-                                $visa_debt =  @$total_bal[$v][$val['id']]['visa_debt'];
+                                $visa_debt =  @$total_bal[$val['id']][$_year][$week]['visa_debt'];
                                 echo '<strong class="value-class">';
                                 echo $visa_debt != 0 ? '$'.number_format($visa_debt,2) : '';
                                 echo '</strong>';
@@ -174,8 +174,8 @@ echo form_open('','class="form-horizontal" role="form"');
                             </td>
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
-                                $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                echo $thisBalance > 0 ? ($val['deduction'] ? $val['deduction'].'<br/>' : '') : '';
+                                $thisBalance =  @$total_bal[$val['id']][$_year][$week]['balance'];
+                                echo $thisBalance > 0 ? ($val['deduction'] ? '$ '.$val['deduction'].'<br/>' : '') : '';
                                 echo '<strong class="value-class">';
                                 echo $thisBalance != 0 ? '$'.$thisBalance : '';
                                 echo '</strong>';
@@ -259,7 +259,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['flight'] != '' ? '$'.$val['flight'].'<br/>' : '';
-                                $flight_debt =  @$total_bal[$v][$val['id']]['flight_debt'];
+                                $flight_debt =  @$total_bal[$val['id']][$_year][$week]['flight_debt'];
                                 echo '<strong class="value-class">';
                                 echo $flight_debt != 0 ? '$'.number_format($flight_debt,2) : '';
                                 echo '</strong>';
@@ -268,7 +268,7 @@ echo form_open('','class="form-horizontal" role="form"');
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
                                 echo $val['visa'] != '' ? '$'.$val['visa'].'<br/>' : '';
-                                $visa_debt =  @$total_bal[$v][$val['id']]['visa_debt'];
+                                $visa_debt =  @$total_bal[$val['id']][$_year][$week]['visa_debt'];
                                 echo '<strong class="value-class">';
                                 echo $visa_debt != 0 ? '$'.number_format($visa_debt,2) : '';
                                 echo '</strong>';
@@ -296,8 +296,8 @@ echo form_open('','class="form-horizontal" role="form"');
                             </td>
                             <td class="column" <?php echo $flag_staff;?>>
                                 <?php
-                                $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                echo $thisBalance > 0 ? ($val['deduction'] ? $val['deduction'].'<br/>' : '') : '';
+                                $thisBalance =  @$total_bal[$val['id']][$_year][$week]['balance'];
+                                echo $thisBalance > 0 ? ($val['deduction'] ? '$ '.$val['deduction'].'<br/>' : '') : '';
                                 echo '<strong class="value-class">';
                                 echo $thisBalance != 0 ? '$'.$thisBalance : '';
                                 echo '</strong>';

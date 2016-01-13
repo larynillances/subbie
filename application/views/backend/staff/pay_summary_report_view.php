@@ -67,6 +67,7 @@ echo form_close();
         <?php
         $this_date = $date[$thisWeek];
         $this_data = @$wage_data[$this_date];
+        $_year = date('Y',strtotime($this_date));
         $total_nett = 0;
         $total_dist = 0;
         $total_gross = 0;
@@ -183,9 +184,9 @@ echo form_close();
                                     <td>Loan Repay:</td>
                                     <td>
                                         <?php
-                                        $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                        echo $thisBalance;
-                                        echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                        $thisBalance =  @$total_bal[$val['id']][$_year][$thisWeek]['balance'];
+                                        echo $thisBalance ? '$ '.$thisBalance : '';
+                                        echo $thisBalance > 0 ? ($val['installment'] ? '[$ '.number_format($val['installment'],2).']' : '[$ 0.00]') : '$ 0.00';
                                         ?>
                                     </td>
                                 </tr>
@@ -356,9 +357,9 @@ echo form_close();
                                     <td>Loan Repay:</td>
                                     <td>
                                         <?php
-                                        $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                        echo $thisBalance;
-                                        echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                        $thisBalance =  @$total_bal[$val['id']][$_year][$thisWeek]['balance'];
+                                        echo $thisBalance ? '$ '.$thisBalance : '';
+                                        echo $thisBalance > 0 ? ($val['installment'] ? '[$ '.number_format($val['installment'],2).']' : '[$ 0.00]') : '$ 0.00';
                                         ?>
                                     </td>
                                 </tr>
@@ -559,9 +560,9 @@ echo form_close();
                                     <td>Loan Repay:</td>
                                     <td>
                                         <?php
-                                        $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                        echo $thisBalance;
-                                        echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                        $thisBalance =  @$total_bal[$val['id']][$_year][$thisWeek]['balance'];
+                                        echo $thisBalance ? '$ '.$thisBalance : '';
+                                        echo $thisBalance > 0 ? ($val['installment'] ? '[$ '.number_format($val['installment'],2).']' : '[$ 0.00]') : '$ 0.00';
                                         ?>
                                     </td>
                                 </tr>

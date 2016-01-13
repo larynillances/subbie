@@ -96,10 +96,7 @@ echo form_close();
 
         load_pay_slip();
 
-        $('.number').numberOnly({
-            isForContact: true
-            //isPercentage: true
-        });
+        $('.number').numeric();
 
         $('textarea[name="notes[]"]')
             .on('keyup',function(e){

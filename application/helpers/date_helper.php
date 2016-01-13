@@ -191,11 +191,15 @@ if(!function_exists('getWeeksNumberInMonth')){
         $thisDays = array();
         if(count($days) > 0){
             foreach($days as $key=>$v){
-
                 $week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$v)) : date('Y-m-d',strtotime('+6 days '.$v));
                 if(date('m',strtotime($week_end)) == $month){
 
                     $thisDays[$key] = $key;
+                }
+                else{
+                    if($month == 12){
+                        $thisDays[$key] = $key;
+                    }
                 }
             }
         }
@@ -209,7 +213,6 @@ if(!function_exists('getWeekDateInMonth')){
     function getWeekDateInMonth($year, $month){
         $days = getFirstNextLastDay($year,$month);
         $thisDays = array();
-
         if(count($days) > 0){
             foreach($days as $key=>$v){
                 $week_end = $key == 30 && $year == 2015 ? date('Y-m-d',strtotime('+5 days '.$v)) : date('Y-m-d',strtotime('+6 days '.$v));
@@ -217,7 +220,11 @@ if(!function_exists('getWeekDateInMonth')){
 
                     $thisDays[$key] = $v;
                 }
-                //$thisDays[$key] = $v;
+                else{
+                    if($month == 12){
+                        $thisDays[$key] = $v;
+                    }
+                }
             }
         }
         $days_array = $thisDays;

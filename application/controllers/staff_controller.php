@@ -280,6 +280,20 @@ class Staff_Controller extends Subbie{
         $month = $this->uri->segment(3);
         $year = $this->uri->segment(4);
         if(isset($_GET['g'])){
+            $week = str_pad($week,2,'0',STR_PAD_LEFT);
+            $month = str_pad($month,2,'0',STR_PAD_LEFT);
+
+            $this_week = getWeekDateInMonth($year,$month);
+
+            $post = array(
+                'is_preview' => 1
+            );
+
+            $whatVal = array($week,$this_week[$week]);
+            $whatFld = array('week_num','date');
+
+            $this->my_model->update('tbl_week_pay_period',$post,$whatVal,$whatFld);
+
             $whatVal = 'project_id = "1"';
             $whatFld = '';
             $staff_ = $this->my_model->getinfo('tbl_staff',$whatVal,$whatFld);
@@ -287,10 +301,7 @@ class Staff_Controller extends Subbie{
             $staff_data = new Staff_Helper();
             $employment_data = $staff_data->staff_employment();
             $staff_id = array();
-            $week = str_pad($week,2,'0',STR_PAD_LEFT);
-            $month = str_pad($month,2,'0',STR_PAD_LEFT);
 
-            $this_week = getWeekDateInMonth($year,$month);
             if(count($staff_) > 0){
                 foreach($staff_ as $ev){
                     $week_value = $this_week[$week];
@@ -328,15 +339,6 @@ class Staff_Controller extends Subbie{
                     $this->generatePaySlip($week,$month,$year,$row->id);
                 }
             }
-
-            $post = array(
-                'is_preview' => 1
-            );
-
-            $whatVal = array($week,$this_week[$week]);
-            $whatFld = array('week_num','date');
-            
-            $this->my_model->update('tbl_week_pay_period',$post,$whatVal,$whatFld);
             echo 'data';
             //redirect('payPeriodSummaryReport?print=1&week=' . $week .'&month=' . $month.'&year='.$year);
         }
@@ -1472,12 +1474,30 @@ class Staff_Controller extends Subbie{
         $this->data['week'] = getWeeksNumberInMonth($this->data['thisYear'],$this->data['thisMonth']);
         //$this->data['thisProject'] = $this->session->userdata('$_project_type') ? $this->session->userdata('$_project_type') : 1;
         $year_ = isset($_GET['year']) ? $_GET['year'] : $this->data['thisYear'];
+        $week_ = isset($_GET['week']) ? $_GET['week'] : $this->data['thisWeek'];
         $month_ = isset($_GET['month']) ? $_GET['month'] : $this->data['thisMonth'];
 
-        $week = getWeekDateInMonth($this->data['thisYear'],$this->data['thisMonth']);
+        $week = getWeekDateInMonth($year_,$month_);
 
         $date = @$week[$this->data['thisWeek']];
         $this->data['thisDate'] = $date;
+
+        //Set Week Pay Period Action
+        $post = array(
+            'week_num' => $week_,
+            'date' => $week[$week_]
+        );
+        $whatVal = array($week_,$week[$week_]);
+        $whatFld = array('week_num','date');
+        $is_exist = $this->my_model->getInfo('tbl_week_pay_period',$whatVal,$whatFld);
+        if(count($is_exist) > 0){
+            foreach($is_exist as $val){
+                $this->my_model->update('tbl_week_pay_period',$post,$val->id,'id',false);
+            }
+        }else{
+            $this->my_model->insert('tbl_week_pay_period',$post,false);
+        }
+        //endregion
 
         $what_month_ = date('m',strtotime($date));
         $id = array();
@@ -1558,23 +1578,6 @@ class Staff_Controller extends Subbie{
                     }
                 }else{
                     $this->my_model->insert('tbl_pdf_archive',$post,false);
-                }
-                //endregion
-
-                //Set Week Pay Period Action
-                $post = array(
-                    'week_num' => $week_,
-                    'date' => $whatDate
-                );
-                $whatVal = array($week_,$whatDate);
-                $whatFld = array('week_num','date');
-                $is_exist = $this->my_model->getInfo('tbl_week_pay_period',$whatVal,$whatFld);
-                if(count($is_exist) > 0){
-                    foreach($is_exist as $val){
-                        $this->my_model->update('tbl_week_pay_period',$post,$val->id,'id',false);
-                    }
-                }else{
-                    $this->my_model->insert('tbl_week_pay_period',$post,false);
                 }
                 //endregion
             }
@@ -1724,7 +1727,7 @@ class Staff_Controller extends Subbie{
         $this->data['_year'] = $this->session->userdata('_year_val') ? $this->session->userdata('_year_val') : date('Y');
         $this->data['_project'] = $this->session->userdata('_project_val') ? $this->session->userdata('_project_val') : 1;
         $this_date = date('Y-m-d',strtotime($this->data['_year'].'-'.date('m-d')));
-
+        $end_date = date('Y-m-d',strtotime('+1 year '.$this_date));
         if($page){
             $id = $this->uri->segment(3);
             if(!$id){
@@ -1737,13 +1740,13 @@ class Staff_Controller extends Subbie{
                     $this->data['page_name'] .= ' for <strong>'.$staff_name->fname.' '.$staff_name->lname.'</strong>';
                     $this->data['page_load'] = 'backend/staff/year_to_date_summary';
 
-                    $set_wage_date = getPaymentStartDate(date('Y',strtotime($this_date)));
+                    $set_wage_date = getPaymentStartDate(date('Y',strtotime($this_date)),$end_date);
                     $total_array = array();
                     $monthly_total_array = array();
                     $wage_date_array = array();
                     $monthly_date = array();
-                    $monthly_details = $this->getOverAllWageTotalPay($this_date,$id,true);
-                    if(count($monthly_details[$id]) > 0){
+                    $monthly_details = $this->getOverAllWageTotalPay($end_date,$id,true);
+                    if(array_key_exists($id,$monthly_details) && count($monthly_details[$id]) > 0){
                         foreach($monthly_details[$id] as $key=>$val){
                             $year = date('Y',strtotime($key));
                             $week = new DateTime($key);
@@ -1795,7 +1798,7 @@ class Staff_Controller extends Subbie{
             $this->data['staff'] = $this->my_model->getInfo('tbl_staff',array('false',$this->data['_project']),array('is_unemployed','project_id'));
             $this->data['year'] = getYear();
 
-            $total_paid = $this->getOverAllWageTotalPay($this_date,'',false,$this->data['_project']);
+            $total_paid = $this->getOverAllWageTotalPay($end_date,'',false,$this->data['_project']);
 
             if(count($this->data['staff']) > 0){
                 foreach($this->data['staff'] as $row){

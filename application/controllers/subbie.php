@@ -15,6 +15,7 @@ class Subbie extends CI_Controller{
 
     function __construct(){
         parent::__construct();
+        set_time_limit (0);
         date_default_timezone_set('Pacific/Auckland');
         $this->getUserInfo();
     }
@@ -822,9 +823,8 @@ class Subbie extends CI_Controller{
                             $ev->account_two_ = 0;
                             if($ev->distribution >= $ev->nz_account_){
                                 $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
-                                if($ev->distribution >= ($ev->nz_account_ + $ev->account_two)){
-                                    $ev->account_two_ = $ev->account_two;
-                                }
+                                $account_two = ($ev->distribution - $ev->nz_account_);
+                                $ev->account_two_ = $account_two >= $ev->account_two ? $ev->account_two : $account_two;
                             }
 
                             $ev->nz_account_ = $ev->distribution >= $ev->nz_account_ ? $ev->nz_account_ : $ev->distribution;
@@ -945,7 +945,6 @@ class Subbie extends CI_Controller{
         }
 
         $staff_list = $staff_data->staff_details($whatVal,$whatFld);
-
         $this->data['total_bal'] = $wage_data->get_year_total_balance();
         $rate = $staff_data->staff_rate();
         $hourly_rate = $staff_data->staff_hourly_rate();
@@ -1145,7 +1144,7 @@ class Subbie extends CI_Controller{
                                     $ev->balance = @$this->data['total_bal'][$ev->id][$_year][$_week]['balance'];
                                     $ev->installment = $ev->balance > 0 ?
                                         ($ev->balance <= $ev->installment ? $ev->balance : $ev->installment) : 0;
-
+                                    
                                     $ev->recruit = $ev->visa_deduct ? $ev->gross_ * 0.03 : 0;
                                     $ev->admin = $ev->visa_deduct ? $ev->gross_ * 0.01 : 0;
 
@@ -1202,9 +1201,8 @@ class Subbie extends CI_Controller{
                                     $ev->account_two_ = 0;
                                     if($ev->distribution >= $ev->nz_account_){
                                         $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
-                                        if($ev->distribution >= ($ev->nz_account_ + $ev->account_two)){
-                                            $ev->account_two_ = $ev->account_two;
-                                        }
+                                        $account_two = ($ev->distribution - $ev->nz_account_);
+                                        $ev->account_two_ = $account_two >= $ev->account_two ? $ev->account_two : $account_two;
                                     }
                                     $ev->nz_account_ = $ev->distribution >= $ev->nz_account_ ? $ev->nz_account_ : $ev->distribution;
 
@@ -1447,9 +1445,8 @@ class Subbie extends CI_Controller{
                                         $mv->account_two_ = 0;
                                         if($mv->distribution >= $mv->nz_account_){
                                             $mv->account_one = $mv->distribution - ($mv->nz_account_ + $mv->account_two);
-                                            if($mv->distribution >= ($mv->nz_account_ + $mv->account_two)){
-                                                $mv->account_two_ = $mv->account_two;
-                                            }
+                                            $account_two = ($mv->distribution - $mv->nz_account_);
+                                            $mv->account_two_ = $account_two >= $mv->account_two ? $mv->account_two : $account_two;
                                         }
                                         $mv->nz_account_ = $mv->distribution >= $mv->nz_account_ ? $mv->nz_account_ : $mv->distribution;
 
@@ -1785,9 +1782,8 @@ class Subbie extends CI_Controller{
                 $v->account_two_ = 0;
                 if($v->distribution >= $v->nz_account_){
                     $v->account_one = $v->distribution - ($v->nz_account_ + $v->account_two);
-                    if($v->distribution >= ($v->nz_account_ + $v->account_two)){
-                        $v->account_two_ = $v->account_two;
-                    }
+                    $account_two = ($v->distribution - $v->nz_account_);
+                    $v->account_two_ = $account_two >= $v->account_two ? $v->account_two : $account_two;
                 }
 
                 $v->nz_account_ = $v->distribution >= $v->nz_account_ ? $v->nz_account_ : $v->distribution;
@@ -3387,9 +3383,8 @@ class Subbie extends CI_Controller{
                             $ev->account_two_ = 0;
                             if($ev->distribution >= $ev->nz_account_){
                                 $ev->account_one = $ev->distribution - ($ev->nz_account_ + $ev->account_two);
-                                if($ev->distribution >= ($ev->nz_account_ + $ev->account_two)){
-                                    $ev->account_two_ = $ev->account_two;
-                                }
+                                $account_two = ($ev->distribution - $ev->nz_account_);
+                                $ev->account_two_ = $account_two >= $ev->account_two ? $ev->account_two : $account_two;
                             }
 
                             $ev->nz_account_ = $ev->distribution >= $ev->nz_account_ ? $ev->nz_account_ : $ev->distribution;
@@ -3471,33 +3466,43 @@ class Subbie extends CI_Controller{
         $data = new Staff_Helper();
         $whatVal = array(6,1);
         $whatFld = array('tbl_leave.type !=','tbl_leave.decision');
-
-        $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24) * 2);
+        $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
         $last_week = mktime(0, 0, 0, $month, 0, $year) - (7*3600*24);
 
+        $sql_val = '';
         if($week){
-            $whatVal[] = $week;
+            /*$whatVal[] = $week;
             $whatFld[] = 'WEEK(tbl_leave.leave_start) <=';
 
             $_week = new DateTime(date('Y-m-d',$last_week));
             $whatVal[] = $_week->format('W');
-            $whatFld[] = 'WEEK(tbl_leave.leave_start) >=';
+            $whatFld[] = 'WEEK(tbl_leave.leave_start) >=';*/
+
+            $_week = new DateTime(date('Y-m-d',$last_week));
+            $sql_val .= "(WEEK(tbl_leave.leave_start) <= '" . $week ."' AND YEAR(tbl_leave.leave_start) ='" . $year . "')";
+            $sql_val .= " OR (WEEK(tbl_leave.leave_start) >= '" . $_week->format('W')."' AND YEAR(tbl_leave.leave_start) ='".$_week->format('Y')."')";
         }
         if($year){
             $whatVal[] = $year;
             $whatFld[] = 'YEAR(tbl_leave.leave_start) =';
         }
         if($month){
-            $whatVal[] = $month;
+            /*$whatVal[] = $month;
             $whatFld[] = 'MONTH(tbl_leave.leave_start) <=';
 
             $whatVal[] = date('m',$last_month);
-            $whatFld[] = 'MONTH(tbl_leave.leave_start) >=';
+            $whatFld[] = 'MONTH(tbl_leave.leave_start) >=';*/
+
+            $sql_val .= "AND (MONTH(tbl_leave.leave_start) <= '" . $month ."' AND YEAR(tbl_leave.leave_start) ='" . $year . "')";
+            $sql_val .= " OR (MONTH(tbl_leave.leave_start) >= '" . date('m',$last_month) ."' AND YEAR(tbl_leave.leave_start) ='".date('Y',$last_month)."')";
         }
         if($id){
             $whatVal[] = $id;
             $whatFld[] = 'tbl_leave.user_id';
         }
+        $whatVal[] = $sql_val;
+        $whatFld[] = '';
+
         $acc_leave = $data->staff_leave_application($whatVal,$whatFld,false,false,true);
 
         $return = array();

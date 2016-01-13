@@ -217,9 +217,9 @@ ob_start();
                                         <td>Loan Repay:</td>
                                         <td>
                                             <?php
-                                            $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                            echo $thisBalance;
-                                            echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                            $thisBalance =  @$total_bal[$val['id']][$_year][$thisWeek]['balance'];
+                                            echo $thisBalance ? '$ '.$thisBalance : '';
+                                            echo $thisBalance > 0 ? ($val['installment'] ? '[$ '.number_format($val['installment'],2).']' : '[$ 0.00]') : '$ 0.00';
                                             ?>
                                         </td>
                                     </tr>
@@ -390,9 +390,9 @@ ob_start();
                                         <td>Loan Repay:</td>
                                         <td>
                                             <?php
-                                            $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                            echo $thisBalance;
-                                            echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                            $thisBalance =  @$total_bal[$val['id']][$_year][$thisWeek]['balance'];
+                                            echo $thisBalance ? '$ '.$thisBalance : '';
+                                            echo $thisBalance > 0 ? ($val['installment'] ? '[$ '.number_format($val['installment'],2).']' : '[$ 0.00]') : '$ 0.00';
                                             ?>
                                         </td>
                                     </tr>
@@ -593,9 +593,9 @@ ob_start();
                                         <td>Loan Repay:</td>
                                         <td>
                                             <?php
-                                            $thisBalance =  @$total_bal[$v][$val['id']]['balance'];
-                                            echo $thisBalance;
-                                            echo $thisBalance > 0 ? ($val['installment'] ? '$ '.number_format($val['installment'],2) : '$ 0.00') : '$ 0.00';
+                                            $thisBalance =  @$total_bal[$val['id']][$_year][$thisWeek]['balance'];
+                                            echo $thisBalance ? '$ '.$thisBalance : '';
+                                            echo $thisBalance > 0 ? ($val['installment'] ? '[$ '.number_format($val['installment'],2).']' : '[$ 0.00]') : '$ 0.00';
                                             ?>
                                         </td>
                                     </tr>
@@ -848,7 +848,7 @@ ob_start();
                         <td class="text-right"><strong>ESCT:</strong></td>
                         <td><strong><?php echo '$ '.number_format($total_esct,2)?></strong></td>
                         <td class="text-right"><strong>To Bank:</strong></td>
-                        <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format(($total_dist + $total_final_pay),2)?></strong></td>
+                        <td style="background: #b2b2b2;color: #000000"><strong><?php echo '$ '.number_format(($total_dist + @$total_final_pay),2)?></strong></td>
                     </tr>
                 </table>
             </div>

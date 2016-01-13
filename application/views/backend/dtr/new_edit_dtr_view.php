@@ -91,6 +91,7 @@
                 $hoursValue = 0;
                 $holidayHours = 0;
                 $sickLeaveHours = 0;
+                $thisYear = $thisMonth != 12 && $week_number > 52 ? $thisYear - 1 : $thisYear;
                 $week_start = StartWeekNumber($week_number,$thisYear);
                 $_start_day = $week_start['start_day'];
                 $_end_day = $week_start['end_day'];
@@ -849,13 +850,40 @@
 
         $('.preview-btn').bind('click',function(e){
             e.preventDefault();
-            $(this).newForm.addLoadingForm();
+            $(this).newForm.addLoadingForm({
+                msg: 'Generating Pay Period Summary Report.'
+            });
+
+
             var myWindow = window.open(
                 this.href,
                 'Pay Period Summary Report'
             );
 
-            $.ajax(
+            if(myWindow.opener){
+                myWindow.close();
+                var Window = window.open(
+                    this.href,
+                    'Pay Period Summary Report'
+                );
+
+                $(Window.document).ready(function() {
+                    setTimeout(function (){
+                        location.reload();
+                        $(this).newForm.removeLoadingForm();
+                    },15000);
+                });
+            }
+            else{
+                $(myWindow.document).ready(function() {
+                    setTimeout(function (){
+                        location.reload();
+                        $(this).newForm.removeLoadingForm();
+                    },15000);
+                });
+            }
+
+            /*$.ajax(
                 {
                     url: bu + 'generateStaffPaySlip/' + week_ + '/' + month_ + '/' + year_ + '?g=1',
                     dataType: "html"
@@ -869,12 +897,13 @@
                     $(this).newForm.removeLoadingForm();
                     //location.reload();
                     console.log( "Request failed: " + textStatus );
-                });
-            /*$.post(bu + 'generateStaffPaySlip/' + week_ + '/' + month_ + '/' + year_ + '?g=1',{submit:1},function(data){
-                if(data){
-                    location.reload();
-                }
-            })*/
+                });*/
+
+            $.post(bu + 'generateStaffPaySlip/' + week_ + '/' + month_ + '/' + year_ + '?g=1',{submit:1},function(data){
+                //$(this).newForm.removeLoadingForm();
+                //location.reload();
+            });
+
         });
 
         $('.btn-submit-hours').live('click',function(e){
@@ -937,22 +966,36 @@
             });
 
             $('.yesBtn-confirm').live('click',function(){
-                $(this).newForm.addLoadingForm();
+                $(this).newForm.addLoadingForm({
+                    msg: 'Generating Pay..'
+                });
                 var has_return = 0;
                 $.post(bu + 'timeSheetEdit',{commit:1},
                      function($_data){
+                         $(this).newForm.removeLoadingForm({hideLoading: false});
+                         $(this).newForm.addLoadingForm({
+                             msg: 'Generating Pay Period Summary Report..'
+                         });
                          $.post(bu + 'payPeriodSummaryReport?print=1&week=' + week_ + '&month=' + month_ + '&year=' + year_,
                              {submit:1},
                              function(data_){
+                                 $(this).newForm.removeLoadingForm({hideLoading: false});
+                                 $(this).newForm.addLoadingForm({
+                                     msg: 'Generating Email..'
+                                 });
                                  $.post(bu + 'timeSheetEdit',
                                      {
                                          send_mail:1
                                      },
                                      function($_data_){
+                                         $(this).newForm.removeLoadingForm({hideLoading: false});
+                                         $(this).newForm.addLoadingForm({
+                                             msg: 'Exporting Pay Values..'
+                                         });
+                                         location.replace(bu + 'timeSheetEdit');
                                          $.post(bu + 'exportPayValues/' + week_ + '/' + month_ + '/' + year_,{submit:1},function(data){
-                                             has_return = 1;
                                              $(this).newForm.removeLoadingForm();
-                                             location.replace(bu + 'timeSheetEdit');
+                                             has_return = 1;
                                          });
                                      }
                                  );

@@ -36,8 +36,13 @@ class Admin_Extends_Controller extends Admin_Controller{
                 || count($_POST['notes']) > 0
             ){
                 foreach($_POST['topup_hours'] as $k=>$v){
+                    $ref = $k + 1;
+                    $whatVal = array($_POST['staff_id'],$_POST['week_number'],$_POST['date'],$ref);
+                    $whatFld = array('staff_id','week_num','date','reference');
+
+                    $record_exist = $this->my_model->getInfo('tbl_topup_hours',$whatVal,$whatFld);
+
                     if($v){
-                        $ref = $k + 1;
                         $post = array(
                             'topup_hours' => $v,
                             'staff_id' => $_POST['staff_id'],
@@ -47,11 +52,6 @@ class Admin_Extends_Controller extends Admin_Controller{
                             'week_num' => $_POST['week_number'],
                         );
 
-                        $whatVal = array($_POST['staff_id'],$_POST['week_number'],$_POST['date'],$ref);
-                        $whatFld = array('staff_id','week_num','date','reference');
-
-                        $record_exist = $this->my_model->getInfo('tbl_topup_hours',$whatVal,$whatFld);
-
                         if(count($record_exist) > 0){
                             foreach($record_exist as $val){
                                 $this->my_model->update('tbl_topup_hours',$post,$val->id);
@@ -59,6 +59,17 @@ class Admin_Extends_Controller extends Admin_Controller{
                         }
                         else{
                             $this->my_model->insert('tbl_topup_hours',$post,false);
+                        }
+                    }
+                    else{
+                        if(count($record_exist) > 0){
+                            foreach($record_exist as $val){
+                                $post = array(
+                                    'topup_hours' => 0,
+                                    'notes' => ''
+                                );
+                                $this->my_model->update('tbl_topup_hours',$post,$val->id);
+                            }
                         }
                     }
                 }

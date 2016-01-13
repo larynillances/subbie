@@ -580,6 +580,7 @@ class Admin_Controller extends Subbie{
         if($this->session->userdata('is_logged_in') === false){
             redirect('');
         }
+
         $this->data['year'] = getYear();
         $this->data['month'] = getMonth();
         $this->my_model->setNormalized('holiday_type','id');
@@ -653,7 +654,6 @@ class Admin_Controller extends Subbie{
         $staff_data = new Staff_Helper();
         $this->data['leave_data_approved'] = $staff_data->staff_leave_application(array(1),array('tbl_leave.decision'));
         $this->data['leave_data_pending'] = $staff_data->staff_leave_application(array(0),array('tbl_leave.decision'));
-
         $this->my_model->setJoin(array(
             'table' => array('tbl_registration','tbl_client'),
             'join_field' => array('id','id'),
@@ -1163,7 +1163,6 @@ class Admin_Controller extends Subbie{
             $_start_day = $week_start['start_day'];
             $_end_day = $week_start['end_day'];
             $calculate_acc_leave = $this->calculateTotalAccLeave('',$this->data['thisYear'],$this->data['thisMonth'],$this->data['thisWeek'],false);
-
             for ($whatDay = $_start_day; $whatDay <= $_end_day; $whatDay++){
                 $getDate = $dt->setISODate($this->data['thisYear'], $this->data['thisWeek'], $whatDay)->format('Y-m-d');
 
@@ -1237,7 +1236,7 @@ class Admin_Controller extends Subbie{
                                 'no_employee' => $val->staff_count,
                                 'locked' => $val->is_locked ? 'Yes' : 'No',
                                 'year' => date('Y',strtotime($val->date)),
-                                'month' => date('m',strtotime($_added_days . $val->date)),
+                                'month' => date('m',strtotime(($ref <= 52 ? $_added_days : '') . $val->date)),
                                 'is_locked' => $val->is_locked ? 1 : 0,
                                 'total_pay' => '$'.number_format($val->total_wage,2),
                                 'total_paye' => '$'.number_format($val->total_paye,2),
@@ -1254,7 +1253,7 @@ class Admin_Controller extends Subbie{
                             'no_employee' => 0,
                             'locked' => 'No',
                             'year' => date('Y',strtotime($date)),
-                            'month' => date('m',strtotime($_added_days . $date)),
+                            'month' => date('m',strtotime(($ref <= 52 ? $_added_days : '') . $date)),
                             'is_locked' => 0,
                             'total_pay' => '$0.00',
                             'total_paye' => '$0.00',
@@ -3036,8 +3035,13 @@ class Admin_Controller extends Subbie{
                 || count($_POST['notes']) > 0
             ){
                 foreach($_POST['amount'] as $k=>$v){
+                    $ref = $k + 1;
+                    $whatVal = array($_POST['staff_id'],$_POST['week_number'],$_POST['date'],$ref);
+                    $whatFld = array('staff_id','week_number','date','reference');
+
+                    $record_exist = $this->my_model->getInfo('tbl_adjustment',$whatVal,$whatFld);
+
                     if($v){
-                        $ref = $k + 1;
                         $post = array(
                             'amount' => $v,
                             'staff_id' => $_POST['staff_id'],
@@ -3048,10 +3052,6 @@ class Admin_Controller extends Subbie{
                             'week_number' => $_POST['week_number'],
                         );
 
-                        $whatVal = array($_POST['staff_id'],$_POST['week_number'],$_POST['date'],$ref);
-                        $whatFld = array('staff_id','week_number','date','reference');
-
-                        $record_exist = $this->my_model->getInfo('tbl_adjustment',$whatVal,$whatFld);
 
                         if(count($record_exist) > 0){
                             foreach($record_exist as $val){
@@ -3060,6 +3060,18 @@ class Admin_Controller extends Subbie{
                         }
                         else{
                             $this->my_model->insert('tbl_adjustment',$post,false);
+                        }
+                    }
+                    else{
+                        if(count($record_exist) > 0){
+                            foreach($record_exist as $val){
+                                $post = array(
+                                    'amount' => 0,
+                                    'adjustment_type_id' => 0,
+                                    'notes' => ''
+                                );
+                                $this->my_model->update('tbl_adjustment',$post,$val->id);
+                            }
                         }
                     }
                 }

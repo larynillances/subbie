@@ -37,13 +37,14 @@ echo form_close();
             <?php
             if(count($staff) > 0){
                 foreach($staff as $row){
-                    $financial_year = date('');
+                    $financial_year = date('M-d-Y',mktime(0,0,0,4,1,date('Y',strtotime($_year)))) .' to ';
+                    $financial_year .= date('M-d-Y',mktime(0,0,0,3,31,date('Y',strtotime('+1 year '.$_year))));
                     ?>
                     <tr>
                         <td style="text-align: left!important;"><?php echo $row->fname.' '.$row->lname;?></td>
                         <td><?php echo '$ '.number_format($row->earn_gross,2);?></td>
                         <td><?php echo '$ '.number_format($row->earn_nett,2);?></td>
-                        <td><?php echo $row->financial_year;?></td>
+                        <td><?php echo $row->financial_year ? $row->financial_year : $financial_year;?></td>
                         <td style="white-space: nowrap;width: 15%;">
                             <a href="<?php echo base_url('yearToDateReport/summary/'.$row->id)?>" class="tooltip-class" title="Show All Summary" data-placement="left">Summary</a>
                         </td>

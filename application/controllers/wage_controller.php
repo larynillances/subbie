@@ -172,7 +172,7 @@ class Wage_Controller extends CI_Controller{
             'accommodation','transport'
         ),'tbl_deductions.');
         $staff = ArrayWalk(array(
-            'id','tax_number','installment','balance',
+            'id','tax_number','installment','balance', 'balance as start_balance',
             'nz_account','account_two','date_employed'
         ),'tbl_staff.');
 
@@ -189,37 +189,35 @@ class Wage_Controller extends CI_Controller{
         if($id){
             $whatVal = 'UNIX_TIMESTAMP (date) < " '. $date .' " AND tbl_login_sheet.staff_id ="' . $id . '"';
         }else{
-            $whatVal = 'UNIX_TIMESTAMP (date) < " '. $date .' "';
+            $whatVal = 'UNIX_TIMESTAMP (date) < " '. $date .' " AND has_loans = 1';
         }
 
         $this->my_model->setOrder(array('_year','_week'));
         $this->my_model->setGroupBy(array('tbl_staff.id','w'));
         $d = $this->my_model->getInfo('tbl_staff',$whatVal,'');
         $total_bal = array();
-        $total_visa_deduct = 0;
-        $total_flight_deduct = 0;
-        $total_installment = 0;
+        $total_visa_deduct = array();
+        $total_flight_deduct = array();
+        $total_installment = array();
         if(count($d) > 0){
             foreach($d as $val){
-                $total_visa_deduct += $val->visa_deduct;
-                $total_flight_deduct += $val->flight_deduct;
-                $total_installment += $val->installment;
+                @$total_visa_deduct[$val->id] += $val->visa_deduct;
+                @$total_flight_deduct[$val->id] += $val->flight_deduct;
+                @$total_installment[$val->id] += $val->installment;
 
-                $visa_debt = ($val->visa_debt - $total_visa_deduct);
-                $flight_debt = ($val->flight_debt - $total_visa_deduct);
-                $loans = ($val->balance - $total_installment);
-
+                $visa_debt = ($val->visa_debt - @$total_visa_deduct[$val->id]);
+                $flight_debt = ($val->flight_debt - @$total_flight_deduct[$val->id]);
+                $loans = ($val->balance - @$total_installment[$val->id]);
                 if($visa_debt >= 0 || $flight_debt >= 0 || $loans >= 0){
                     $total_bal[$val->id][date('Y',strtotime($val->_date))][$val->_week] = array(
                         'visa_debt' => $visa_debt > 0 ? ($visa_debt >= $val->visa_deduct ? $visa_debt : $val->visa_deduct) : 0,
                         'flight_debt' => $flight_debt > 0 ? ($flight_debt >= $val->flight_deduct ? $flight_debt : $val->flight_deduct) : 0,
                         'balance' => $loans > 0 ? ($loans >= $val->installment ? $loans : $val->installment) : 0,
-                        'start_balance' => $val->balance
+                        'start_balance' => $val->start_balance
                     );
                 }
             }
         }
-
         return $total_bal;
     }
 

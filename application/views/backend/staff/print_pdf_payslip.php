@@ -427,10 +427,10 @@ ob_start();
                                    <?php echo $v->nz_account ? 'PHP One(self)' : '&nbsp;'?>
                                 </td>
                                 <td style="text-align: center;">
-                                    <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : 'Holiday <span style="color: #ff0000">(' .$total_holiday_leave.')</span>'?></strong>
+                                    <strong><?php echo $v->nz_account ? 'PHP Two(wife)' : '&nbsp;'/*'Holiday <span style="color: #ff0000">(' .$total_holiday_leave.')</span>'*/?></strong>
                                 </td>
                                 <td style="text-align: center;">
-                                    <strong><?php echo $v->nz_account ? 'NZ ACC' : 'Sick Leave <span style="color: #ff0000">(' .$total_sick_leave.')</span>'?></strong>
+                                    <strong><?php echo $v->nz_account ? 'NZ ACC' : '&nbsp;'/*'Sick Leave <span style="color: #ff0000">(' .$total_sick_leave.')</span>'*/?></strong>
                                 </td>
                             </tr>
                             <tr>
@@ -521,7 +521,7 @@ ob_start();
                                     <?php
                                     }else{
                                         ?>
-                                        <table class="inner-table">
+                                        <!--<table class="inner-table">
                                             <thead>
                                             <tr>
                                                 <th style="width: 50%;">Remaining</th>
@@ -530,11 +530,11 @@ ob_start();
                                             </thead>
                                             <tbody>
                                             <tr>
-                                                <td style="padding-right: 10px;"><?php echo $total_holiday_leave?></td>
+                                                <td style="padding-right: 10px;"><?php /*echo $total_holiday_leave*/?></td>
                                                 <td style="padding-right: 10px;">0</td>
                                             </tr>
                                             </tbody>
-                                        </table>
+                                        </table>-->
                                     <?php
                                     }?>
                                 </td>
@@ -562,7 +562,7 @@ ob_start();
                                     <?php
                                     }else{
                                         ?>
-                                        <table class="inner-table">
+                                        <!--<table class="inner-table">
                                             <thead>
                                             <tr>
                                                 <th style="width: 50%;">Remaining</th>
@@ -571,11 +571,11 @@ ob_start();
                                             </thead>
                                             <tbody>
                                             <tr>
-                                                <td style="padding-right: 10px;"><?php echo $total_sick_leave?></td>
+                                                <td style="padding-right: 10px;"><?php /*echo $total_sick_leave*/?></td>
                                                 <td style="padding-right: 10px;">0</td>
                                             </tr>
                                             </tbody>
-                                        </table>
+                                        </table>-->
                                     <?php
                                     }?>
                                 </td>

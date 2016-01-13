@@ -27,10 +27,12 @@ if ( ! function_exists('BreakTimeDeduction'))
         if($time_in && $time_out){
 
             $afternoon = strtotime(date('g:i a',strtotime($time_out)));
+            $morning = strtotime(date('g:i a',strtotime($time_in)));
             $afternoon_time = strtotime("01:30 pm");
+            $morning_time = strtotime("12:00 pm");
             $is_afternoon = ($afternoon - $afternoon_time);
-
-            if($is_afternoon >= 0){
+            $is_morning = ($morning - $morning_time);
+            if($is_morning <= 0 && $is_afternoon >= 0){
                 $total_deduction += $is_seconds ? (30 * 60) :0.50;
             }
         }

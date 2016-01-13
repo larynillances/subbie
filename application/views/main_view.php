@@ -56,6 +56,7 @@
     <script src="<?php echo base_url() . "plugins/js/email.validation.js"; ?>"></script>
     <script src="<?php echo base_url() . "plugins/multi-select/js/bootstrap-multiselect.js" ?>"></script>
     <script src="<?php echo base_url() . "plugins/js/fileinput.js" ?>"></script>
+    <script src="<?php echo base_url() . "plugins/js/jquery.numeric.js" ?>"></script>
     <script>
         $.ajaxSetup({ cache: true });
         jQuery(document).ready(function($){

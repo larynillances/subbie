@@ -419,6 +419,7 @@ class Staff_Helper extends CI_Controller{
             $this->my_model->setConfig(5,0,true);
         }
         $leave = $this->my_model->getInfo('tbl_leave',$whatVal,$whatFld);
+
         $leave_ = array();
         $leave_data = array();
         if(count($leave) > 0){
