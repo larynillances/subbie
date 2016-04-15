@@ -1,0 +1,126 @@
+<?php
+date_default_timezone_set('Pacific/Auckland');
+require_once(realpath(APPPATH ."../plugins/dompdf/dompdf_config.inc.php"));
+ini_set("upload_max_filesize","1024M");
+ini_set("memory_limit","1024M");
+ini_set('post_max_size', '1024M');
+ini_set('max_input_time', 900000000);
+ini_set('max_execution_time', 900000000);
+set_time_limit(900000000);
+ob_start();
+?>
+<html>
+<head>
+    <style>
+        #dietSheetTable{
+            width: 950px;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin: 5px auto;
+        }
+        #dietSheetTable tr:nth-child(3) th{
+            padding: 4px;
+            border: 1px solid #000000;
+            color: #e9e9e9;
+            border: solid 1px #555;
+            background: #6e6e6e;
+            background: -webkit-gradient(linear, left top, left bottom, from(#888), to(#575757));
+            background: -moz-linear-gradient(top,  #888,  #575757);
+            filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#888888', endColorstr='#575757');
+        }
+        #dietSheetTable tr td{
+            white-space: nowrap;
+            border: 1px solid #000000;
+            text-align: center;
+        }
+        #dietSheetTable tr:nth-child(2) th{
+            color: #ff0000;
+            padding: 5px;
+        }
+        #dietSheetTable tr td:first-child{
+            background: #B7CFD9;
+        }
+        .logo{
+
+            width: 250px;
+        }
+        #dietSheetTable tr th:first-child{
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+<script type="text/php">
+    if ( isset($pdf) ) {
+    $font = Font_Metrics::get_font("verdana");;
+    $size = 6;
+    $color = array(0,0,0);
+    $text_height = Font_Metrics::get_font_height($font, $size);
+
+    $foot = $pdf->open_object();
+
+    $w = $pdf->get_width();
+    $h = $pdf->get_height();
+
+    // Draw a line along the bottom
+    $y = $h - $text_height - 24;
+    $pdf->line(16, $y, $w - 16, $y, $color, 0.5);
+
+    $pdf->close_object();
+    $pdf->add_object($foot, "all");
+
+    $text = "Page {PAGE_NUM} of {PAGE_COUNT}";
+    // Center the text
+    $width = Font_Metrics::get_text_width("Page 1 of 2", $font, $size);
+    $pdf->page_text($w / 2 - $width / 2, $y, $text, $font, $size, $color);
+    }
+</script>
+<table id="dietSheetTable">
+    <tr>
+        <th colspan="12">
+        </th>
+    </tr>
+    <tr>
+    </tr>
+    <tr>
+        <th>Supplement</th>
+        <th>Wet Weight per cow</th>
+        <th>DM%</th>
+        <th>Amount kgDM/cow/day	</th>
+        <th>CP%	</th>
+        <th>Total CP (kg/cow)</th>
+        <th>MJME/kgDM</th>
+        <th>Total kgME cow/day</th>
+        <th>Cost per KgDM $</th>
+        <th>Total cost cow/day $</th>
+        <th>Total cost /day $</th>
+        <th>Wet weight required daily (kg)</th>
+    </tr>
+</table>
+</body>
+</html>
+
+<?php
+$html = ob_get_clean();
+
+$dompdf = new DOMPDF();
+$dompdf->load_html($html);
+$dompdf->set_paper("A4", "landscape");
+
+$dompdf->render();
+
+// The next call will store the entire PDF as a string in $pdf
+$pdf = $dompdf->output();
+
+// You can now write $pdf to disk, store it in a database or stream it
+// to the client.
+
+$dirdate = date('j F Y',strtotime($dateVal));
+$dirdate = '';
+foreach($dateVal as $dvKey=>$dvVal){
+$dirdate = date('j F Y',strtotime($dvVal));
+}
+$direc = "pdf/".$dirdate;
+@ $dompdf->stream($direc.'/'.$dirdate.".pdf",array("Attachment" => 0));
+@ file_put_contents($direc.'/'.$dirdate.".pdf", $pdf);
+?>

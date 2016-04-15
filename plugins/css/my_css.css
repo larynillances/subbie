@@ -1,0 +1,197 @@
+.table-colored-header{
+    font-size: 12px!important;
+}
+.table-colored-header > thead > tr > th{
+    /*text-transform: uppercase!important;*/
+    font-size: 11px!important;
+    background: #484848;
+    border: 1px solid #d2d2d2;
+    color: #ffffff;
+    text-align: center;
+    vertical-align: middle;
+}
+.table-colored-header > tbody > tr > td{
+    border: 1px solid #d2d2d2;
+    text-align: center;
+    padding: 4px 5px;
+    vertical-align: middle;
+}
+.align-right{
+    text-align: right!important;
+}
+.align-left{
+    text-align: left!important;
+}
+.align-center{
+    text-align: center!important;
+}
+.font-bold{
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.grey-background{
+    background: #a8a8a8;
+}
+.table-invoice > thead > tr > th{
+    text-align: center;
+    font-weight: bold;
+    background: #a8a8a8;
+    border: 2px solid #000000;
+}
+.table-invoice > tbody > tr > td{
+    text-align: center;
+    border-left: 2px solid #000000;
+    padding: 3px!important;
+}
+.table-invoice > tbody > tr > td:last-child{
+    border-right: 2px solid #000000;
+}
+.border-top{
+    border-top: 2px solid #000000!important;
+}
+.border-bottom{
+    border-bottom: 2px solid #000000!important;
+}
+.total{
+    border-right: 2px solid #000000;
+}
+.clear-style{
+    border: none!important;
+    background: none!important;
+    text-align: left!important;
+}
+.no-left-border{
+    border-left: none;
+    border-right: 2px solid #000000;
+}
+form{
+    font-size: 12px!important;
+}
+.btn-flat{
+    border: none;
+    color: #ffffff;
+    background: #3c3c3c;
+    text-decoration: none;
+    padding: 5px 20px;
+}
+.btn-flat:hover{
+    text-decoration: none;
+    background: #737373;
+    color: #FFFFff;
+}
+.table-order tbody tr:last-child td{
+    border-bottom: 2px solid #000000;
+}
+.table-order tbody tr td.tbl-footer{
+    text-align: right;
+    font-weight: bold;
+}
+
+table .header-fixed {
+    position: fixed;
+    top: 40px;
+    z-index: 1020; /* 10 less than .navbar-fixed to prevent any overlap */
+    border-bottom: 1px solid #d5d5d5;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    border-radius: 0;
+    -webkit-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+    -moz-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+    box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled=false); /* IE6-9 */
+}
+.value-class{
+    color: #ff0000;
+    font-weight: bold;
+}
+.rotate{
+    /* Safari */
+    -webkit-transform: rotate(-90deg)!important;
+
+    /* Firefox */
+    -moz-transform: rotate(-90deg)!important;
+
+    /* IE */
+    -ms-transform: rotate(-90deg)!important;
+
+    /* Opera */
+    -o-transform: rotate(-90deg)!important;
+
+    /* Internet Explorer */
+    filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+.ui-datepicker-trigger{
+    width: 20px;
+}
+.badge{
+    position: absolute;
+    margin: -5px 15px;
+    font-size: 11px!important;
+    background: #ff4433;
+    font-weight: normal;
+}
+.msg-link{
+    color: #000000;
+}
+.msg-link:hover{
+    color: #000000;
+    text-decoration: none;
+}
+
+.notification-class ul{
+    margin-left: -35px;
+}
+.notification-class ul li{
+    list-style: none;
+}
+.notification-class ul li a:hover{
+    text-decoration: underline;
+}
+
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu > .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -6px;
+    margin-left: -1px;
+    -webkit-border-radius: 0 6px 6px 6px;
+    -moz-border-radius: 0 6px 6px;
+    border-radius: 0 6px 6px 6px;
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+    display: block;
+}
+
+.dropdown-submenu > a:after {
+    display: block;
+    content: " ";
+    float: right;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 5px 0 5px 5px;
+    border-left-color: #ccc;
+    margin-top: 5px;
+    margin-right: -10px;
+}
+
+.dropdown-submenu:hover > a:after {
+    border-left-color: #fff;
+}
+
+.dropdown-submenu.pull-left {
+    float: none;
+}
+
+.dropdown-submenu.pull-left>.dropdown-menu {
+    left: -100%;
+    margin-left: 10px;
+    -webkit-border-radius: 6px 0 6px 6px;
+    -moz-border-radius: 6px 0 6px 6px;
+    border-radius: 6px 0 6px 6px;
+}

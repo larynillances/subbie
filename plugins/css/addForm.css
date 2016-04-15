@@ -1,0 +1,45 @@
+#overlay{display:none;background:#000;height:100%;width:100%;position:fixed;left:0;top:0;z-index:9999!important}
+
+#customForm{
+    display:none;
+    position:absolute;
+    left:50%;
+    top:50%;
+    z-index:9999!important;
+    margin:-100px 0 0 -200px;
+
+    font-family:Arial, sans-serif;
+    background:#FFF repeat;
+    border-radius: 0!important;
+}
+
+#customFormHeader{
+    padding:5px 10px!important;
+    color:#FFF;
+    font-size: 18px;
+    border-radius: 0!important;
+}
+
+#closedCustomForm{
+    float:right;
+    margin:-2px -2px;
+    cursor:pointer;
+    color:#FFF;
+    font-family: Calibri, sans-serif;
+}
+
+#customFormContent{
+    padding:10px;
+}
+
+#loadingForm{
+    position: absolute;
+    z-index: 99999!important;
+    left:50%;
+    top:50%;
+
+    background: #333333;
+    border: 1px solid #f0f0f0;
+    padding: 10px;
+    text-align: center;
+}

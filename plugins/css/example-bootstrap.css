@@ -1,0 +1,130 @@
+/* 
+ * This file is generated from examples/example-bootstrap.less.
+ * Do not edit the .css file, instead, edit the .less file and
+ * recompile it!
+ */
+/* Needs to import variables.less for font size and colors.
+ * The following values will be used:
+
+@baseFontSize:          14px;
+@tableBorder:           #ddd; // table and cell border
+@linkColor:             #08c;
+@tableBackgroundAccent: #f9f9f9; // for striping
+@grayDark:              #333;
+@textColor:             @grayDark;
+@navbarLinkColorHover:  @grayDark;
+
+*/
+/* Mixins for SlickGrid */
+/* Used from variables.less:
+ *
+ * @baseFontSize (unless, font size is passed as an option)
+ * @tableBorder
+ * @linkColor
+ * @tableBackgroundAccent
+ * @textColor
+ * @navbarLinkColorHover
+ *
+ * This means that if you have an updated variable.less, the grid will
+ * follow your changes.
+ *
+ * Example usage:
+ *
+ * 
+    @import "variables.less";
+    @import "../bootstrap/slickgrid.less";
+
+    .grid {
+        // Set dimensions
+        height: 380px;  // for 10 rows x 35px
+        width: 800px;
+
+        // Apply all grid styles
+        .SlickGrid();
+
+        // Add a bottom border to the grid.
+        border-bottom: 1px solid @tableBorder;
+    }
+
+ *
+ */
+.grid {
+  height: 380px;
+  width: 100%;
+  position: relative;
+  border-bottom: 1px solid #dddddd;
+  font-family: arial, sans-serif!important;
+}
+.grid input[type="checkbox"] {
+  vertical-align: baseline;
+  margin: 0;
+}
+.ui-widget .slick-viewport {
+  border-top: 1px solid #dddddd;
+  overflow-x:hidden!important;
+}
+.grid .grid-canvas {
+  /* XXX ... needed ? */
+
+}
+.grid .grid-canvas .slick-row {
+  position: absolute;
+  width: 100%;
+}
+.grid .grid-canvas .slick-cell,
+.grid .grid-canvas .slick-headerrow-column {
+  border-top: 0;
+  border-bottom: 0;
+  border-right: 0;
+}
+.grid .grid-canvas .even {
+  background: #e2e2e2;
+}
+.grid .grid-canvas .slick-cell {
+  padding: 7px 5px 0!important;
+  font-size: 12px;
+}
+.grid .grid-canvas .slick-cell td {
+  font-size: 12px;
+}
+.grid .grid-canvas .slick-cell a,
+.grid .grid-canvas .slick-cell a:visited,
+.grid .grid-canvas .slick-cell .ui-widget-content a,
+.grid .grid-canvas .slick-cell .ui-widget-content a:visited {
+  color: #0088cc;
+  text-decoration: none;
+}
+.grid .grid-canvas .slick-cell a:hover,
+.grid .grid-canvas .slick-cell .ui-widget-content a:hover {
+  color: #005580;
+  text-decoration: none;
+  border-bottom: none;
+}
+.grid .slick-header {
+  border-top: 0;
+  border-bottom: 0;
+}
+.grid .slick-header-columns {
+  background: transparent;
+  text-align: center!important;
+}
+.grid .slick-header-columns .slick-header-column {
+  height: 20px;
+  /* like TH  */
+  background: #484848;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #ffffff;
+  font-weight: bold;
+}
+.grid .slick-header-columns .slick-header-column.ui-state-default {
+  font-size: 12px;
+  /*text-align: center!important;*/
+}
+.grid .slick-header-columns .slick-header-column.ui-state-default td {
+  font-size: 12px;
+}
+.ui-widget-content.slick-row{
+    border-bottom: 1px solid #000000;
+}
+
+

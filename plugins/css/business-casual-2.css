@@ -1,0 +1,165 @@
+/*!
+ * Start Bootstrap - Business Casual Bootstrap Theme (http://startbootstrap.com)
+ * Code licensed under the Apache License v2.0.
+ * For details, see http://www.apache.org/licenses/LICENSE-2.0.
+ */
+
+body {
+    font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    background: url('../../images/home/painting-bg.jpg') no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    background-size: cover;
+    -o-background-size: cover;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    text-transform: uppercase;
+    font-family: "Josefin Slab","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+p {
+    font-size: 1.25em;
+    line-height: 1.6;
+    color: #000;
+}
+
+hr {
+    max-width: 400px;
+    border-color: #999999;
+}
+a{
+    color: #000000;
+    text-shadow: 1px 1px 1px #000;
+}
+.navbar-brand {
+    font-family: "Calliehand", "MV Boli", sans-serif;
+    /*font-family: "Josefin Slab","Helvetica Neue",Helvetica,Arial,sans-serif;*/
+    /*font-style: italic;*/
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 3px;
+    font-size: 2.2em;
+    text-shadow: 1px 2px 1px #000;
+    margin-top: -30px;
+}
+.navbar-default{
+    background: none;
+    border: none;
+}
+.navbar-brand img{
+    width: 80px;
+}
+#navbar > ul > li > a{
+    text-transform: uppercase;
+}
+
+@media screen and (min-width:300px) {
+    .navbar-brand {
+        font-family: "Calliehand", "MV Boli", sans-serif;
+        /*font-family: "Josefin Slab","Helvetica Neue",Helvetica,Arial,sans-serif;*/
+        /*font-style: italic;*/
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        font-size: 1em;
+        color: #000000!important;
+        text-shadow: 1px 2px 1px #000;
+    }
+
+    .navbar-brand img{
+        width: 50px;
+    }
+
+    #navbar > ul > li > a{
+        text-transform: uppercase;
+        color: #000000;
+    }
+
+    #navbar > ul > li > a:hover{
+        background: #cdcdcd;
+        color: #585858;
+    }
+
+    .container-fluid{
+        min-height: 200px;
+    }
+}
+
+@media screen and (min-height:300px) and (min-width:768px) {
+    .container-fluid{
+        min-height: 200px;
+    }
+
+    .navbar-brand {
+        font-family: "Calliehand", "MV Boli", sans-serif;
+        /*font-family: "Josefin Slab","Helvetica Neue",Helvetica,Arial,sans-serif;*/
+        /*font-style: italic;*/
+        text-transform: uppercase;
+        font-weight: 900;
+        letter-spacing: 3px;
+        font-size: 2.2em;
+        text-shadow: 1px 2px 1px #000;
+        margin-top: -30px;
+        color: #000000!important;
+    }
+    .navbar-default{
+        background: none;
+        border: none;
+    }
+    .navbar-brand img{
+        width: 80px;
+    }
+    #navbar > ul > li > a{
+        text-transform: uppercase;
+        color: #000000;
+    }
+
+    #navbar > ul > li > a:hover{
+        background: #cdcdcd;
+        color: #585858;
+    }
+}
+
+@media screen and (min-height:650px) and (min-width:1000px) {
+    .container-fluid{
+        min-height: 400px;
+    }
+
+    .navbar-brand {
+        font-family: "Calliehand", "MV Boli", sans-serif;
+        /*font-family: "Josefin Slab","Helvetica Neue",Helvetica,Arial,sans-serif;*/
+        /*font-style: italic;*/
+        text-transform: uppercase;
+        font-weight: 900;
+        letter-spacing: 3px;
+        font-size: 2.2em;
+        text-shadow: 1px 2px 1px #000;
+        margin-top: -30px;
+        color: #000000!important;
+    }
+    .navbar-default{
+        background: none;
+        border: none;
+    }
+    .navbar-brand img{
+        width: 80px;
+    }
+    #navbar > ul > li > a{
+        text-transform: uppercase;
+        color: #000000;
+    }
+
+    #navbar > ul > li > a:hover{
+        background: #cdcdcd;
+        color: #585858;
+    }
+}
