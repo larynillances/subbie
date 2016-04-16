@@ -393,7 +393,6 @@ ob_start();
             }
             else{
                 ?>
-
                 <tr class="border-top">
                     <td rowspan="4" colspan="4" class="align-left" style="border-bottom: 2px solid #000000;">
                         <?php echo $terms_trade;?>
