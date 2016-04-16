@@ -64,8 +64,10 @@ class Leave_Controller extends Subbie{
         $leave = $this->my_model->getInfo('tbl_leave', $whatVal, $whatField);
         if(count($leave) > 0){
             foreach($leave as $v){
-                $days_diff = $this->getLeaveDaysCount($v->leave_start, $v->leave_end, $holidays_array);
+                $days_diff = $this->getLeaveDaysCount($v->leave_start, $v->leave_end,array());
                 $v->duration = $days_diff;
+                $days_diff = $this->getLeaveDaysCount($v->leave_start, $v->leave_end, $holidays_array,true);
+                $v->actual_leave = $days_diff;
             }
         }
         $this->data['leave'] = json_encode($leave, JSON_NUMERIC_CHECK);
@@ -149,7 +151,7 @@ class Leave_Controller extends Subbie{
                     $post = array(
                         'date' => date('Y-m-d H:i:s'),
                         'user_id' => $this->session->userdata('user_id'),
-                        'staff_id' => $user_id,
+                        'staff_id' => $userInfo->id,
                         'type' => $debugResult->type,
                         'message' => json_encode($sendMailSetting),
                         'debug' => $debugResult->debug
@@ -328,18 +330,18 @@ class Leave_Controller extends Subbie{
         $changesAny = isset($_GET['any']) ? $_GET['any'] : 0;
 
         if($name){
-            $whatField[] = 'CONCAT(tbl_staff.fname, " ", tbl_staff.lname) LIKE';
+            $whatField[] = 'tbl_user.name LIKE';
             $whatVal[] = $name;
         }
 
         $fields = ArrayWalk($this->my_model->getFields('tbl_leave_audit_log'), 'tbl_leave_audit_log.');
-        $fields[] = 'CONCAT(tbl_staff.fname, " ", tbl_staff.lname) as name';
+        $fields[] = 'tbl_user.name';
         $fields[] = 'tbl_system_audit_update_type.initial as type';
 
         $this->my_model->setSelectFields($fields);
         $this->my_model->setOrder('tbl_leave_audit_log.date', 'DESC');
         $this->my_model->setJoin(array(
-            'table' => array('tbl_staff', 'tbl_system_audit_update_type'),
+            'table' => array('tbl_user', 'tbl_system_audit_update_type'),
             'join_field' => array('id', 'id'),
             'source_field' => array('tbl_leave_audit_log.user_id', 'tbl_leave_audit_log.update_type'),
             'type' => 'left'

@@ -100,4 +100,15 @@ class Admin_Extends_Controller extends Admin_Controller{
         }
     }
 
+    function annualLeaveLumpSum(){
+        if($this->session->userdata('is_logged_in') === false){
+            redirect('');
+        }
+        $staff_data = new Staff_Helper();
+        $hours_data = $staff_data->staff_total_hours();
+        //DisplayArray($hours_data);exit;
+        $this->data['page_load'] = 'backend/staff/annual_leave_lump_sum_view';
+        $this->load->view('main_view',$this->data);
+    }
+
 }

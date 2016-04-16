@@ -6,7 +6,7 @@
  *
  * @package		CodeIgniter
  * @author		ExpressionEngine Dev Team
- * @copyright	Copyright (c) 2008 - 2011, EllisLab, Inc.
+ * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc.
  * @license		http://codeigniter.com/user_guide/license.html
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -254,8 +254,9 @@ if ( ! function_exists('get_config'))
 			}
 		}
 
-		return $_config[0] =& $config;
-	}
+        $_config[0] =& $config;
+        return $_config[0];
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -295,7 +296,7 @@ if ( ! function_exists('config_item'))
 * This function lets us invoke the exception class and
 * display errors using the standard error template located
 * in application/errors/errors.php
-* This function will send the error pdf directly to the
+* This function will send the error page directly to the
 * browser and exit.
 *
 * @access	public

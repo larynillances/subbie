@@ -45,7 +45,8 @@ switch($this->session->userdata('account_type')){
                 'employerMonthlySched' => 'Employer Monthly Schedule',
                 'yearToDateReport' => 'YTD Report',
                 'employeeFinalPay' => 'Final Pay',
-                'adjustmentsReport' => 'Adjustments Report'
+                'adjustmentsReport' => 'Adjustments Report',
+                'annualLeaveLumpSum' => 'Annual Leave Lump Sum'
             ),
             'outstandingBalance' => 'Outstanding',
             'PDF Archive' => array(

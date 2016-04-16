@@ -2,6 +2,8 @@
 
 class Staff_Helper extends CI_Controller{
 
+    var $settings;
+
     function index(){
         DisplayArray($this->hours_rendered());
     }
@@ -20,8 +22,7 @@ class Staff_Helper extends CI_Controller{
 
         $this->my_model->setGroupBy(array('staff_id','week_year'));
         $this->my_model->setOrder('week_year');
-        $whatVal = '';
-        $whatFld = '';
+
         $dtr = $this->my_model->getinfo('tbl_login_sheet');
         $data = array();
 
@@ -139,6 +140,9 @@ class Staff_Helper extends CI_Controller{
 
         $this->my_model->setGroupBy('tbl_staff.id');
         $this->my_model->setOrder(array('lname','fname'));
+
+        $this->settings = $this->my_model->model_config;
+
         $data = $this->my_model->getinfo('tbl_staff',$what_val,$what_fld);
 
         $rate = $this->staff_rate();
@@ -241,6 +245,119 @@ class Staff_Helper extends CI_Controller{
         return $rate_data;
     }
 
+    function staff_total_hours($id = '',$year_month = '',$week_year = '', $start_week_range = '',$end_week_range = '',$is_yearly = false){
+        $whatVal = array();
+        $whatFld = array();
+        if($id){
+            $whatVal[] = $id;
+            $whatFld[] = 'staff_id';
+        }
+        if($week_year){
+            $whatVal[] = $week_year;
+            $whatFld[] = 'week_year';
+        }
+        if($start_week_range && $end_week_range){
+            $whatVal[] = 'date >= "' . $start_week_range .'" AND date <= "' . $end_week_range .'"';
+            $whatFld[] = '';
+        }
+        if($year_month){
+            $whatVal[] = $year_month;
+            $whatFld[] = 'EXTRACT(YEAR_MONTH FROM date) =';
+        }
+
+        $fld = array(
+            'SUM(
+                IF(time_out != "" AND time_in != "",
+                    FORMAT(TIMESTAMPDIFF(SECOND, time_in, time_out) / 3600 - (
+                        IF(
+                            TIME(DATE_FORMAT(time_in ,  "%H:%i:%s" )) <= MAKETIME( 12, 00, 0 ) AND TIME(DATE_FORMAT(time_out ,  "%H:%i:%s" )) >= MAKETIME( 13, 30, 0 ),
+                            0.50,
+                            0)
+                        ),
+                    2),
+                0)
+            ) as hours',
+            'time_in','time_out','staff_id','date',
+            'tbl_login_sheet.id as dtr_id','working_type_id','week_year'
+        );
+
+        if($is_yearly){
+            $this->my_model->setJoin(array(
+                'table' => array(
+                    'tbl_staff',
+                    'tbl_tax_codes',
+                    'tbl_wage_type'
+                ),
+                'join_field' => array(
+                    'id', 'id', 'id'
+                ),
+                'source_field' => array(
+                    'tbl_login_sheet.staff_id',
+                    'tbl_staff.tax_code_id',
+                    'tbl_staff.wage_type'
+                ),
+                'type' => 'left'
+            ));
+            $fld[] = 'tbl_wage_type.frequency as frequency_id';
+            $fld[] = 'tbl_tax_codes.field_code_name as field_code';
+        }
+
+        $this->my_model->setSelectFields($fld);
+
+        $this->my_model->setOrder(array('staff_id','date'));
+        $this->my_model->setGroupBy(array('staff_id','week_year'));
+        $dtr = $this->my_model->getinfo('tbl_login_sheet', $whatVal,$whatFld);
+
+        $data = array();
+        $arr = array();
+
+        $rate = $this->staff_rate();
+
+        if(count($dtr) > 0){
+            foreach($dtr as $v){
+                $v->days = $v->staff_id != 4 ? 5 : 6;
+                $v->rate_cost = 0;
+                if(count(@$rate[$v->staff_id]) > 0){
+                    foreach(@$rate[$v->staff_id] as $used_date=>$val){
+                        if(strtotime($used_date) <= strtotime($v->date)){
+                            $v->rate_name = $val->rate_name;
+                            $v->rate_cost = $val->rate;
+                            $v->start_use = $val->start_use;
+                        }
+                    }
+                }
+
+                $v->gross = ($v->hours * $v->rate_cost);
+
+                @$arr[$v->staff_id]['work_weeks'] += $v->hours > 0 ? 1 : 0;
+                @$arr[$v->staff_id]['hours'] += $v->hours;
+                @$arr[$v->staff_id]['rate'] += $v->gross;
+                $work_week = $arr[$v->staff_id]['work_weeks'];
+
+                $v->weeks = $work_week > 52 ? 52 : $work_week;
+                $v->total_hours = $arr[$v->staff_id]['hours'];
+                $v->total_rate = $arr[$v->staff_id]['rate'];
+
+                if($v->hours > 0){
+                    $v->daily_hours = ($v->total_hours / $v->weeks) / $v->days;
+                    $v->daily_gross = ($v->total_rate / $v->weeks) / $v->days;
+                    $v->ave_gross = ($v->total_rate / $v->weeks);
+                    $v->ave_hours = ($v->total_hours / $v->weeks);
+                    $v->formula_daily_gross = '(' . $v->total_rate . ' / ' . $v->weeks . ') / ' . $v->days;
+                }
+
+                if($is_yearly){
+                    $data[$v->staff_id] = $v;
+                }
+                else{
+                    $data[$v->staff_id][$v->week_year] = $v;
+                }
+            }
+        }
+
+        return $data;
+    }
+
     function staff_employment($desc = false){
         if($desc){
             $this->my_model->setOrder('date_employed','DESC');
@@ -269,29 +386,30 @@ class Staff_Helper extends CI_Controller{
     function stat_holiday($year = '',$month = '',$week = ''){
         $whatValue = array(3);
         $whatFld = array('type !=');
-
+        $sql_val = '';
         if($year){
             $whatValue[] = $year;
             $whatFld[] = 'YEAR(tbl_holiday.date) =';
         }
+        if($week){
+            $last_week = mktime(0, 0, 0, $month, 0, $year) - (7*3600*24);
+
+            $_week = new DateTime(date('Y-m-d',$last_week));
+            $sql_val .= "(WEEK(tbl_holiday.date) <= '" . $week ."' AND YEAR(tbl_holiday.date) ='" . $year . "')";
+            $sql_val .= " OR (WEEK(tbl_holiday.date) >= '" . $_week->format('W')."' AND YEAR(tbl_holiday.date) ='".$_week->format('Y')."')";
+        }
+
         if($month){
             $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
-            $whatValue[] = $month;
-            $whatFld[] = 'MONTH(tbl_holiday.date) <=';
-
-            $whatValue[] = date('m',$last_month);
-            $whatFld[] = 'MONTH(tbl_holiday.date) >=';
-        }
-        if($week){
-            $whatValue[] = $week;
-            $whatFld[] = 'WEEK(tbl_holiday.date,2) <=';
-
-            $whatValue[] = $week != 1 ? $week - 1 : 52;
-            $whatFld[] = 'WEEK(tbl_holiday.date,2) >=';
+            $sql_val .= $week ? 'AND' : '';
+            $sql_val .= "(MONTH(tbl_holiday.date) <= '" . $month ."' AND YEAR(tbl_holiday.date) ='" . $year . "')";
+            $sql_val .= " OR (MONTH(tbl_holiday.date) >= '" . date('m',$last_month) ."' AND YEAR(tbl_holiday.date) ='".date('Y',$last_month)."')";
         }
 
-
+        $whatValue[] = $sql_val;
+        $whatFld[] = '';
         $holiday = $this->my_model->getInfo('tbl_holiday',$whatValue,$whatFld);
+
         $data = array();
         if(count($holiday) > 0){
             foreach($holiday as $val){
@@ -304,18 +422,19 @@ class Staff_Helper extends CI_Controller{
     function top_up_hours($year,$month = '',$week_number = ''){
         $whatValue = array($year,$week_number);
         $whatFld = array('YEAR(date) =','week_num');
+        $sql_val = '';
         if($month){
             $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
-            $whatValue[] = $month;
-            $whatFld[] = 'MONTH(date) <=';
-
-            $whatValue[] = date('m',$last_month);
-            $whatFld[] = 'MONTH(date) >=';
+            $sql_val .= "(MONTH(date) <= '" . $month ."' AND YEAR(date) ='" . $year . "')";
+            $sql_val .= " OR (MONTH(date) >= '" . date('m',$last_month) ."' AND YEAR(date) ='".date('Y',$last_month)."')";
         }
         if($week_number){
             $whatValue[] = $week_number;
             $whatFld[] = 'week_num';
         }
+
+        $whatValue[] = $sql_val;
+        $whatFld[] = '';
 
         $adjustment = $this->my_model->getInfo('tbl_topup_hours',$whatValue,$whatFld);
         $data = array();
@@ -334,18 +453,20 @@ class Staff_Helper extends CI_Controller{
     function adjustment($year,$month = '',$week_number = ''){
         $whatValue = array($year,$week_number);
         $whatFld = array('YEAR(date) =','week_number');
+        $sql_val = '';
         if($month){
             $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
-            $whatValue[] = $month;
-            $whatFld[] = 'MONTH(date) <=';
-
-            $whatValue[] = date('m',$last_month);
-            $whatFld[] = 'MONTH(date) >=';
+            $sql_val .= "(MONTH(date) <= '" . $month ."' AND YEAR(date) ='" . $year . "')";
+            $sql_val .= " OR (MONTH(date) >= '" . date('m',$last_month) ."' AND YEAR(date) ='".date('Y',$last_month)."')";
         }
         if($week_number){
             $whatValue[] = $week_number;
             $whatFld[] = 'week_number';
         }
+
+        $whatValue[] = $sql_val;
+        $whatFld[] = '';
+
         $this->my_model->setJoin(array(
             'table' => array('tbl_adjustment_type'),
             'join_field' => array('id'),

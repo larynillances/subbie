@@ -203,6 +203,7 @@ if(in_array($account_type, array(1,2,4))) {
             {id: "reason", name: "Reason", field: "reason", width: 100, cssClass: "reason", formatter: htmlFormatter},
             {id: "range_date", name: "Range", field: "range_date", width: 150,cssClass:"text-center range"},
             {id: "duration", name: "Duration", field: "duration", width: 50,cssClass:"text-center"},
+            {id: "actual_leave", name: "AL", field: "actual_leave", width: 50,cssClass:"text-center"},
             {id: "status", name: "Status", field: "status", width: 50,cssClass:"text-center"},
             {id: "decision", name: "Decision", field: "reason_decision", width: 100,cssClass:"decision"},
             {id: "actioned_by", name: "Actioned By", field: "actioned_by", width: 80}

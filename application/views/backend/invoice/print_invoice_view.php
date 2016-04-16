@@ -39,6 +39,7 @@ ob_start();
             }
             .table-invoice > tbody > tr > td{
                 text-align: center;
+                border-right: 2px solid #000000;
                 border-left: 2px solid #000000;
                 padding: 2px;
                 font-size: 11px!important;
@@ -187,7 +188,7 @@ ob_start();
                     $inv_len += @count($iv->unit_price_array);
                     if($id == 19){
                         ?>
-                        <tr>
+                        <tr class="">
                             <td style="vertical-align: top;"><?php echo $iv->job_ref;?></td>
                             <td style="vertical-align: top;"><?php echo $iv->your_ref;?></td>
                             <td style="text-align: left;padding-left: 20px!important;"><?php echo $iv->work_description;?></td>
@@ -322,7 +323,8 @@ ob_start();
                 }
             }
 
-            $maxLen = $inv_len >= 29 ? 40 : 30;
+            //$maxLen = $inv_len >= 29 ? 40 : 30;
+            $maxLen = $id == 19 ? 8 : ($inv_len >= 29 ? 40 : 30);
 
             $len = $maxLen - $inv_len;
 
@@ -391,27 +393,26 @@ ob_start();
             }
             else{
                 ?>
-                <tr class="border-top border-bottom">
-                    <td rowspan="5" colspan="4" class="align-left" style="border-right: none;">
+
+                <tr class="border-top">
+                    <td rowspan="4" colspan="4" class="align-left" style="border-bottom: 2px solid #000000;">
                         <?php echo $terms_trade;?>
                     </td>
-                </tr>
-                <tr class="total border-top">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Sub Total</td>
-                    <td style="border: none;">
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000;">Sub Total</td>
+                    <td style="border-right: 2px solid #000000;border-bottom: none;">
                         <?php echo '$ '.number_format($subtotal,2);?>
                     </td>
                 </tr>
                 <tr class="total">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Rate</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Rate</td>
                     <td style="border: none;"><?php echo '15%';?></td>
                 </tr>
                 <tr class="total">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Total</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Total</td>
                     <td style="border: none;"><?php echo '$ '.number_format($subtotal * 0.15,2);?></td>
                 </tr>
                 <tr class="total border-bottom">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Total</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">Total</td>
                     <td style="border: none; font-weight: bold">
                         <?php
                         $total = $subtotal + ($subtotal * 0.15);
@@ -433,9 +434,9 @@ ob_start();
 $html = ob_get_clean();
 
 $domPdf = new DOMPDF();
-
+$orientation = $id == 19 ? 'landscape' : 'portrait';
 $domPdf->load_html($html,'UTF-8');
-$domPdf->set_paper('A4', "portrait");
+$domPdf->set_paper('A4', $orientation);
 
 $domPdf->render();
 

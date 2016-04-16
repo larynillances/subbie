@@ -833,6 +833,7 @@ class Admin_Controller extends Subbie{
                                 $post         = array(
                                     'staff_id' => $staff->id,
                                     'date' => $getDate,
+                                    'week_year' => $this->data['thisWeek'].'-'.$_POST['year'],
                                     'time_in' => $getDate . ' ' . $str_hours[0] . ':' . $str_hours[1] . ':00',
                                     'working_type_id' => 1
                                 );
@@ -3014,7 +3015,7 @@ class Admin_Controller extends Subbie{
 
         $this_week = getWeekDateInMonth($year,$month);
         $this->data['id'] = $staff_id;
-        $this->data['date'] = $this_week[$week];
+        $this->data['date'] = @$this_week[$week];
         $this->data['week'] = $week;
 
         $this->my_model->setNormalized('adjustment_type','id');

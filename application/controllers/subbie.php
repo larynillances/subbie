@@ -2972,7 +2972,7 @@ class Subbie extends CI_Controller{
         }
     }
 
-    function getLeaveDaysCount($start, $end, $holidays){
+    function getLeaveDaysCount($start, $end, $holidays, $exclude_week_ends = false){
         $datesInBetween = createDateRangeArray($start, $end);
 
         if(count($holidays) > 0){
@@ -2983,6 +2983,19 @@ class Subbie extends CI_Controller{
                 }
             }
         }
+
+        if($exclude_week_ends){
+            if(count($datesInBetween) > 0){
+                foreach($datesInBetween as $key=>$day){
+                    $date = new DateTime($day);
+                    $curr = $date->format('N');
+                    if($curr == 6 || $curr == 7){
+                        unset($datesInBetween[$key]);
+                    }
+                }
+            }
+        }
+
         $count = count($datesInBetween);
 
         $s = strtotime($start);
@@ -3020,153 +3033,68 @@ class Subbie extends CI_Controller{
             $whatFld[] = 'project_id';
         }
 
-        if($id){
-            $whatVal = array($id);
-            $whatFld = array('tbl_staff.id');
-        }
-
         $staff_data = new Staff_Helper();
-        $staff_list = $staff_data->staff_details($whatVal,$whatFld);
 
-        $rate = $staff_data->staff_rate();
-        $employment_data = $staff_data->staff_employment();
-        $total_gross = array();
-        $total_hours = array();
+        $_date = new DateTime($date);
+        $_end_week = $_date->format('Y-m-d');
+        $_week_modify = $_date->modify('-52 weeks');
+        $_start_week = $_week_modify->format('Y-m-d');
+        $hours_data = $staff_data->staff_total_hours($id,'','',$_start_week,$_end_week,true);
+
         $data = array();
-        $week_data = array();
-        if(count($staff_list) > 0){
-            foreach($staff_list as $val){
-                krsort($rate[$val->id]);
-                if(count(@$rate[$val->id]) > 0){
-                    foreach(@$rate[$val->id] as $start_use=>$v){
-                        $val->rate_name = $v->rate_name;
-                        $val->rate_cost = $v->rate;
-                        $val->start_use = $v->start_use;
+
+        if(count(@$hours_data) > 0){
+            foreach(@$hours_data as $key=>$ev){
+
+                if(floatval($ev->hours) > 0){
+
+                    $ev->daily_gross_ = number_format($ev->daily_gross,0,'.','');
+                    $paye_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$ev->date,$ev->daily_gross_);
+                    $ev->daily_paye = 0;
+                    if(count($paye_) > 0){
+                        $ev->daily_paye = $paye_['tax'];
                     }
-                }
 
-                $date_diff = datediff('ww',$val->start_use, date('Y-m-d', strtotime($date)), false);
-
-                if($date_diff > 0){
-                    $week_diff = $date_diff >= 52 ? 52 : $date_diff;
-                    $start = new DateTime($date);
-                    $start_ = $start->modify('-1 week');
-
-                    $end = new DateTime($start_->format('Y-m-d'));
-                    $end_date = $end->modify('-' . $week_diff . ' weeks');
-                    $week_data[$val->id] = getWeekBetweenDates($end_date->format('Y-m-d'),$start_->format('Y-m-d'));
-                }
-            }
-        }
-
-        if(count($staff_list) > 0){
-            foreach($staff_list as $ev){
-                if(count(@$week_data[$ev->id]) > 0){
-                    foreach(@$week_data[$ev->id] as $key=>$dv){
-                        if(count(@$employment_data[$ev->id]) > 0){
-                            foreach(@$employment_data[$ev->id] as $used_date=>$val){
-                                if(
-                                    strtotime($used_date) <= strtotime($dv) ||
-                                    strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
-                                    $ev->date_employed = $val->date_employed;
-                                    $ev->date_last_pay = $val->date_last_pay;
-                                    $ev->last_week_pay = $val->last_week_pay;
-                                    $ev->has_final_pay = $val->has_final_pay;
-                                }
-                            }
-                        }
-                        //$then = date('Y-m-d H:i:s',strtotime($ev->date_employed));
-                        //$then = new DateTime($then);
-
-                        //$now = date('Y-m-d H:i:s',strtotime($dv));
-                        //$now = new DateTime($now);
-
-                        //$sinceThen = $then->diff($now);
-                        if(strtotime($dv) <= strtotime(date('Y-m-d'))){
-                            $ev->start_use = '';
-                            ksort($rate[$ev->id]);
-                            if(count(@$rate[$ev->id]) > 0){
-                                foreach(@$rate[$ev->id] as $used_date=>$val){
-                                    if(strtotime($used_date) <= strtotime($dv) ||
-                                        strtotime($used_date) <= strtotime(date('Y-m-d',strtotime('+6 days '.$dv)))){
-                                        $ev->rate_name = $val->rate_name;
-                                        $ev->rate_cost = $val->rate;
-                                        $ev->start_use = $val->start_use;
-                                    }
-                                }
-                            }
-                            $ev->tax = 0;
-                            $ev->m_paye = 0;
-                            $ev->me_paye = 0;
-                            $ev->kiwi_ = 0;
-                            $ev->st_loan = 0;
-
-                            $hours = $ev->wage_type != 1 ? $this->getTotalHoursInMonth($dv,$ev->id) : 1;
-
-                            if(floatval($hours) > 0){
-                                @$ev->work_weeks++;
-                                $ev->gross = $ev->rate_cost * $hours;
-                                $ev->gross_ = $ev->gross != 0 ? floatval(number_format($ev->gross,2,'.','')):'0.00';
-                                @$total_gross[$ev->id] += floatval($ev->gross_);
-                                @$total_hours[$ev->id] += floatval($hours);
-                                $ev->work_days = $ev->id != 4 ? 5 : 6;
-                                @$ev->ave_gross = $total_gross[$ev->id] / $ev->work_weeks;
-                                @$ev->daily_gross = (($total_gross[$ev->id] / $ev->work_weeks) / $ev->work_days) * $day;
-                                @$ev->ave_hours = $total_hours[$ev->id] / $ev->work_weeks;
-                                @$ev->daily_hours = (($total_hours[$ev->id] / $ev->work_weeks) / $ev->work_days) * $day;
-                                @$ev->formula_ = '(' . $total_gross[$ev->id] . ' / ' . $ev->work_weeks . ') / ' . $ev->work_days;
-
-                                $ev->daily_gross_ = number_format($ev->daily_gross,0,'.','');
-                                $paye_ = $this->getPayeValue($ev->field_code,$ev->frequency_id,$dv,$ev->daily_gross_);
-                                $ev->daily_paye = 0;
-                                if(count($paye_) > 0){
-                                    $ev->daily_paye = $paye_['tax'];
-                                }
-
-                                $data[$ev->id][$ev->work_weeks .' ' .$key] = array(
-                                    'gross' => $ev->gross,
-                                    'formula' => $ev->rate_cost . '*' . $hours
-                                );
-                                if($weekly){
-                                    $gross_data[$ev->id][$dv] = array(
-                                        'date' => $dv,
-                                        'gross' => floatval($ev->gross_),
-                                        'hours' => $hours,
-                                        'total_gross' => $total_gross[$ev->id],
-                                        'total_hours' => $total_hours[$ev->id],
-                                        'weeks' => $ev->work_weeks,
-                                        'ave_gross' => number_format($ev->ave_gross,2,'.',''),
-                                        'daily_gross' => number_format($ev->daily_gross,2,'.',''),
-                                        'ave_hours' => number_format($ev->ave_hours,2,'.',''),
-                                        'daily_hours' => number_format($ev->daily_hours,2,'.',''),
-                                        'daily_paye' => number_format($ev->daily_paye,2,'.',''),
-                                        'formula_daily_gross' => $ev->formula_
-                                    );
-                                }
-                                else{
-                                    $gross_data[$ev->id] = array(
-                                        'date' => $dv,
-                                        'gross' => floatval($ev->gross_),
-                                        'hours' => $hours,
-                                        'total_gross' => $total_gross[$ev->id],
-                                        'total_hours' => $total_hours[$ev->id],
-                                        'weeks' => $ev->work_weeks,
-                                        'days' => $ev->work_days,
-                                        'ave_gross' => number_format($ev->ave_gross,2,'.',''),
-                                        'daily_gross' => number_format($ev->daily_gross,2,'.',''),
-                                        'ave_hours' => number_format($ev->ave_hours,2,'.',''),
-                                        'daily_hours' => number_format($ev->daily_hours,2,'.',''),
-                                        'daily_paye' => number_format($ev->daily_paye,2,'.',''),
-                                        'formula_daily_gross' => $ev->formula_
-                                    );
-                                }
-                            }
-                        }
+                    $data[$ev->staff_id][$ev->weeks .' ' .$key] = array(
+                        'gross' => $ev->gross,
+                        'formula' => $ev->rate_cost . '*' . $ev->hours
+                    );
+                    if($weekly){
+                        $gross_data[$ev->staff_id][$ev->date] = array(
+                            'date' => $ev->date,
+                            'gross' => floatval($ev->gross),
+                            'hours' => $ev->hours,
+                            'total_gross' => $ev->total_rate,
+                            'total_hours' => $ev->total_hours,
+                            'weeks' => $ev->weeks,
+                            'ave_gross' => number_format($ev->ave_gross,2,'.',''),
+                            'daily_gross' => number_format($ev->daily_gross,2,'.',''),
+                            'ave_hours' => number_format($ev->ave_hours,2,'.',''),
+                            'daily_hours' => number_format($ev->daily_hours,2,'.',''),
+                            'daily_paye' => number_format($ev->daily_paye,2,'.',''),
+                            'formula_daily_gross' => $ev->formula_daily_gross
+                        );
+                    }
+                    else{
+                        $gross_data[$ev->staff_id] = array(
+                            'date' => $ev->date,
+                            'gross' => floatval($ev->gross),
+                            'hours' => $ev->hours,
+                            'total_gross' => $ev->total_rate,
+                            'total_hours' => $ev->total_hours,
+                            'weeks' => $ev->weeks,
+                            'days' => $ev->days,
+                            'ave_gross' => number_format($ev->ave_gross,2,'.',''),
+                            'daily_gross' => number_format($ev->daily_gross,2,'.',''),
+                            'ave_hours' => number_format($ev->ave_hours,2,'.',''),
+                            'daily_hours' => number_format($ev->daily_hours,2,'.',''),
+                            'daily_paye' => number_format($ev->daily_paye,2,'.',''),
+                            'formula_daily_gross' => $ev->formula_daily_gross
+                        );
                     }
                 }
             }
         }
-
         return $gross_data;
     }
 
@@ -3466,7 +3394,7 @@ class Subbie extends CI_Controller{
         $data = new Staff_Helper();
         $whatVal = array(6,1);
         $whatFld = array('tbl_leave.type !=','tbl_leave.decision');
-        $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24));
+        $last_month = mktime(0, 0, 0, $month, 0, $year) - ((30*3600*24) * 2);
         $last_week = mktime(0, 0, 0, $month, 0, $year) - (7*3600*24);
 
         $sql_val = '';
@@ -3487,13 +3415,8 @@ class Subbie extends CI_Controller{
             $whatFld[] = 'YEAR(tbl_leave.leave_start) =';
         }
         if($month){
-            /*$whatVal[] = $month;
-            $whatFld[] = 'MONTH(tbl_leave.leave_start) <=';
-
-            $whatVal[] = date('m',$last_month);
-            $whatFld[] = 'MONTH(tbl_leave.leave_start) >=';*/
-
-            $sql_val .= "AND (MONTH(tbl_leave.leave_start) <= '" . $month ."' AND YEAR(tbl_leave.leave_start) ='" . $year . "')";
+            $sql_val .= $week ? 'AND' : '';
+            $sql_val .= "(MONTH(tbl_leave.leave_start) <= '" . $month ."' AND YEAR(tbl_leave.leave_start) ='" . $year . "')";
             $sql_val .= " OR (MONTH(tbl_leave.leave_start) >= '" . date('m',$last_month) ."' AND YEAR(tbl_leave.leave_start) ='".date('Y',$last_month)."')";
         }
         if($id){
@@ -3507,23 +3430,21 @@ class Subbie extends CI_Controller{
 
         $return = array();
         $holiday = $data->stat_holiday($year,$month,$week);
+
         if(count($acc_leave) > 0){
             foreach($acc_leave as $key=>$val){
                 $ref = 1;
                 $total_pay = array();
                 if(count($val) > 0){
                     foreach($val as $k=>$v){
-                        /*$leave_pay = $this->calculateTotalLeavePay(
-                            $key,$v->type,$v->leave_start,$v->leave_end,
-                            $v->range_type
-                        );*/
+
                         $total_holiday_leave = $this->getLeaveDaysCount($v->leave_start,$v->leave_end,$holiday);
                         $total_holiday_leave = $v->type == 7 ? 0.8 : $total_holiday_leave;
                         $leave_pay = $this->getLeaveWeeklyPay($v->user_id,$k,$total_holiday_leave);
                         $pay = @$leave_pay[$v->user_id];
                         $date = new DateTime($k);
                         $key_ = $is_weekly ? $date->format('W-Y') : $k;
-                        //DisplayArray($leave_pay);
+
                         if(count($pay) > 0){
                             if($v->type == 7){
                                 if($ref <= 5){
@@ -3570,5 +3491,56 @@ class Subbie extends CI_Controller{
             }
         }
         return $return;
+    }
+
+    function phpGetAverageHours(){
+        $wage_total_data = array();
+        $whatVal = "date BETWEEN  '2015-05-01' AND  '2015-12-18' AND (staff_id = '1' OR staff_id = '2' OR staff_id = '3')";
+            $fld = array(
+                'SUM(
+                IF(time_out != "" AND time_in != "",
+                    FORMAT(TIMESTAMPDIFF(SECOND, time_in, time_out) / 3600 - (
+                        IF(
+                            TIME(DATE_FORMAT(time_in ,  "%H:%i:%s" )) <= MAKETIME( 12, 00, 0 ) AND TIME(DATE_FORMAT(time_out ,  "%H:%i:%s" )) >= MAKETIME( 13, 30, 0 ),
+                            0.50,
+                            0)
+                        ),
+                    2),
+                0)
+            ) as hours',
+                'time_in','time_out','staff_id','date',
+                'tbl_login_sheet.id as dtr_id','working_type_id','week_year'
+            );
+        $this->my_model->setSelectFields($fld);
+        $this->my_model->setGroupBy(array('staff_id','date'));
+        $staff_ = $this->my_model->getInfo('tbl_login_sheet',$whatVal,'');
+        //echo realpath(APPPATH.'../json');
+        $file = fopen('C:\xampp\htdocs\subbie\json\contacts.csv','w');
+        $array = array();
+        foreach($staff_ as $key=>$val){
+            $array[$val->staff_id][] = $val;
+            //fputcsv($file,$val);
+        }
+        $array_ = array();
+        if(count($array) > 0){
+            foreach($array as $k=>$v){
+                $staff = $this->my_model->getInfo('tbl_staff',3);
+                foreach($staff as $key=>$val){
+                    //$array_[] = $val->fname.' '.$val->lname;
+                }
+                if(count($v) > 0){
+                    foreach($v as $value){
+                        //$array_[] = number_format($value->hours,2);
+                        //echo number_format($value->hours,2).'<br/>';
+                        echo $value->date.'<br/>';
+                    }
+                }
+
+            }
+        }
+        //fputcsv($file,$array_);
+        //fclose($file);
+        //DisplayArray($array_);
+        return $wage_total_data;
     }
 }

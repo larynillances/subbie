@@ -1468,6 +1468,7 @@ class Staff_Controller extends Subbie{
 
         $_this_date = new DateTime();
         $default_week = date('N') >= 4 ? $_this_date->format('W') : $_this_date->format('W') - 1;
+        $default_week = str_pad($default_week,2,'0',STR_PAD_LEFT);
         $this->data['thisYear'] = $this->session->userdata('$_year') != '' ? $this->session->userdata('$_year') : date('Y');
         $this->data['thisMonth'] = $this->session->userdata('$_month') != '' ? $this->session->userdata('$_month') : date('m');
         $this->data['thisWeek'] = $this->session->userdata('$_week') != '' ? $this->session->userdata('$_week') : $default_week;
