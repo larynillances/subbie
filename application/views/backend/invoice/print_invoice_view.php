@@ -40,12 +40,16 @@ ob_start();
             .table-invoice > tbody > tr > td{
                 text-align: center;
 <<<<<<< HEAD
+<<<<<<< HEAD
                 border-right: 2px solid #000000;
 =======
 <<<<<<< HEAD
 =======
                 border-right: 2px solid #000000;
 >>>>>>> a20689772a63eeeadec3169410397a74bd3a4ebf
+>>>>>>> dev_update
+=======
+                border-right: 2px solid #000000;
 >>>>>>> dev_update
                 border-left: 2px solid #000000;
                 padding: 2px;
@@ -401,6 +405,7 @@ ob_start();
             else{
                 ?>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
                 <tr class="border-top border-bottom">
@@ -414,6 +419,8 @@ ob_start();
 =======
 
 >>>>>>> dev_update
+=======
+>>>>>>> dev_update
                 <tr class="border-top">
                     <td rowspan="4" colspan="4" class="align-left" style="border-bottom: 2px solid #000000;">
                         <?php echo $terms_trade;?>
@@ -421,13 +428,17 @@ ob_start();
                     <td class="font-bold align-right" style="border-left: 2px solid #000000;">Sub Total</td>
                     <td style="border-right: 2px solid #000000;border-bottom: none;">
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> a20689772a63eeeadec3169410397a74bd3a4ebf
+>>>>>>> dev_update
+=======
 >>>>>>> dev_update
                         <?php echo '$ '.number_format($subtotal,2);?>
                     </td>
                 </tr>
                 <tr class="total">
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 <<<<<<< HEAD
@@ -442,6 +453,8 @@ ob_start();
                     <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Total</td>
 =======
 >>>>>>> dev_update
+=======
+>>>>>>> dev_update
                     <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Rate</td>
                     <td style="border: none;"><?php echo '15%';?></td>
                 </tr>
@@ -452,8 +465,11 @@ ob_start();
                 <tr class="total border-bottom">
                     <td class="font-bold align-right" style="border-left: 2px solid #000000">Total</td>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> a20689772a63eeeadec3169410397a74bd3a4ebf
+>>>>>>> dev_update
+=======
 >>>>>>> dev_update
                     <td style="border: none; font-weight: bold">
                         <?php
