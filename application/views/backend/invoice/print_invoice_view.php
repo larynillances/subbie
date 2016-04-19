@@ -39,7 +39,14 @@ ob_start();
             }
             .table-invoice > tbody > tr > td{
                 text-align: center;
+<<<<<<< HEAD
                 border-right: 2px solid #000000;
+=======
+<<<<<<< HEAD
+=======
+                border-right: 2px solid #000000;
+>>>>>>> a20689772a63eeeadec3169410397a74bd3a4ebf
+>>>>>>> dev_update
                 border-left: 2px solid #000000;
                 padding: 2px;
                 font-size: 11px!important;
@@ -393,16 +400,48 @@ ob_start();
             }
             else{
                 ?>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                <tr class="border-top border-bottom">
+                    <td rowspan="5" colspan="4" class="align-left" style="border-right: none;">
+                        <?php echo $terms_trade;?>
+                    </td>
+                </tr>
+                <tr class="total border-top">
+                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Sub Total</td>
+                    <td style="border: none;">
+=======
+
+>>>>>>> dev_update
                 <tr class="border-top">
                     <td rowspan="4" colspan="4" class="align-left" style="border-bottom: 2px solid #000000;">
                         <?php echo $terms_trade;?>
                     </td>
                     <td class="font-bold align-right" style="border-left: 2px solid #000000;">Sub Total</td>
                     <td style="border-right: 2px solid #000000;border-bottom: none;">
+<<<<<<< HEAD
+=======
+>>>>>>> a20689772a63eeeadec3169410397a74bd3a4ebf
+>>>>>>> dev_update
                         <?php echo '$ '.number_format($subtotal,2);?>
                     </td>
                 </tr>
                 <tr class="total">
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Rate</td>
+                    <td style="border: none;"><?php echo '15%';?></td>
+                </tr>
+                <tr class="total">
+                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Total</td>
+                    <td style="border: none;"><?php echo '$ '.number_format($subtotal * 0.15,2);?></td>
+                </tr>
+                <tr class="total border-bottom">
+                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Total</td>
+=======
+>>>>>>> dev_update
                     <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Rate</td>
                     <td style="border: none;"><?php echo '15%';?></td>
                 </tr>
@@ -412,6 +451,10 @@ ob_start();
                 </tr>
                 <tr class="total border-bottom">
                     <td class="font-bold align-right" style="border-left: 2px solid #000000">Total</td>
+<<<<<<< HEAD
+=======
+>>>>>>> a20689772a63eeeadec3169410397a74bd3a4ebf
+>>>>>>> dev_update
                     <td style="border: none; font-weight: bold">
                         <?php
                         $total = $subtotal + ($subtotal * 0.15);
