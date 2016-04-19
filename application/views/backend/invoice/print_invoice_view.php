@@ -39,6 +39,7 @@ ob_start();
             }
             .table-invoice > tbody > tr > td{
                 text-align: center;
+                border-right: 2px solid #000000;
                 border-left: 2px solid #000000;
                 padding: 2px;
                 font-size: 11px!important;
@@ -392,27 +393,25 @@ ob_start();
             }
             else{
                 ?>
-                <tr class="border-top border-bottom">
-                    <td rowspan="5" colspan="4" class="align-left" style="border-right: none;">
+                <tr class="border-top">
+                    <td rowspan="4" colspan="4" class="align-left" style="border-bottom: 2px solid #000000;">
                         <?php echo $terms_trade;?>
                     </td>
-                </tr>
-                <tr class="total border-top">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Sub Total</td>
-                    <td style="border: none;">
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000;">Sub Total</td>
+                    <td style="border-right: 2px solid #000000;border-bottom: none;">
                         <?php echo '$ '.number_format($subtotal,2);?>
                     </td>
                 </tr>
                 <tr class="total">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Rate</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Rate</td>
                     <td style="border: none;"><?php echo '15%';?></td>
                 </tr>
                 <tr class="total">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Total</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Total</td>
                     <td style="border: none;"><?php echo '$ '.number_format($subtotal * 0.15,2);?></td>
                 </tr>
                 <tr class="total border-bottom">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Total</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">Total</td>
                     <td style="border: none; font-weight: bold">
                         <?php
                         $total = $subtotal + ($subtotal * 0.15);
