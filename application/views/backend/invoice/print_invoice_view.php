@@ -403,15 +403,15 @@ ob_start();
                     </td>
                 </tr>
                 <tr class="total">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Rate</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Rate</td>
                     <td style="border: none;"><?php echo '15%';?></td>
                 </tr>
                 <tr class="total">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">GST Total</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">GST Total</td>
                     <td style="border: none;"><?php echo '$ '.number_format($subtotal * 0.15,2);?></td>
                 </tr>
                 <tr class="total border-bottom">
-                    <td class="font-bold align-right" style="border-left: none;border-right: 2px solid #000000">Total</td>
+                    <td class="font-bold align-right" style="border-left: 2px solid #000000">Total</td>
                     <td style="border: none; font-weight: bold">
                         <?php
                         $total = $subtotal + ($subtotal * 0.15);
