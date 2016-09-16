@@ -132,7 +132,7 @@ class Admin_Controller extends Subbie{
                         unset($_POST['job_name']);
 
                         $quote_id = $this->my_model->insert('tbl_quotation',$_POST);
-
+                        $this->session->set_flashdata(['confirmation' => '<div class="alert alert-success">Successfully Updated!</div>']);
                         redirect('quoteRequested/'.$_POST['client_id'].'/'.$quote_id);
                     }else{
                         $post = array(
@@ -159,7 +159,7 @@ class Admin_Controller extends Subbie{
                         $_POST['job_id'] = $id;
 
                         $quote_id = $this->my_model->insert('tbl_quotation',$_POST);
-
+                        $this->session->set_flashdata(['confirmation' => '<div class="alert alert-success">Successfully Added!</div>']);
                         redirect('quoteRequested/'.$_POST['client_id'].'/'.$quote_id);
                     }
                     break;
@@ -190,7 +190,7 @@ class Admin_Controller extends Subbie{
         $this->my_model->setSelectFields(array(
             'tbl_quotation.id','tbl_quotation.client_id','tbl_quotation.job_address','tbl_quotation.price','tbl_quotation.tags',
             'tbl_quotation.price * 0.15 as gst', 'CONCAT("SQ",LPAD(tbl_quotation.id + 30, 5,"0")) as quote_num',
-            'tbl_registration.address','tbl_quotation.is_archive'
+            'tbl_registration.address','tbl_quotation.is_archive','tbl_registration.job_name'
         ));
         $this->data['quotation'] = $this->my_model->getinfo('tbl_quotation',$quote_id,'tbl_quotation.id');
         if(count($this->data['quotation']) > 0){
@@ -229,7 +229,7 @@ class Admin_Controller extends Subbie{
         $this->my_model->setSelectFields(array(
             'tbl_quotation.id','tbl_quotation.client_id','tbl_quotation.job_address','tbl_quotation.price','tbl_quotation.tags',
             'tbl_quotation.price * 0.15 as gst', 'CONCAT("SQ",LPAD(tbl_quotation.id + 30, 5,"0")) as quote_num',
-            'tbl_registration.address','tbl_quotation.is_archive'
+            'tbl_registration.address','tbl_quotation.is_archive','tbl_registration.job_name'
         ));
         $this->data['quotation'] = $this->my_model->getinfo('tbl_quotation',$quote_id,'tbl_quotation.id');
         $quote_num = '';

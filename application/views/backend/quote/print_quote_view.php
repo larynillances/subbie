@@ -79,7 +79,7 @@ ob_start();
                     if(count($quotation)>0):
                         foreach($quotation as $v):
                             $address = $v->address ? (object)json_decode($v->address) : array();
-                            $this_add = $v->address ? $address->number.' '.$address->name.', '.$address->suburb.', '.$address->city : $v->job_address;
+                            $this_add = $v->job_name;//$v->address ? $address->number.' '.$address->name.', '.$address->suburb.', '.$address->city : $v->job_address;
                             $quote_num = $v->quote_num;
                             ?>
                             <table style="width: 100%;">
@@ -113,7 +113,6 @@ ob_start();
                                         be charge at $50 per hour per man, materials will be charge at $25 per litre.<br/><br/><br/>
 
                                         Yours faithfully,<br/><br/><br/>
-                                        Tony Boniface<br/>
                                         Operation Manager<br/>
                                     </p>
                                     <table style="width: 100%">

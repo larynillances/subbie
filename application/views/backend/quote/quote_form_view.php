@@ -32,7 +32,8 @@ echo form_open('','style="font-size:13px!important;"');
             if(count($quotation)>0):
                 foreach($quotation as $v):
                     $address = $v->address ? (object)json_decode($v->address) : array();
-                    $this_add = $v->address ? $address->number.' '.$address->name.', '.$address->suburb.', '.$address->city : $v->job_address;
+                    $this_add = $v->job_name;
+
                     ?>
                     <table style="width: 100%;">
                         <thead>
@@ -65,7 +66,6 @@ echo form_open('','style="font-size:13px!important;"');
                                 be charge at $50 per hour per man, materials will be charge at $25 per litre.<br/><br/><br/>
 
                                 Yours faithfully,<br/><br/><br/>
-                                Tony Boniface<br/>
                                 Operation Manager<br/>
                             </p>
                             <table style="width: 100%">
@@ -93,7 +93,7 @@ echo form_open('','style="font-size:13px!important;"');
                         <a href="<?php echo base_url().'quoteList'?>" class="btn btn-sm btn-success">Back</a>
                         <a href="#" class="btn btn-sm btn-primary edit-btn" id="<?php echo $v->id;?>">Edit</a>
                         <input type="submit" name="send" class="btn btn-sm btn-primary" value="Send">
-                        <a href="<?php echo base_url().'printQuote/'.$v->client_id.'/'.$v->id?>" class="btn btn-sm btn-primary print-btn" style="display: none;" target="_blank">Print</a>
+                        <a href="<?php echo base_url().'printQuote/'.$v->client_id.'/'.$v->id?>" class="btn btn-sm btn-primary print-btn" target="_blank">Print</a>
                         <input type="submit" name="archive" class="btn btn-sm btn-primary archive-quote" value="Archive">
                     </div>
                 <?php

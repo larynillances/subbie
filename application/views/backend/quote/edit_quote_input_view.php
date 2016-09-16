@@ -90,7 +90,7 @@ echo form_close();
         }
         ?>
         $('.client').selectCountry({
-            cityName: 'client',
+            cityName: 'job_id',
             city: job,
             style: 'width: 250px;',
             appendWhere: job_class
